@@ -62,6 +62,13 @@ enum ExamAttemptStatus {
   GRADED
 }
 
+enum AssignmentSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  LATE
+  GRADED
+}
+
 model School {
   id              String       @id @default(uuid())
   name            String
@@ -94,6 +101,10 @@ model School {
   exams              Exam[]
   examAttempts       ExamAttempt[]
   announcements      Announcement[]
+  assignments        Assignment[]
+  materials          CourseMaterial[]
+  syllabusItems      SyllabusItem[]
+  notifications      Notification[]
   auditLogs          AuditLog[]
 
   @@index([status])
@@ -123,6 +134,11 @@ model User {
   attendanceSessions  AttendanceSession[] @relation("AttendanceMarker")
   examAttempts        ExamAttempt[]
   announcements       Announcement[]      @relation("AnnouncementCreator")
+  assignmentsCreated  Assignment[]        @relation("AssignmentCreator")
+  submissions         AssignmentSubmission[]
+  materialsCreated    CourseMaterial[]    @relation("MaterialCreator")
+  syllabusCreated     SyllabusItem[]      @relation("SyllabusCreator")
+  notifications       Notification[]
   auditLogs           AuditLog[]
 
   @@index([schoolId, role])
@@ -186,6 +202,9 @@ model Class {
   attendanceSessions AttendanceSession[]
   exams              Exam[]
   announcements      Announcement[]
+  coursework         Assignment[]
+  materials          CourseMaterial[]
+  syllabusItems      SyllabusItem[]
 
   @@unique([schoolId, name, section, academicYear])
   @@index([schoolId])
@@ -201,6 +220,9 @@ model Subject {
   school      School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   assignments TeacherAssignment[]
   exams        Exam[]
+  coursework   Assignment[]
+  materials    CourseMaterial[]
+  syllabusItems SyllabusItem[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -431,6 +453,111 @@ model Announcement {
 
   @@index([schoolId, createdAt])
   @@index([schoolId, classId])
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  schoolId    String
+  classId     String
+  subjectId   String
+  createdById String
+  title       String
+  instructions String
+  attachmentUrl String?
+  dueAt       DateTime?
+  maxMarks    Decimal? @db.Decimal(8,2)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class       Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdBy   User @relation("AssignmentCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  submissions AssignmentSubmission[]
+
+  @@index([schoolId, classId, dueAt])
+  @@index([schoolId, subjectId])
+}
+
+model AssignmentSubmission {
+  id          String                     @id @default(uuid())
+  assignmentId String
+  studentUserId String
+  textAnswer  String?
+  attachmentUrl String?
+  status      AssignmentSubmissionStatus @default(DRAFT)
+  submittedAt DateTime?
+  score       Decimal?                   @db.Decimal(8,2)
+  feedback    String?
+  gradedAt    DateTime?
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentUserId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, studentUserId])
+  @@index([studentUserId, status])
+}
+
+model CourseMaterial {
+  id          String   @id @default(uuid())
+  schoolId    String
+  classId     String
+  subjectId   String
+  createdById String
+  title       String
+  description String?
+  fileUrl     String?
+  externalUrl String?
+  createdAt   DateTime @default(now())
+
+  school    School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("MaterialCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, classId, subjectId])
+}
+
+model SyllabusItem {
+  id          String   @id @default(uuid())
+  schoolId    String
+  classId     String
+  subjectId   String
+  createdById String
+  title       String
+  description String?
+  sortOrder   Int      @default(0)
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school    School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("SyllabusCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, classId, subjectId, sortOrder])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  schoolId  String
+  userId    String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([schoolId, createdAt])
 }
 
 model AuditLog {
