@@ -14,6 +14,7 @@ import StudentExamCenter from '../pages/student/StudentExamCenter';
 import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard';
 import SuperAdminSchools from '../pages/super-admin/SuperAdminSchools';
 import ExamStudio from '../pages/teacher/ExamStudio';
+import TeacherAttendance from '../pages/teacher/TeacherAttendance';
 import TeacherDashboard from '../pages/teacher/TeacherDashboard';
 import TeacherGrading from '../pages/teacher/TeacherGrading';
 
@@ -43,6 +44,7 @@ export default function App() {
       </Route>
       <Route element={<ProtectedRoute roles={['TEACHER']} />}>
         <Route path="/teacher" element={<TeacherDashboard />} />
+        <Route path="/teacher/attendance" element={<TeacherAttendance />} />
         <Route path="/teacher/grading" element={<TeacherGrading />} />
       </Route>
       <Route element={<ProtectedRoute roles={['TEACHER','PRINCIPAL']} />}>
