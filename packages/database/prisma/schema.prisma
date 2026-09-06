@@ -93,6 +93,7 @@ model School {
   attendanceSessions AttendanceSession[]
   exams              Exam[]
   examAttempts       ExamAttempt[]
+  announcements      Announcement[]
   auditLogs          AuditLog[]
 
   @@index([status])
@@ -121,6 +122,7 @@ model User {
   reviewedApprovals   ApprovalRequest[]   @relation("ApprovalReviewer")
   attendanceSessions  AttendanceSession[] @relation("AttendanceMarker")
   examAttempts        ExamAttempt[]
+  announcements       Announcement[]      @relation("AnnouncementCreator")
   auditLogs           AuditLog[]
 
   @@index([schoolId, role])
@@ -183,6 +185,7 @@ model Class {
   assignments        TeacherAssignment[]
   attendanceSessions AttendanceSession[]
   exams              Exam[]
+  announcements      Announcement[]
 
   @@unique([schoolId, name, section, academicYear])
   @@index([schoolId])
@@ -392,20 +395,42 @@ model ExamAttempt {
 }
 
 model StudentAnswer {
-  id         String   @id @default(uuid())
-  attemptId  String
-  questionId String
-  answer     Json?
-  autoScore  Decimal? @db.Decimal(8,2)
+  id          String   @id @default(uuid())
+  attemptId   String
+  questionId  String
+  answer      Json?
+  autoScore   Decimal? @db.Decimal(8,2)
   manualScore Decimal? @db.Decimal(8,2)
-  feedback   String?
-  updatedAt  DateTime @updatedAt
+  feedback    String?
+  updatedAt   DateTime @updatedAt
 
   attempt  ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
   @@index([questionId])
+}
+
+model Announcement {
+  id          String         @id @default(uuid())
+  schoolId    String
+  createdById String
+  classId     String?
+  title       String
+  body        String
+  audience    PlatformRole[]
+  isPinned    Boolean        @default(false)
+  publishAt   DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  school    School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  class     Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, classId])
 }
 
 model AuditLog {
