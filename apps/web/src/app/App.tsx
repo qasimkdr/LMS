@@ -5,6 +5,7 @@ import PrincipalApprovalCenter from '../pages/principal/PrincipalApprovalCenter'
 import StaffRequests from '../pages/staff/StaffRequests';
 import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard';
 import SuperAdminSchools from '../pages/super-admin/SuperAdminSchools';
+import ExamStudio from '../pages/teacher/ExamStudio';
 
 function DashboardPlaceholder() {
   return <div className="grid min-h-screen place-items-center bg-[#f7f9ff] text-slate-700">School dashboard modules are being connected.</div>;
@@ -23,6 +24,9 @@ export default function App() {
       </Route>
       <Route element={<ProtectedRoute roles={['STAFF']} />}>
         <Route path="/staff/requests" element={<StaffRequests />} />
+      </Route>
+      <Route element={<ProtectedRoute roles={['TEACHER','PRINCIPAL']} />}>
+        <Route path="/teacher/exams/new" element={<ExamStudio />} />
       </Route>
       <Route element={<ProtectedRoute roles={['PRINCIPAL', 'STAFF', 'TEACHER', 'STUDENT', 'PARENT']} />}>
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
