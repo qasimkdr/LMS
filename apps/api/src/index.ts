@@ -15,6 +15,7 @@ import policyRoutes from './routes/policies.js';
 import teacherAssignmentRoutes from './routes/teacherAssignments.js';
 import examAttemptRoutes from './routes/examAttempts.js';
 import portalRoutes from './routes/portal.js';
+import announcementRoutes from './routes/announcements.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -41,6 +42,7 @@ app.use('/api/policies', policyRoutes);
 app.use('/api/teacher-assignments', teacherAssignmentRoutes);
 app.use('/api/exam-attempts', examAttemptRoutes);
 app.use('/api/portal', portalRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
