@@ -22,6 +22,7 @@ import parentRoutes from './routes/parents.js';
 import reportRoutes from './routes/reports.js';
 import campusRoutes from './routes/campus.js';
 import advancedAnalyticsRoutes from './routes/advancedAnalytics.js';
+import feeRoutes from './routes/fees.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -55,6 +56,7 @@ app.use('/api/parents', parentRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/campus', campusRoutes);
 app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
+app.use('/api/fees', feeRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
