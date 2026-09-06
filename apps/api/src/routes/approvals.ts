@@ -6,8 +6,8 @@ import { requireAuth, requireRoles, requireTenant } from '../middleware/auth.js'
 const router = Router();
 router.use(requireAuth, requireTenant);
 
-const requestSchema = z.object({
-  requestType: z.enum(['TEACHER_ASSIGNMENT']),
+const teacherAssignmentSchema = z.object({
+  requestType: z.literal('TEACHER_ASSIGNMENT'),
   entityType: z.string().default('TeacherAssignment'),
   entityId: z.string().optional(),
   proposedData: z.object({ teacherId: z.string().uuid(), classId: z.string().uuid(), subjectId: z.string().uuid() }),
@@ -28,7 +28,7 @@ router.get('/', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => {
 });
 
 router.post('/', requireRoles('STAFF'), async (req, res) => {
-  const parsed = requestSchema.safeParse(req.body);
+  const parsed = teacherAssignmentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: 'Invalid approval request', issues: parsed.error.flatten() });
 
   const { teacherId, classId, subjectId } = parsed.data.proposedData;
@@ -56,15 +56,15 @@ router.post('/', requireRoles('STAFF'), async (req, res) => {
 });
 
 router.patch('/:id/resubmit', requireRoles('STAFF'), async (req, res) => {
-  const parsed = requestSchema.pick({ proposedData: true, note: true }).safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: 'Invalid revision' });
   const current = await prisma.approvalRequest.findFirst({ where: { id: req.params.id, schoolId: req.auth!.schoolId, requesterId: req.auth!.userId, status: 'REVISION_REQUIRED' } });
   if (!current) return res.status(404).json({ message: 'Revision request not found' });
+  const proposedData = req.body?.proposedData;
+  if (!proposedData || typeof proposedData !== 'object') return res.status(400).json({ message: 'Invalid revision' });
   const revision = current.revision + 1;
   const updated = await prisma.$transaction(async (tx) => {
-    const request = await tx.approvalRequest.update({ where: { id: current.id }, data: { proposedData: parsed.data.proposedData, revision, status: 'RESUBMITTED', submittedAt: new Date(), principalRemark: null } });
-    await tx.approvalVersion.create({ data: { approvalRequestId: current.id, revision, proposedData: parsed.data.proposedData, note: parsed.data.note } });
-    await tx.auditLog.create({ data: { schoolId: req.auth!.schoolId!, actorId: req.auth!.userId, action: 'APPROVAL_RESUBMITTED', entityType: 'ApprovalRequest', entityId: current.id, afterData: parsed.data.proposedData } });
+    const request = await tx.approvalRequest.update({ where: { id: current.id }, data: { proposedData, revision, status: 'RESUBMITTED', submittedAt: new Date(), principalRemark: null } });
+    await tx.approvalVersion.create({ data: { approvalRequestId: current.id, revision, proposedData, note: typeof req.body.note === 'string' ? req.body.note : undefined } });
+    await tx.auditLog.create({ data: { schoolId: req.auth!.schoolId!, actorId: req.auth!.userId, action: 'APPROVAL_RESUBMITTED', entityType: 'ApprovalRequest', entityId: current.id, afterData: proposedData } });
     return request;
   });
   res.json(updated);
@@ -94,6 +94,15 @@ router.patch('/:id/review', requireRoles('PRINCIPAL'), async (req, res) => {
         create: { schoolId: req.auth!.schoolId!, teacherId: data.teacherId, classId: data.classId, subjectId: data.subjectId },
         update: {},
       });
+    }
+
+    if (parsed.data.decision === 'APPROVE' && current.requestType === 'ANNOUNCEMENT_PUBLISH') {
+      const data = current.proposedData as { title: string; body: string; audience: Array<'PRINCIPAL'|'STAFF'|'TEACHER'|'STUDENT'|'PARENT'>; classId?: string; publishAt?: string | Date; expiresAt?: string | Date };
+      if (data.classId) {
+        const klass = await tx.class.findFirst({ where: { id: data.classId, schoolId: req.auth!.schoolId } });
+        if (!klass) throw new Error('Announcement class is no longer valid');
+      }
+      await tx.announcement.create({ data: { schoolId: req.auth!.schoolId!, createdById: current.requesterId, title: data.title, body: data.body, audience: data.audience, classId: data.classId, publishAt: data.publishAt ? new Date(data.publishAt) : undefined, expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined } });
     }
 
     const status = parsed.data.decision === 'APPROVE' ? 'APPROVED' : parsed.data.decision === 'REJECT' ? 'REJECTED' : 'REVISION_REQUIRED';
