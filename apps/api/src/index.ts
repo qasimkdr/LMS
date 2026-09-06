@@ -3,6 +3,9 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import authRoutes from './routes/auth.js';
+import approvalRoutes from './routes/approvals.js';
+import superAdminRoutes from './routes/superAdmin.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -15,6 +18,15 @@ app.use(cookieParser());
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'nexora-api', timestamp: new Date().toISOString() });
+});
+
+app.use('/api/auth', authRoutes);
+app.use('/api/super-admin', superAdminRoutes);
+app.use('/api/approvals', approvalRoutes);
+
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ message: 'Unexpected server error' });
 });
 
 app.use((_req, res) => res.status(404).json({ message: 'Route not found' }));
