@@ -3,6 +3,7 @@ import ProtectedRoute from '../features/auth/ProtectedRoute';
 import LoginPage from '../pages/auth/LoginPage';
 import CourseworkHub from '../pages/coursework/CourseworkHub';
 import ParentDashboard from '../pages/parent/ParentDashboard';
+import AdvancedAnalytics from '../pages/principal/AdvancedAnalytics';
 import AnnouncementsPage from '../pages/principal/AnnouncementsPage';
 import PrincipalAnalytics from '../pages/principal/PrincipalAnalytics';
 import PrincipalApprovalCenter from '../pages/principal/PrincipalApprovalCenter';
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/principal/coursework" element={<CourseworkHub />} />
         <Route path="/principal/announcements" element={<AnnouncementsPage />} />
         <Route path="/principal/analytics" element={<PrincipalAnalytics />} />
+        <Route path="/principal/advanced-analytics" element={<AdvancedAnalytics />} />
         <Route path="/principal/report-card" element={<ReportCardPage />} />
         <Route path="/notifications" element={<NotificationCenter />} />
       </Route>
