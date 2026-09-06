@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '../features/auth/ProtectedRoute';
 import LoginPage from '../pages/auth/LoginPage';
+import CourseworkHub from '../pages/coursework/CourseworkHub';
 import ParentDashboard from '../pages/parent/ParentDashboard';
 import PrincipalApprovalCenter from '../pages/principal/PrincipalApprovalCenter';
 import PrincipalAttendance from '../pages/principal/PrincipalAttendance';
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/principal/attendance" element={<PrincipalAttendance />} />
         <Route path="/principal/settings" element={<PrincipalSettings />} />
         <Route path="/principal/approvals" element={<PrincipalApprovalCenter />} />
+        <Route path="/principal/coursework" element={<CourseworkHub />} />
       </Route>
       <Route element={<ProtectedRoute roles={['STAFF']} />}>
         <Route path="/staff/requests" element={<StaffRequests />} />
@@ -46,6 +48,7 @@ export default function App() {
         <Route path="/teacher" element={<TeacherDashboard />} />
         <Route path="/teacher/attendance" element={<TeacherAttendance />} />
         <Route path="/teacher/grading" element={<TeacherGrading />} />
+        <Route path="/teacher/coursework" element={<CourseworkHub />} />
       </Route>
       <Route element={<ProtectedRoute roles={['TEACHER','PRINCIPAL']} />}>
         <Route path="/teacher/exams/new" element={<ExamStudio />} />
@@ -53,6 +56,7 @@ export default function App() {
       <Route element={<ProtectedRoute roles={['STUDENT']} />}>
         <Route path="/student" element={<StudentDashboard />} />
         <Route path="/student/exams" element={<StudentExamCenter />} />
+        <Route path="/student/coursework" element={<CourseworkHub />} />
       </Route>
       <Route element={<ProtectedRoute roles={['PARENT']} />}>
         <Route path="/parent" element={<ParentDashboard />} />
