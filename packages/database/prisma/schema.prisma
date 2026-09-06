@@ -48,6 +48,13 @@ enum QuestionType {
   ESSAY
 }
 
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  LEAVE
+}
+
 model School {
   id              String       @id @default(uuid())
   name            String
@@ -57,6 +64,8 @@ model School {
   phone           String?
   email           String?
   address         String?
+  primaryColor    String       @default("#2563eb")
+  secondaryColor  String       @default("#7c3aed")
   timezone        String       @default("Asia/Karachi")
   status          SchoolStatus @default(TRIAL)
   trialEndsAt     DateTime?
@@ -68,13 +77,16 @@ model School {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  users            User[]
-  classes          Class[]
-  subjects         Subject[]
-  teacherAssignments TeacherAssignment[]
-  approvalRequests ApprovalRequest[]
-  exams            Exam[]
-  auditLogs        AuditLog[]
+  users               User[]
+  classes             Class[]
+  subjects            Subject[]
+  teacherAssignments  TeacherAssignment[]
+  approvalRequests    ApprovalRequest[]
+  approvalPolicies    ApprovalPolicy[]
+  attendanceSessions  AttendanceSession[]
+  attendanceRecords   AttendanceRecord[]
+  exams               Exam[]
+  auditLogs           AuditLog[]
 
   @@index([status])
 }
@@ -94,30 +106,32 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  school       School?      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  studentProfile StudentProfile?
-  parentProfile  ParentProfile?
-  teacherAssignments TeacherAssignment[]
-  requestedApprovals ApprovalRequest[] @relation("ApprovalRequester")
-  reviewedApprovals  ApprovalRequest[] @relation("ApprovalReviewer")
-  auditLogs          AuditLog[]
+  school               School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile       StudentProfile?
+  parentProfile        ParentProfile?
+  teacherAssignments   TeacherAssignment[]
+  requestedApprovals   ApprovalRequest[]     @relation("ApprovalRequester")
+  reviewedApprovals    ApprovalRequest[]     @relation("ApprovalReviewer")
+  attendanceSessions   AttendanceSession[]   @relation("AttendanceMarker")
+  attendanceRecords    AttendanceRecord[]    @relation("AttendanceStudent")
+  auditLogs            AuditLog[]
 
   @@index([schoolId, role])
 }
 
 model StudentProfile {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  schoolId    String
-  admissionNo String
-  classId     String?
-  section     String?
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  schoolId      String
+  admissionNo   String
+  classId       String?
+  section       String?
   guardianPhone String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  class      Class?    @relation(fields: [classId], references: [id])
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class       Class?            @relation(fields: [classId], references: [id])
   parentLinks StudentParent[]
 
   @@unique([schoolId, admissionNo])
@@ -130,8 +144,8 @@ model ParentProfile {
   schoolId  String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  students  StudentParent[]
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students StudentParent[]
 
   @@index([schoolId])
 }
@@ -148,18 +162,19 @@ model StudentParent {
 }
 
 model Class {
-  id        String   @id @default(uuid())
-  schoolId  String
-  name      String
-  section   String?
+  id           String   @id @default(uuid())
+  schoolId     String
+  name         String
+  section      String?
   academicYear String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  students  StudentProfile[]
-  assignments TeacherAssignment[]
-  exams      Exam[]
+  school               School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  students             StudentProfile[]
+  assignments          TeacherAssignment[]
+  attendanceSessions   AttendanceSession[]
+  exams                Exam[]
 
   @@unique([schoolId, name, section, academicYear])
   @@index([schoolId])
@@ -172,7 +187,7 @@ model Subject {
   code      String?
   createdAt DateTime @default(now())
 
-  school      School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school      School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   assignments TeacherAssignment[]
   exams        Exam[]
 
@@ -196,6 +211,21 @@ model TeacherAssignment {
   @@unique([schoolId, teacherId, classId, subjectId])
   @@index([schoolId, teacherId])
   @@index([schoolId, classId])
+}
+
+model ApprovalPolicy {
+  id              String   @id @default(uuid())
+  schoolId        String
+  actionKey       String
+  requiresApproval Boolean @default(true)
+  allowedForStaff Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, actionKey])
+  @@index([schoolId])
 }
 
 model ApprovalRequest {
@@ -237,28 +267,66 @@ model ApprovalVersion {
   @@unique([approvalRequestId, revision])
 }
 
-model Exam {
-  id             String   @id @default(uuid())
-  schoolId       String
-  classId        String
-  subjectId      String
-  createdById    String
-  title          String
-  instructions   String?
-  durationMin    Int
-  totalMarks     Decimal  @db.Decimal(8,2)
-  passingMarks   Decimal? @db.Decimal(8,2)
-  startsAt       DateTime?
-  endsAt         DateTime?
-  randomizeQuestions Boolean @default(false)
-  randomizeOptions   Boolean @default(false)
-  showResults     Boolean @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model AttendanceSession {
+  id         String   @id @default(uuid())
+  schoolId   String
+  classId    String
+  date       DateTime
+  markedById String
+  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  school   School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  class    Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  subject  Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  school   School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class    Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  markedBy User               @relation("AttendanceMarker", fields: [markedById], references: [id])
+  records  AttendanceRecord[]
+
+  @@unique([schoolId, classId, date])
+  @@index([schoolId, date])
+}
+
+model AttendanceRecord {
+  id        String           @id @default(uuid())
+  schoolId  String
+  sessionId String
+  studentId String
+  status    AttendanceStatus
+  remark    String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  school  School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student User              @relation("AttendanceStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+  @@index([schoolId, studentId, createdAt])
+  @@index([schoolId, status, createdAt])
+}
+
+model Exam {
+  id                 String   @id @default(uuid())
+  schoolId           String
+  classId            String
+  subjectId          String
+  createdById        String
+  title              String
+  instructions       String?
+  durationMin        Int
+  totalMarks         Decimal  @db.Decimal(8,2)
+  passingMarks       Decimal? @db.Decimal(8,2)
+  startsAt           DateTime?
+  endsAt             DateTime?
+  randomizeQuestions Boolean  @default(false)
+  randomizeOptions   Boolean  @default(false)
+  showResults        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class     Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   questions Question[]
 
   @@index([schoolId, classId, subjectId])
@@ -275,7 +343,7 @@ model Question {
   orderIndex    Int
   createdAt     DateTime     @default(now())
 
-  exam    Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  exam    Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
   options QuestionOption[]
 
   @@index([examId, orderIndex])
