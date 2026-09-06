@@ -4,12 +4,14 @@ import LoginPage from '../pages/auth/LoginPage';
 import CourseworkHub from '../pages/coursework/CourseworkHub';
 import ParentDashboard from '../pages/parent/ParentDashboard';
 import AnnouncementsPage from '../pages/principal/AnnouncementsPage';
+import PrincipalAnalytics from '../pages/principal/PrincipalAnalytics';
 import PrincipalApprovalCenter from '../pages/principal/PrincipalApprovalCenter';
 import PrincipalAttendance from '../pages/principal/PrincipalAttendance';
 import PrincipalDashboard from '../pages/principal/PrincipalDashboard';
 import PrincipalOperations from '../pages/principal/PrincipalOperations';
 import PrincipalSettings from '../pages/principal/PrincipalSettings';
 import TeacherAssignmentsPage from '../pages/principal/TeacherAssignmentsPage';
+import ReportCardPage from '../pages/reports/ReportCardPage';
 import NotificationCenter from '../pages/shared/NotificationCenter';
 import StaffRequests from '../pages/staff/StaffRequests';
 import StudentAssignments from '../pages/student/StudentAssignments';
@@ -45,6 +47,8 @@ export default function App() {
         <Route path="/principal/approvals" element={<PrincipalApprovalCenter />} />
         <Route path="/principal/coursework" element={<CourseworkHub />} />
         <Route path="/principal/announcements" element={<AnnouncementsPage />} />
+        <Route path="/principal/analytics" element={<PrincipalAnalytics />} />
+        <Route path="/principal/report-card" element={<ReportCardPage />} />
         <Route path="/notifications" element={<NotificationCenter />} />
       </Route>
       <Route element={<ProtectedRoute roles={['STAFF']} />}>
@@ -59,6 +63,7 @@ export default function App() {
         <Route path="/teacher/grading" element={<TeacherGrading />} />
         <Route path="/teacher/submissions" element={<TeacherSubmissionReview />} />
         <Route path="/teacher/coursework" element={<CourseworkHub />} />
+        <Route path="/teacher/report-card" element={<ReportCardPage />} />
         <Route path="/notifications" element={<NotificationCenter />} />
       </Route>
       <Route element={<ProtectedRoute roles={['TEACHER','PRINCIPAL']} />}>
@@ -69,10 +74,12 @@ export default function App() {
         <Route path="/student/exams" element={<StudentExamCenter />} />
         <Route path="/student/coursework" element={<CourseworkHub />} />
         <Route path="/student/assignments" element={<StudentAssignments />} />
+        <Route path="/student/report-card" element={<ReportCardPage />} />
         <Route path="/notifications" element={<NotificationCenter />} />
       </Route>
       <Route element={<ProtectedRoute roles={['PARENT']} />}>
         <Route path="/parent" element={<ParentDashboard />} />
+        <Route path="/parent/report-card" element={<ReportCardPage />} />
         <Route path="/notifications" element={<NotificationCenter />} />
       </Route>
       <Route path="/" element={<Navigate to="/login" replace />} />
