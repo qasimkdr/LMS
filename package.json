@@ -1,0 +1,15 @@
+{
+  "name": "nexora-lms",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n WEB,API \"npm run dev -w @nexora/web\" \"npm run dev -w @nexora/api\"",
+    "build": "npm run build -w @nexora/database && npm run build -w @nexora/api && npm run build -w @nexora/web",
+    "db:generate": "npm run generate -w @nexora/database",
+    "db:migrate": "npm run migrate -w @nexora/database"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
