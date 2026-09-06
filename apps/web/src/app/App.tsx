@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '../features/auth/ProtectedRoute';
 import LoginPage from '../pages/auth/LoginPage';
 import PrincipalApprovalCenter from '../pages/principal/PrincipalApprovalCenter';
+import PrincipalDashboard from '../pages/principal/PrincipalDashboard';
 import StaffRequests from '../pages/staff/StaffRequests';
 import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard';
 import SuperAdminSchools from '../pages/super-admin/SuperAdminSchools';
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/super-admin/schools" element={<SuperAdminSchools />} />
       </Route>
       <Route element={<ProtectedRoute roles={['PRINCIPAL']} />}>
+        <Route path="/principal" element={<PrincipalDashboard />} />
         <Route path="/principal/approvals" element={<PrincipalApprovalCenter />} />
       </Route>
       <Route element={<ProtectedRoute roles={['STAFF']} />}>
@@ -28,7 +30,7 @@ export default function App() {
       <Route element={<ProtectedRoute roles={['TEACHER','PRINCIPAL']} />}>
         <Route path="/teacher/exams/new" element={<ExamStudio />} />
       </Route>
-      <Route element={<ProtectedRoute roles={['PRINCIPAL', 'STAFF', 'TEACHER', 'STUDENT', 'PARENT']} />}>
+      <Route element={<ProtectedRoute roles={['STAFF', 'TEACHER', 'STUDENT', 'PARENT']} />}>
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
       </Route>
       <Route path="/" element={<Navigate to="/login" replace />} />
