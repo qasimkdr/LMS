@@ -19,6 +19,7 @@ import announcementRoutes from './routes/announcements.js';
 import courseworkRoutes from './routes/coursework.js';
 import notificationRoutes from './routes/notifications.js';
 import parentRoutes from './routes/parents.js';
+import reportRoutes from './routes/reports.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -49,6 +50,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/coursework', courseworkRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/parents', parentRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
