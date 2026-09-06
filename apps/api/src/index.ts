@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import authRoutes from './routes/auth.js';
 import approvalRoutes from './routes/approvals.js';
 import superAdminRoutes from './routes/superAdmin.js';
+import schoolDirectoryRoutes from './routes/schoolDirectory.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -23,6 +24,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/approvals', approvalRoutes);
+app.use('/api/school-directory', schoolDirectoryRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
