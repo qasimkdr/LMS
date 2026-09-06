@@ -7,6 +7,39 @@ import { requireAuth, requireRoles } from '../middleware/auth.js';
 const router = Router();
 router.use(requireAuth, requireRoles('SUPER_ADMIN'));
 
+router.get('/dashboard', async (_req, res) => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+  const [schools, users, activeSchools, attentionSchools, newSchools, recentSchools] = await Promise.all([
+    prisma.school.count(),
+    prisma.user.count({ where: { role: { in: ['STUDENT', 'TEACHER', 'STAFF', 'PRINCIPAL', 'PARENT'] } } }),
+    prisma.school.count({ where: { status: 'ACTIVE' } }),
+    prisma.school.count({ where: { status: { in: ['TRIAL', 'GRACE_PERIOD', 'READ_ONLY', 'SUSPENDED'] } } }),
+    prisma.school.count({ where: { createdAt: { gte: monthStart } } }),
+    prisma.school.findMany({ where: { createdAt: { gte: sixMonthsAgo } }, select: { createdAt: true } }),
+  ]);
+
+  const studentCount = await prisma.user.count({ where: { role: 'STUDENT' } });
+  const teacherCount = await prisma.user.count({ where: { role: 'TEACHER' } });
+
+  const monthly = Array.from({ length: 6 }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    const next = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    return {
+      key: `${date.getFullYear()}-${date.getMonth()}`,
+      month: date.toLocaleString('en', { month: 'short' }),
+      schools: recentSchools.filter((s) => s.createdAt >= date && s.createdAt < next).length,
+    };
+  });
+
+  res.json({
+    metrics: { schools, activeSchools, students: studentCount, teachers: teacherCount, users, attentionSchools, newSchools },
+    trend: monthly,
+  });
+});
+
 const schoolSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2).regex(/^[a-z0-9-]+$/),
