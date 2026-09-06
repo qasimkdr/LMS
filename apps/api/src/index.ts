@@ -9,6 +9,7 @@ import superAdminRoutes from './routes/superAdmin.js';
 import schoolDirectoryRoutes from './routes/schoolDirectory.js';
 import examRoutes from './routes/exams.js';
 import dashboardRoutes from './routes/dashboard.js';
+import schoolOperationsRoutes from './routes/schoolOperations.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -29,6 +30,7 @@ app.use('/api/approvals', approvalRoutes);
 app.use('/api/school-directory', schoolDirectoryRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/school-operations', schoolOperationsRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
