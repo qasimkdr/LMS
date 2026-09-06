@@ -55,6 +55,13 @@ enum AttendanceStatus {
   LEAVE
 }
 
+enum ExamAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  PENDING_REVIEW
+  GRADED
+}
+
 model School {
   id              String       @id @default(uuid())
   name            String
@@ -64,8 +71,6 @@ model School {
   phone           String?
   email           String?
   address         String?
-  primaryColor    String       @default("#2563eb")
-  secondaryColor  String       @default("#7c3aed")
   timezone        String       @default("Asia/Karachi")
   status          SchoolStatus @default(TRIAL)
   trialEndsAt     DateTime?
@@ -74,19 +79,21 @@ model School {
   studentLimit    Int          @default(1000)
   teacherLimit    Int          @default(100)
   storageLimitMb  Int          @default(1024)
+  primaryColor    String       @default("#2563eb")
+  secondaryColor  String       @default("#7c3aed")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  users               User[]
-  classes             Class[]
-  subjects            Subject[]
-  teacherAssignments  TeacherAssignment[]
-  approvalRequests    ApprovalRequest[]
-  approvalPolicies    ApprovalPolicy[]
-  attendanceSessions  AttendanceSession[]
-  attendanceRecords   AttendanceRecord[]
-  exams               Exam[]
-  auditLogs           AuditLog[]
+  users              User[]
+  classes            Class[]
+  subjects           Subject[]
+  teacherAssignments TeacherAssignment[]
+  approvalRequests   ApprovalRequest[]
+  approvalPolicies   ApprovalPolicy[]
+  attendanceSessions AttendanceSession[]
+  exams              Exam[]
+  examAttempts       ExamAttempt[]
+  auditLogs          AuditLog[]
 
   @@index([status])
 }
@@ -106,15 +113,15 @@ model User {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  school               School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  studentProfile       StudentProfile?
-  parentProfile        ParentProfile?
-  teacherAssignments   TeacherAssignment[]
-  requestedApprovals   ApprovalRequest[]     @relation("ApprovalRequester")
-  reviewedApprovals    ApprovalRequest[]     @relation("ApprovalReviewer")
-  attendanceSessions   AttendanceSession[]   @relation("AttendanceMarker")
-  attendanceRecords    AttendanceRecord[]    @relation("AttendanceStudent")
-  auditLogs            AuditLog[]
+  school              School?             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentProfile      StudentProfile?
+  parentProfile       ParentProfile?
+  teacherAssignments  TeacherAssignment[]
+  requestedApprovals  ApprovalRequest[]   @relation("ApprovalRequester")
+  reviewedApprovals   ApprovalRequest[]   @relation("ApprovalReviewer")
+  attendanceSessions  AttendanceSession[] @relation("AttendanceMarker")
+  examAttempts        ExamAttempt[]
+  auditLogs           AuditLog[]
 
   @@index([schoolId, role])
 }
@@ -130,9 +137,10 @@ model StudentProfile {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  class       Class?            @relation(fields: [classId], references: [id])
-  parentLinks StudentParent[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class             Class?             @relation(fields: [classId], references: [id])
+  parentLinks       StudentParent[]
+  attendanceRecords AttendanceRecord[]
 
   @@unique([schoolId, admissionNo])
   @@index([schoolId, classId])
@@ -170,11 +178,11 @@ model Class {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  school               School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  students             StudentProfile[]
-  assignments          TeacherAssignment[]
-  attendanceSessions   AttendanceSession[]
-  exams                Exam[]
+  school             School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  students           StudentProfile[]
+  assignments        TeacherAssignment[]
+  attendanceSessions AttendanceSession[]
+  exams              Exam[]
 
   @@unique([schoolId, name, section, academicYear])
   @@index([schoolId])
@@ -214,13 +222,12 @@ model TeacherAssignment {
 }
 
 model ApprovalPolicy {
-  id              String   @id @default(uuid())
-  schoolId        String
-  actionKey       String
-  requiresApproval Boolean @default(true)
-  allowedForStaff Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(uuid())
+  schoolId         String
+  actionKey        String
+  staffAllowed     Boolean  @default(true)
+  requiresApproval Boolean  @default(true)
+  updatedAt        DateTime @updatedAt
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -273,7 +280,6 @@ model AttendanceSession {
   classId    String
   date       DateTime
   markedById String
-  note       String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -287,22 +293,17 @@ model AttendanceSession {
 }
 
 model AttendanceRecord {
-  id        String           @id @default(uuid())
-  schoolId  String
-  sessionId String
-  studentId String
-  status    AttendanceStatus
-  remark    String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id               String           @id @default(uuid())
+  attendanceId     String
+  studentProfileId String
+  status           AttendanceStatus
+  remark           String?
 
-  school  School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  student User              @relation("AttendanceStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  attendance AttendanceSession @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  student    StudentProfile    @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
 
-  @@unique([sessionId, studentId])
-  @@index([schoolId, studentId, createdAt])
-  @@index([schoolId, status, createdAt])
+  @@unique([attendanceId, studentProfileId])
+  @@index([studentProfileId])
 }
 
 model Exam {
@@ -324,10 +325,11 @@ model Exam {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  class     Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
-  subject   Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  school    School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  class     Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   questions Question[]
+  attempts  ExamAttempt[]
 
   @@index([schoolId, classId, subjectId])
 }
@@ -345,6 +347,7 @@ model Question {
 
   exam    Exam             @relation(fields: [examId], references: [id], onDelete: Cascade)
   options QuestionOption[]
+  answers StudentAnswer[]
 
   @@index([examId, orderIndex])
 }
@@ -360,6 +363,49 @@ model QuestionOption {
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([questionId, orderIndex])
+}
+
+model ExamAttempt {
+  id             String            @id @default(uuid())
+  schoolId       String
+  examId         String
+  studentUserId  String
+  status         ExamAttemptStatus @default(IN_PROGRESS)
+  startedAt      DateTime          @default(now())
+  submittedAt    DateTime?
+  gradedAt       DateTime?
+  score           Decimal?         @db.Decimal(8,2)
+  percentage      Decimal?         @db.Decimal(6,2)
+  passed          Boolean?
+  teacherFeedback String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  school  School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  exam    Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student User            @relation(fields: [studentUserId], references: [id], onDelete: Cascade)
+  answers StudentAnswer[]
+
+  @@unique([examId, studentUserId])
+  @@index([schoolId, studentUserId])
+  @@index([examId, status])
+}
+
+model StudentAnswer {
+  id         String   @id @default(uuid())
+  attemptId  String
+  questionId String
+  answer     Json?
+  autoScore  Decimal? @db.Decimal(8,2)
+  manualScore Decimal? @db.Decimal(8,2)
+  feedback   String?
+  updatedAt  DateTime @updatedAt
+
+  attempt  ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
 }
 
 model AuditLog {
