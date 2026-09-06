@@ -16,6 +16,9 @@ import teacherAssignmentRoutes from './routes/teacherAssignments.js';
 import examAttemptRoutes from './routes/examAttempts.js';
 import portalRoutes from './routes/portal.js';
 import announcementRoutes from './routes/announcements.js';
+import courseworkRoutes from './routes/coursework.js';
+import notificationRoutes from './routes/notifications.js';
+import parentRoutes from './routes/parents.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -43,6 +46,9 @@ app.use('/api/teacher-assignments', teacherAssignmentRoutes);
 app.use('/api/exam-attempts', examAttemptRoutes);
 app.use('/api/portal', portalRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/coursework', courseworkRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/parents', parentRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
