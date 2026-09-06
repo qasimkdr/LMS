@@ -1,0 +1,48 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '@nexora/database';
+import { requireAuth, requireRoles, requireTenant } from '../middleware/auth.js';
+
+const router = Router();
+router.use(requireAuth, requireTenant);
+
+async function canManage(userId:string, role:string, schoolId:string, classId:string, subjectId:string){
+  if(role==='PRINCIPAL') return true;
+  if(role==='TEACHER') return Boolean(await prisma.teacherAssignment.findFirst({where:{schoolId,teacherId:userId,classId,subjectId}}));
+  return false;
+}
+
+const assignmentSchema=z.object({classId:z.string().uuid(),subjectId:z.string().uuid(),title:z.string().min(2),instructions:z.string().min(2),attachmentUrl:z.string().url().optional(),dueAt:z.coerce.date().optional(),maxMarks:z.coerce.number().positive().optional()});
+router.get('/assignments', requireRoles('PRINCIPAL','TEACHER','STUDENT','PARENT'), async(req,res)=>{
+  const schoolId=req.auth!.schoolId!;
+  if(req.auth!.role==='STUDENT'){
+    const profile=await prisma.studentProfile.findUnique({where:{userId:req.auth!.userId}}); if(!profile?.classId)return res.json([]);
+    return res.json(await prisma.assignment.findMany({where:{schoolId,classId:profile.classId},orderBy:{publishedAt:'desc'},include:{subject:true,submissions:{where:{studentUserId:req.auth!.userId}}}}));
+  }
+  if(req.auth!.role==='PARENT') return res.status(400).json({message:'Use parent child coursework endpoint'});
+  const where=req.auth!.role==='TEACHER'?{schoolId,createdById:req.auth!.userId}:{schoolId};
+  res.json(await prisma.assignment.findMany({where,orderBy:{publishedAt:'desc'},include:{class:true,subject:true,_count:{select:{submissions:true}}}}));
+});
+router.post('/assignments', requireRoles('PRINCIPAL','TEACHER'), async(req,res)=>{
+ const p=assignmentSchema.safeParse(req.body); if(!p.success)return res.status(400).json({message:'Invalid assignment',issues:p.error.flatten()}); const d=p.data, schoolId=req.auth!.schoolId!;
+ if(!(await canManage(req.auth!.userId,req.auth!.role,schoolId,d.classId,d.subjectId))) return res.status(403).json({message:'Not assigned to this class and subject'});
+ const row=await prisma.assignment.create({data:{schoolId,createdById:req.auth!.userId,...d}}); await prisma.auditLog.create({data:{schoolId,actorId:req.auth!.userId,action:'ASSIGNMENT_CREATED',entityType:'Assignment',entityId:row.id,afterData:{title:row.title,classId:row.classId,subjectId:row.subjectId}}}); res.status(201).json(row);
+});
+const submitSchema=z.object({textAnswer:z.string().max(10000).optional(),attachmentUrl:z.string().url().optional(),submit:z.boolean().default(true)});
+router.put('/assignments/:id/submission', requireRoles('STUDENT'), async(req,res)=>{
+ const p=submitSchema.safeParse(req.body); if(!p.success)return res.status(400).json({message:'Invalid submission'}); const schoolId=req.auth!.schoolId!; const profile=await prisma.studentProfile.findUnique({where:{userId:req.auth!.userId}}); const assignment=await prisma.assignment.findFirst({where:{id:req.params.id,schoolId,classId:profile?.classId??'none'}}); if(!assignment)return res.status(404).json({message:'Assignment not found'});
+ const now=new Date(); const status=p.data.submit?(assignment.dueAt&&now>assignment.dueAt?'LATE':'SUBMITTED'):'DRAFT'; const row=await prisma.assignmentSubmission.upsert({where:{assignmentId_studentUserId:{assignmentId:assignment.id,studentUserId:req.auth!.userId}},create:{assignmentId:assignment.id,studentUserId:req.auth!.userId,textAnswer:p.data.textAnswer,attachmentUrl:p.data.attachmentUrl,status,submittedAt:p.data.submit?now:null},update:{textAnswer:p.data.textAnswer,attachmentUrl:p.data.attachmentUrl,status,submittedAt:p.data.submit?now:null}}); res.json(row);
+});
+const grade=z.object({score:z.coerce.number().min(0),feedback:z.string().max(2000).optional()});
+router.patch('/submissions/:id/grade', requireRoles('PRINCIPAL','TEACHER'), async(req,res)=>{ const p=grade.safeParse(req.body); if(!p.success)return res.status(400).json({message:'Invalid grade'}); const sub=await prisma.assignmentSubmission.findFirst({where:{id:req.params.id},include:{assignment:true}}); if(!sub||sub.assignment.schoolId!==req.auth!.schoolId)return res.status(404).json({message:'Submission not found'}); if(req.auth!.role==='TEACHER' && !(await canManage(req.auth!.userId,'TEACHER',req.auth!.schoolId!,sub.assignment.classId,sub.assignment.subjectId))) return res.status(403).json({message:'Not allowed'}); if(sub.assignment.maxMarks&&p.data.score>Number(sub.assignment.maxMarks))return res.status(400).json({message:'Score exceeds maximum marks'}); res.json(await prisma.assignmentSubmission.update({where:{id:sub.id},data:{score:p.data.score,feedback:p.data.feedback,status:'GRADED',gradedAt:new Date()}})); });
+
+const materialSchema=z.object({classId:z.string().uuid(),subjectId:z.string().uuid(),title:z.string().min(2),description:z.string().optional(),fileUrl:z.string().url().optional(),externalUrl:z.string().url().optional()});
+router.get('/materials', requireRoles('PRINCIPAL','TEACHER','STUDENT'), async(req,res)=>{const schoolId=req.auth!.schoolId!; if(req.auth!.role==='STUDENT'){const p=await prisma.studentProfile.findUnique({where:{userId:req.auth!.userId}});if(!p?.classId)return res.json([]);return res.json(await prisma.courseMaterial.findMany({where:{schoolId,classId:p.classId},include:{subject:true},orderBy:{createdAt:'desc'}}));} const where=req.auth!.role==='TEACHER'?{schoolId,createdById:req.auth!.userId}:{schoolId};res.json(await prisma.courseMaterial.findMany({where,include:{class:true,subject:true},orderBy:{createdAt:'desc'}}));});
+router.post('/materials', requireRoles('PRINCIPAL','TEACHER'), async(req,res)=>{const p=materialSchema.safeParse(req.body);if(!p.success)return res.status(400).json({message:'Invalid material'});const d=p.data,schoolId=req.auth!.schoolId!;if(!(await canManage(req.auth!.userId,req.auth!.role,schoolId,d.classId,d.subjectId)))return res.status(403).json({message:'Not allowed'});res.status(201).json(await prisma.courseMaterial.create({data:{schoolId,createdById:req.auth!.userId,...d}}));});
+
+const syllabusSchema=z.object({classId:z.string().uuid(),subjectId:z.string().uuid(),title:z.string().min(2),description:z.string().optional(),sortOrder:z.coerce.number().int().default(0)});
+router.get('/syllabus', requireRoles('PRINCIPAL','TEACHER','STUDENT'), async(req,res)=>{const schoolId=req.auth!.schoolId!;if(req.auth!.role==='STUDENT'){const p=await prisma.studentProfile.findUnique({where:{userId:req.auth!.userId}});if(!p?.classId)return res.json([]);return res.json(await prisma.syllabusItem.findMany({where:{schoolId,classId:p.classId},include:{subject:true},orderBy:[{subjectId:'asc'},{sortOrder:'asc'}]}));}res.json(await prisma.syllabusItem.findMany({where:{schoolId},include:{class:true,subject:true},orderBy:[{classId:'asc'},{subjectId:'asc'},{sortOrder:'asc'}]}));});
+router.post('/syllabus', requireRoles('PRINCIPAL','TEACHER'), async(req,res)=>{const p=syllabusSchema.safeParse(req.body);if(!p.success)return res.status(400).json({message:'Invalid syllabus item'});const d=p.data,schoolId=req.auth!.schoolId!;if(!(await canManage(req.auth!.userId,req.auth!.role,schoolId,d.classId,d.subjectId)))return res.status(403).json({message:'Not allowed'});res.status(201).json(await prisma.syllabusItem.create({data:{schoolId,createdById:req.auth!.userId,...d}}));});
+router.patch('/syllabus/:id/toggle', requireRoles('PRINCIPAL','TEACHER'), async(req,res)=>{const item=await prisma.syllabusItem.findFirst({where:{id:req.params.id,schoolId:req.auth!.schoolId!}});if(!item)return res.status(404).json({message:'Item not found'});if(req.auth!.role==='TEACHER'&&!(await canManage(req.auth!.userId,'TEACHER',req.auth!.schoolId!,item.classId,item.subjectId)))return res.status(403).json({message:'Not allowed'});res.json(await prisma.syllabusItem.update({where:{id:item.id},data:{isCompleted:!item.isCompleted,completedAt:!item.isCompleted?new Date():null}}));});
+
+export default router;
