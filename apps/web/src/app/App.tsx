@@ -3,6 +3,7 @@ import ProtectedRoute from '../features/auth/ProtectedRoute';
 import LoginPage from '../pages/auth/LoginPage';
 import PrincipalApprovalCenter from '../pages/principal/PrincipalApprovalCenter';
 import PrincipalDashboard from '../pages/principal/PrincipalDashboard';
+import PrincipalOperations from '../pages/principal/PrincipalOperations';
 import StaffRequests from '../pages/staff/StaffRequests';
 import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard';
 import SuperAdminSchools from '../pages/super-admin/SuperAdminSchools';
@@ -22,6 +23,7 @@ export default function App() {
       </Route>
       <Route element={<ProtectedRoute roles={['PRINCIPAL']} />}>
         <Route path="/principal" element={<PrincipalDashboard />} />
+        <Route path="/principal/operations" element={<PrincipalOperations />} />
         <Route path="/principal/approvals" element={<PrincipalApprovalCenter />} />
       </Route>
       <Route element={<ProtectedRoute roles={['STAFF']} />}>
