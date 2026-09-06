@@ -24,4 +24,22 @@ router.get('/principal', requireRoles('PRINCIPAL'), async (req, res) => {
   res.json({ students, teachers, pendingApprovals, classes, recentApprovals });
 });
 
+router.get('/teacher', requireRoles('TEACHER'), async (req, res) => {
+  const schoolId = req.auth!.schoolId!;
+  const teacherId = req.auth!.userId;
+  const assignments = await prisma.teacherAssignment.findMany({
+    where: { schoolId, teacherId },
+    include: { class: { select: { id: true, name: true, section: true, _count: { select: { students: true } } } }, subject: { select: { id: true, name: true, code: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+  const classIds = [...new Set(assignments.map(a => a.classId))];
+  const [examCount, pendingReviews, attendanceSessions] = await Promise.all([
+    prisma.exam.count({ where: { schoolId, createdById: teacherId } }),
+    prisma.examAttempt.count({ where: { schoolId, status: 'PENDING_REVIEW', exam: { createdById: teacherId } } }),
+    prisma.attendanceSession.count({ where: { schoolId, markedById: teacherId } }),
+  ]);
+  const studentCount = assignments.reduce((sum, a) => sum + a.class._count.students, 0);
+  res.json({ assignmentCount: assignments.length, studentCount, examCount, pendingReviews, attendanceSessions, assignments, classIds });
+});
+
 export default router;
