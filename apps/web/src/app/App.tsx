@@ -2,8 +2,10 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '../features/auth/ProtectedRoute';
 import LoginPage from '../pages/auth/LoginPage';
 import PrincipalApprovalCenter from '../pages/principal/PrincipalApprovalCenter';
+import PrincipalAttendance from '../pages/principal/PrincipalAttendance';
 import PrincipalDashboard from '../pages/principal/PrincipalDashboard';
 import PrincipalOperations from '../pages/principal/PrincipalOperations';
+import PrincipalSettings from '../pages/principal/PrincipalSettings';
 import StaffRequests from '../pages/staff/StaffRequests';
 import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard';
 import SuperAdminSchools from '../pages/super-admin/SuperAdminSchools';
@@ -25,6 +27,8 @@ export default function App() {
         <Route path="/principal" element={<PrincipalDashboard />} />
         <Route path="/principal/operations" element={<PrincipalOperations />} />
         <Route path="/principal/approvals" element={<PrincipalApprovalCenter />} />
+        <Route path="/principal/attendance" element={<PrincipalAttendance />} />
+        <Route path="/principal/settings" element={<PrincipalSettings />} />
       </Route>
       <Route element={<ProtectedRoute roles={['STAFF']} />}>
         <Route path="/staff/requests" element={<StaffRequests />} />
