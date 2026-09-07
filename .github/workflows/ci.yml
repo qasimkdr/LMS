@@ -45,8 +45,14 @@ jobs:
         run: npx prisma validate --schema packages/database/prisma/schema.prisma
       - name: Bootstrap core Prisma schema
         run: npx prisma db push --skip-generate --schema packages/database/prisma/schema.prisma
-      - name: Apply operational migrations
-        run: npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
+      - name: Replay operational SQL migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration; do
+            echo "Applying ${migration}"
+            npx prisma db execute --schema packages/database/prisma/schema.prisma --file "${migration}"
+          done < <(find packages/database/prisma/migrations -mindepth 2 -maxdepth 2 -name migration.sql | sort)
       - name: Generate Prisma client
         run: npm run db:generate
       - name: Build database package
