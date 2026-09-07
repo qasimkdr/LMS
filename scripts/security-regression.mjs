@@ -46,13 +46,18 @@ for (const [path, module] of [
   ['/api/fees', 'FINANCE'],
   ['/api/timetable', 'TIMETABLE'],
   ['/api/storage', 'STORAGE'],
+  ['/api/support', 'SUPPORT'],
 ]) {
   const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedModule = module.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const routePattern = new RegExp(
-    `app\\.use\\('${escapedPath}'[\\s\\S]{0,160}?requireModule\\('${escapedModule}'\\)`,
+    `app\\.use\\('${escapedPath}'[\\s\\S]{0,500}?requireAuth[\\s\\S]{0,120}?requireTenant[\\s\\S]{0,120}?requireModule\\('${escapedModule}'\\)`,
   );
-  assert.match(index, routePattern, `${path} must retain ${module} entitlement guard`);
+  assert.match(
+    index,
+    routePattern,
+    `${path} must authenticate and establish tenant scope before the ${module} entitlement guard`,
+  );
 }
 
 console.log('Security regression checks passed');
