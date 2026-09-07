@@ -18,6 +18,7 @@
     "test:support": "tsx apps/api/src/tests/supportNotifications.integration.ts",
     "test:impersonation": "tsx apps/api/src/tests/impersonation.integration.ts",
     "test:backups": "tsx apps/api/src/tests/backupRestore.integration.ts",
+    "test:production": "tsx apps/api/src/tests/productionRuntime.integration.ts",
     "db:generate": "npm run generate -w @nexora/database",
     "db:migrate": "npm run migrate -w @nexora/database"
   },
