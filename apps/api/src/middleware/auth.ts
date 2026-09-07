@@ -1,6 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@nexora/database';
+import {
+  resolveEffectiveLifecycleStatus,
+  type LifecycleStatus,
+} from '../services/subscriptionLifecycle.js';
 
 export type AuthContext = {
   userId: string;
@@ -9,17 +13,9 @@ export type AuthContext = {
   impersonatedById?: string;
 };
 
-type TenantStatus =
-  | 'TRIAL'
-  | 'ACTIVE'
-  | 'GRACE_PERIOD'
-  | 'READ_ONLY'
-  | 'SUSPENDED'
-  | 'CANCELLED';
-
 type TenantAccess = {
   schoolId: string;
-  status: TenantStatus;
+  status: LifecycleStatus;
 };
 
 declare global {
@@ -115,7 +111,13 @@ export async function requireTenant(req: Request, res: Response, next: NextFunct
   try {
     const school = await prisma.school.findUnique({
       where: { id: schoolId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        trialEndsAt: true,
+        subscriptionEnd: true,
+        graceEndsAt: true,
+      },
     });
     if (!school) {
       return res.status(403).json({ message: 'School scope is no longer available.' });
@@ -123,7 +125,12 @@ export async function requireTenant(req: Request, res: Response, next: NextFunct
 
     const access: TenantAccess = {
       schoolId: school.id,
-      status: school.status as TenantStatus,
+      status: resolveEffectiveLifecycleStatus({
+        status: school.status as LifecycleStatus,
+        trialEndsAt: school.trialEndsAt,
+        subscriptionEnd: school.subscriptionEnd,
+        graceEndsAt: school.graceEndsAt,
+      }),
     };
     req.tenantAccess = access;
     return enforceTenantStatus(req, res, next, access);
