@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const load = async (path) => readFile(new URL(path, root), 'utf8');
 
-const [auth, storage, fees, support, index, entitlements, backups] = await Promise.all([
+const [auth, storage, fees, support, index, entitlements, backups, lifecycle] = await Promise.all([
   load('apps/api/src/middleware/auth.ts'),
   load('apps/api/src/routes/storage.ts'),
   load('apps/api/src/routes/fees.ts'),
@@ -12,9 +12,13 @@ const [auth, storage, fees, support, index, entitlements, backups] = await Promi
   load('apps/api/src/index.ts'),
   load('apps/api/src/middleware/entitlements.ts'),
   load('apps/api/src/routes/backups.ts'),
+  load('apps/api/src/services/subscriptionLifecycle.ts'),
 ]);
 
-assert.match(auth, /impersonatedById\?:string/, 'Auth context must preserve impersonation provenance');
+assert.match(auth, /impersonatedById\?\s*:\s*string/, 'Auth context must preserve impersonation provenance');
+assert.match(auth, /SCHOOL_READ_ONLY/, 'Tenant middleware must enforce read-only lifecycle state');
+assert.match(auth, /SCHOOL_SUSPENDED/, 'Tenant middleware must enforce suspended lifecycle state');
+assert.match(auth, /supportImpersonation/, 'Support impersonation must remain explicit in lifecycle enforcement');
 assert.match(storage, /async function canAccessObject/, 'Storage signing must use object-level authorization');
 assert.match(storage, /canAccessObject\(req\.auth! as any,obj\)/, 'Signed URLs must enforce object ACL');
 assert.match(fees, /FOR UPDATE/, 'Fee receiving must keep a row lock against concurrent over-collection');
@@ -24,7 +28,12 @@ assert.ok(support.includes('WHERE t."schoolId" = ${schoolId}'), 'School support 
 assert.ok(support.includes('AND "schoolId" = ${req.auth!.schoolId!}'), 'Support ticket detail/reply must remain tenant-scoped');
 assert.match(support, /Internal notes are Super Admin only/, 'Support internal notes must remain Super Admin-only');
 assert.match(entitlements, /MODULE_DISABLED/, 'Entitlement guard must explicitly deny disabled modules');
-assert.match(entitlements, /SUBSCRIPTION_EXPIRED/, 'Entitlement guard must reject expired subscriptions');
+assert.match(entitlements, /SUBSCRIPTION_EXPIRED/, 'Entitlement guard must retain an explicit expired-subscription response');
+
+assert.match(lifecycle, /pg_try_advisory_xact_lock/, 'Lifecycle worker must use a transaction advisory lock');
+assert.match(lifecycle, /SCHOOL_LIFECYCLE_AUTO_TRANSITION/, 'Automatic lifecycle changes must be audited');
+assert.match(lifecycle, /SUBSCRIPTION_EXPIRY_REMINDER_/, 'Lifecycle worker must deduplicate expiry reminders');
+assert.match(index, /startSubscriptionLifecycleScheduler\(\)/, 'API startup must launch the lifecycle scheduler');
 
 assert.match(backups, /router\.post\('\/restore-plan'/, 'Backup restore must retain a dry-run planning endpoint');
 assert.match(backups, /Cross-tenant restore is not allowed/, 'Backup restore planning must reject cross-tenant backups');
@@ -51,7 +60,7 @@ for (const [path, module] of [
   const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedModule = module.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const routePattern = new RegExp(
-    `app\\.use\\('${escapedPath}'[\\s\\S]{0,500}?requireAuth[\\s\\S]{0,120}?requireTenant[\\s\\S]{0,120}?requireModule\\('${escapedModule}'\\)`,
+    `app\\.use\\('${escapedPath}'[\\s\\S]{0,500}?requireAuth[\\s\\S]{0,160}?requireTenant[\\s\\S]{0,160}?requireModule\\('${escapedModule}'\\)`,
   );
   assert.match(
     index,
