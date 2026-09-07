@@ -3,7 +3,7 @@ services:
     name: nexora-lms-api
     runtime: node
     plan: free
-    buildCommand: npm install --no-audit --no-fund && npm run db:generate && npm run build -w @nexora/database && npm run build -w @nexora/api
+    buildCommand: npm install --include=dev --no-audit --no-fund && npm run db:generate && npm run build -w @nexora/database && npm run build -w @nexora/api
     startCommand: npm run start -w @nexora/api
     healthCheckPath: /api/health/ready
     autoDeployTrigger: commit
@@ -30,7 +30,7 @@ services:
   - type: web
     name: nexora-lms-web
     runtime: static
-    buildCommand: npm install --no-audit --no-fund && npm run build -w @nexora/web
+    buildCommand: npm install --include=dev --no-audit --no-fund && npm run build -w @nexora/web
     staticPublishPath: apps/web/dist
     autoDeployTrigger: commit
     routes:
