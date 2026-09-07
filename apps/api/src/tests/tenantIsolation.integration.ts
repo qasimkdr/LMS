@@ -110,7 +110,7 @@ async function seed() {
 
 async function main() {
   const fixture = await seed();
-  const child = spawn('npx', ['tsx', 'apps/api/src/index.ts'], {
+  const child = spawn(process.execPath, ['--import', 'tsx', 'apps/api/src/index.ts'], {
     env: {
       ...process.env,
       PORT: String(PORT),
@@ -182,7 +182,17 @@ async function main() {
     console.log('Multi-tenant HTTP isolation tests passed');
   } finally {
     child.kill('SIGTERM');
-    await sleep(250);
+    await new Promise<void>((resolve) => {
+      if (child.exitCode !== null) return resolve();
+      const timeout = setTimeout(() => {
+        child.kill('SIGKILL');
+        resolve();
+      }, 3000);
+      child.once('exit', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
     await removeFixtures();
     await prisma.$disconnect();
   }
