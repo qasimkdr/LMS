@@ -1,22 +1,20 @@
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import PaletteRoundedIcon from '@mui/icons-material/PaletteRounded';
-import RestoreRoundedIcon from '@mui/icons-material/RestoreRounded';
 import RuleRoundedIcon from '@mui/icons-material/RuleRounded';
 import StorageRoundedIcon from '@mui/icons-material/StorageRounded';
-import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import {
   Alert,
   Button,
-  Chip,
   CircularProgress,
   LinearProgress,
   Skeleton,
   Switch,
   TextField,
 } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import FileUpload from '../../components/storage/FileUpload';
 import { api } from '../../lib/api';
+import BackupRestorePanel from './components/BackupRestorePanel';
 
 type School = {
   name: string;
@@ -43,19 +41,6 @@ type Usage = {
   percentage: number;
 };
 
-type BackupValidation = {
-  valid: boolean;
-  restoreAllowed: boolean;
-  format?: string;
-  version?: number;
-  exportedAt?: string;
-  sourceSchool?: { id?: string; name?: string; slug?: string };
-  currentSchool?: { id?: string; name?: string; slug?: string };
-  counts?: Record<string, number>;
-  issues?: string[];
-  warnings?: string[];
-};
-
 const mb = (value: number) =>
   (value / 1024 / 1024).toFixed(value >= 1024 * 1024 * 100 ? 0 : 1);
 
@@ -66,12 +51,8 @@ export default function PrincipalSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [validatingBackup, setValidatingBackup] = useState(false);
-  const [backupFileName, setBackupFileName] = useState('');
-  const [backupValidation, setBackupValidation] = useState<BackupValidation | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const backupInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -152,46 +133,6 @@ export default function PrincipalSettings() {
     }
   };
 
-  const validateBackupFile = async (file: File) => {
-    setValidatingBackup(true);
-    setError('');
-    setBackupValidation(null);
-    setBackupFileName(file.name);
-
-    try {
-      if (file.size > 20 * 1024 * 1024) {
-        throw new Error('Backup file is larger than the 20 MB validation limit.');
-      }
-
-      const text = await file.text();
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        throw new Error('Selected file is not valid JSON.');
-      }
-
-      const { data } = await api.post<BackupValidation>('/backups/validate', parsed);
-      setBackupValidation(data);
-      if (data.valid) {
-        setMessage(
-          data.restoreAllowed
-            ? 'Backup is valid and matches this school. No data has been restored yet.'
-            : 'Backup validation finished. Review the warnings before restore.',
-        );
-      }
-    } catch (e: any) {
-      setError(
-        e?.response?.data?.message ??
-          e?.message ??
-          'Could not validate the selected backup.',
-      );
-    } finally {
-      setValidatingBackup(false);
-      if (backupInputRef.current) backupInputRef.current.value = '';
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f8fbff] p-6">
@@ -222,8 +163,7 @@ export default function PrincipalSettings() {
             Branding, controls & backup
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Manage school identity, approval rules, private storage and tenant-safe
-            exports.
+            Manage school identity, approval rules, private storage and tenant-safe exports.
           </p>
         </header>
 
@@ -395,19 +335,13 @@ export default function PrincipalSettings() {
             <div>
               <h2 className="text-xl font-black text-slate-950">School data backup</h2>
               <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                Download a tenant-scoped JSON export of school configuration, users
-                without password hashes, academics, attendance, fees, reports and file
-                metadata. Stored file bytes are not duplicated.
+                Download a tenant-scoped JSON export of school configuration, users without password hashes, academics, attendance, fees, reports and file metadata. Stored file bytes are not duplicated.
               </p>
             </div>
             <Button
               variant="contained"
               startIcon={
-                exporting ? (
-                  <CircularProgress size={18} color="inherit" />
-                ) : (
-                  <DownloadRoundedIcon />
-                )
+                exporting ? <CircularProgress size={18} color="inherit" /> : <DownloadRoundedIcon />
               }
               disabled={exporting}
               onClick={exportBackup}
@@ -422,132 +356,7 @@ export default function PrincipalSettings() {
             </Button>
           </div>
 
-          <div className="mt-5 rounded-[24px] border border-violet-100 bg-gradient-to-br from-violet-50/90 to-blue-50/80 p-4 sm:p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <div className="rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 p-3 text-white">
-                  <RestoreRoundedIcon />
-                </div>
-                <div>
-                  <h3 className="font-black text-slate-950">Validate restore backup</h3>
-                  <p className="mt-1 max-w-xl text-sm text-slate-500">
-                    Inspect a Nexora JSON backup before restore. Validation never changes
-                    school data.
-                  </p>
-                </div>
-              </div>
-
-              <input
-                ref={backupInputRef}
-                hidden
-                type="file"
-                accept="application/json,.json"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) void validateBackupFile(file);
-                }}
-              />
-              <Button
-                variant="outlined"
-                startIcon={
-                  validatingBackup ? (
-                    <CircularProgress size={18} />
-                  ) : (
-                    <UploadFileRoundedIcon />
-                  )
-                }
-                disabled={validatingBackup}
-                onClick={() => backupInputRef.current?.click()}
-                sx={{ borderRadius: 3, fontWeight: 900, minWidth: 190 }}
-              >
-                {validatingBackup ? 'Validating...' : 'Choose backup'}
-              </Button>
-            </div>
-
-            {backupFileName && (
-              <p className="mt-4 text-xs font-bold text-slate-500">
-                Selected: {backupFileName}
-              </p>
-            )}
-
-            {backupValidation && (
-              <div className="mt-4 space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <Chip
-                    label={backupValidation.valid ? 'Valid format' : 'Invalid backup'}
-                    color={backupValidation.valid ? 'success' : 'error'}
-                    size="small"
-                  />
-                  <Chip
-                    label={
-                      backupValidation.restoreAllowed
-                        ? 'Tenant match'
-                        : 'Restore blocked'
-                    }
-                    color={backupValidation.restoreAllowed ? 'success' : 'warning'}
-                    size="small"
-                  />
-                  {backupValidation.version != null && (
-                    <Chip label={`Version ${backupValidation.version}`} size="small" />
-                  )}
-                </div>
-
-                {(backupValidation.sourceSchool?.name ||
-                  backupValidation.currentSchool?.name) && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl bg-white/80 p-3">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                        Backup school
-                      </p>
-                      <p className="mt-1 font-black text-slate-900">
-                        {backupValidation.sourceSchool?.name ?? 'Unknown'}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-white/80 p-3">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                        Current school
-                      </p>
-                      <p className="mt-1 font-black text-slate-900">
-                        {backupValidation.currentSchool?.name ?? school.name}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {backupValidation.counts &&
-                  Object.keys(backupValidation.counts).length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                      {Object.entries(backupValidation.counts).map(([key, count]) => (
-                        <div key={key} className="rounded-2xl bg-white/80 p-3">
-                          <p className="truncate text-[11px] font-bold text-slate-400">
-                            {key.replaceAll(/([A-Z])/g, ' $1').trim()}
-                          </p>
-                          <p className="mt-1 text-lg font-black text-slate-900">{count}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                {backupValidation.issues?.map((issue) => (
-                  <Alert key={issue} severity="error" sx={{ borderRadius: 3 }}>
-                    {issue}
-                  </Alert>
-                ))}
-                {backupValidation.warnings?.map((warning) => (
-                  <Alert key={warning} severity="warning" sx={{ borderRadius: 3 }}>
-                    {warning}
-                  </Alert>
-                ))}
-
-                {backupValidation.restoreAllowed && (
-                  <Alert severity="info" sx={{ borderRadius: 3 }}>
-                    Validation passed. Restore execution is intentionally disabled until
-                    the transactional dry-run and confirmation stage is completed.
-                  </Alert>
-                )}
-              </div>
-            )}
-          </div>
+          <BackupRestorePanel currentSchoolName={school.name} />
         </section>
 
         <section className="glass-panel rounded-[30px] p-5 md:p-7">
@@ -581,9 +390,7 @@ export default function PrincipalSettings() {
                     <Switch
                       checked={policy.allowedForStaff}
                       onChange={(event) =>
-                        void updatePolicy(policy, {
-                          allowedForStaff: event.target.checked,
-                        })
+                        void updatePolicy(policy, { allowedForStaff: event.target.checked })
                       }
                     />
                     Staff allowed
@@ -593,9 +400,7 @@ export default function PrincipalSettings() {
                       checked={policy.requiresApproval}
                       disabled={!policy.allowedForStaff}
                       onChange={(event) =>
-                        void updatePolicy(policy, {
-                          requiresApproval: event.target.checked,
-                        })
+                        void updatePolicy(policy, { requiresApproval: event.target.checked })
                       }
                     />
                     Needs approval
