@@ -2,9 +2,19 @@ import type { NextFunction, Request, Response } from 'express';
 import { Prisma, prisma } from '@nexora/database';
 
 export const MODULE_KEYS = [
-  'ATTENDANCE','TIMETABLE','ANNOUNCEMENTS','COURSEWORK','EXAMS','REPORTS','FINANCE','LEAVE','STORAGE','ANALYTICS','SUPPORT'
+  'ATTENDANCE',
+  'TIMETABLE',
+  'ANNOUNCEMENTS',
+  'COURSEWORK',
+  'EXAMS',
+  'REPORTS',
+  'FINANCE',
+  'LEAVE',
+  'STORAGE',
+  'ANALYTICS',
+  'SUPPORT',
 ] as const;
-export type ModuleKey = typeof MODULE_KEYS[number];
+export type ModuleKey = (typeof MODULE_KEYS)[number];
 
 type EntitlementRow = {
   modules: string[] | null;
@@ -25,8 +35,24 @@ export async function getSchoolEntitlements(schoolId: string) {
     LIMIT 1
   `);
   const row = rows[0];
-  if (!row) return { unrestricted: true as const, modules: [...MODULE_KEYS], planCode: null, planName: null, endsAt: null };
-  return { unrestricted: false as const, modules: (row.modules ?? []).filter((x): x is ModuleKey => MODULE_KEYS.includes(x as ModuleKey)), planCode: row.planCode, planName: row.planName, endsAt: row.endsAt };
+  if (!row) {
+    return {
+      unrestricted: true as const,
+      modules: [...MODULE_KEYS],
+      planCode: null,
+      planName: null,
+      endsAt: null,
+    };
+  }
+  return {
+    unrestricted: false as const,
+    modules: (row.modules ?? []).filter((value): value is ModuleKey =>
+      MODULE_KEYS.includes(value as ModuleKey),
+    ),
+    planCode: row.planCode,
+    planName: row.planName,
+    endsAt: row.endsAt,
+  };
 }
 
 export function requireModule(moduleKey: ModuleKey) {
@@ -34,21 +60,38 @@ export function requireModule(moduleKey: ModuleKey) {
     if (req.auth?.role === 'SUPER_ADMIN') return next();
     const schoolId = req.auth?.schoolId;
     if (!schoolId) return res.status(403).json({ message: 'School scope required' });
+
     try {
       const entitlement = await getSchoolEntitlements(schoolId);
-      if (entitlement.endsAt && entitlement.endsAt.getTime() < Date.now()) {
-        return res.status(402).json({ message: 'School subscription has expired', code: 'SUBSCRIPTION_EXPIRED' });
+      const subscriptionExpired =
+        Boolean(entitlement.endsAt) && entitlement.endsAt!.getTime() < Date.now();
+      const lifecycleAllowsExpiredSubscription =
+        req.tenantAccess?.status === 'GRACE_PERIOD' || req.tenantAccess?.status === 'READ_ONLY';
+
+      if (subscriptionExpired && !lifecycleAllowsExpiredSubscription) {
+        return res.status(402).json({
+          message: 'School subscription has expired',
+          code: 'SUBSCRIPTION_EXPIRED',
+        });
       }
+
       if (!entitlement.modules.includes(moduleKey)) {
-        return res.status(403).json({ message: `${moduleKey} is not enabled for this school plan`, code: 'MODULE_DISABLED', module: moduleKey, plan: entitlement.planCode });
+        return res.status(403).json({
+          message: `${moduleKey} is not enabled for this school plan`,
+          code: 'MODULE_DISABLED',
+          module: moduleKey,
+          plan: entitlement.planCode,
+        });
       }
-      next();
+      return next();
     } catch (error) {
       // Backward compatibility during staged migrations: if the entitlement tables
       // have not been deployed yet, existing schools keep their current access.
       const message = error instanceof Error ? error.message : '';
-      if (message.includes('SubscriptionPlan') || message.includes('SchoolSubscription')) return next();
-      next(error);
+      if (message.includes('SubscriptionPlan') || message.includes('SchoolSubscription')) {
+        return next();
+      }
+      return next(error);
     }
   };
 }
