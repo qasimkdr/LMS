@@ -24,49 +24,9 @@ import campusRoutes from './routes/campus.js';
 import advancedAnalyticsRoutes from './routes/advancedAnalytics.js';
 import feeRoutes from './routes/fees.js';
 import feeLedgerRoutes from './routes/feeLedger.js';
-
-const app = express();
-const port = Number(process.env.PORT ?? 4000);
-
-app.set('trust proxy', 1);
-app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL?.split(',') ?? ['http://localhost:5173'], credentials: true }));
-app.use(express.json({ limit: '2mb' }));
-app.use(cookieParser());
-
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'nexora-api', timestamp: new Date().toISOString() });
-});
-
-app.use('/api/auth', authRoutes);
-app.use('/api/super-admin', superAdminRoutes);
-app.use('/api/approvals', approvalRoutes);
-app.use('/api/school-directory', schoolDirectoryRoutes);
-app.use('/api/exams', examRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/school-operations', schoolOperationsRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/policies', policyRoutes);
-app.use('/api/teacher-assignments', teacherAssignmentRoutes);
-app.use('/api/exam-attempts', examAttemptRoutes);
-app.use('/api/portal', portalRoutes);
-app.use('/api/announcements', announcementRoutes);
-app.use('/api/coursework', courseworkRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/parents', parentRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/campus', campusRoutes);
-app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
-app.use('/api/fees', feeRoutes);
-app.use('/api/fee-ledger', feeLedgerRoutes);
-
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err);
-  res.status(500).json({ message: 'Unexpected server error' });
-});
-
-app.use((_req, res) => res.status(404).json({ message: 'Route not found' }));
-
-app.listen(port, () => {
-  console.log(`Nexora API listening on port ${port}`);
-});
+import feeAdjustmentRoutes from './routes/feeAdjustments.js';
+const app=express();const port=Number(process.env.PORT??4000);
+app.set('trust proxy',1);app.use(helmet());app.use(cors({origin:process.env.CLIENT_URL?.split(',')??['http://localhost:5173'],credentials:true}));app.use(express.json({limit:'2mb'}));app.use(cookieParser());
+app.get('/api/health',(_req,res)=>res.json({ok:true,service:'nexora-api',timestamp:new Date().toISOString()}));
+app.use('/api/auth',authRoutes);app.use('/api/super-admin',superAdminRoutes);app.use('/api/approvals',approvalRoutes);app.use('/api/school-directory',schoolDirectoryRoutes);app.use('/api/exams',examRoutes);app.use('/api/dashboard',dashboardRoutes);app.use('/api/school-operations',schoolOperationsRoutes);app.use('/api/attendance',attendanceRoutes);app.use('/api/policies',policyRoutes);app.use('/api/teacher-assignments',teacherAssignmentRoutes);app.use('/api/exam-attempts',examAttemptRoutes);app.use('/api/portal',portalRoutes);app.use('/api/announcements',announcementRoutes);app.use('/api/coursework',courseworkRoutes);app.use('/api/notifications',notificationRoutes);app.use('/api/parents',parentRoutes);app.use('/api/reports',reportRoutes);app.use('/api/campus',campusRoutes);app.use('/api/advanced-analytics',advancedAnalyticsRoutes);app.use('/api/fees',feeRoutes);app.use('/api/fee-ledger',feeLedgerRoutes);app.use('/api/fee-adjustments',feeAdjustmentRoutes);
+app.use((err:unknown,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{console.error(err);res.status(500).json({message:'Unexpected server error'});});app.use((_req,res)=>res.status(404).json({message:'Route not found'}));app.listen(port,()=>console.log(`Nexora API listening on port ${port}`));
