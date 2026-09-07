@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "concurrently -n WEB,API \"npm run dev -w @nexora/web\" \"npm run dev -w @nexora/api\"",
     "build": "npm run build -w @nexora/database && npm run build -w @nexora/api && npm run build -w @nexora/web",
+    "test:security": "node scripts/security-regression.mjs",
     "db:generate": "npm run generate -w @nexora/database",
     "db:migrate": "npm run migrate -w @nexora/database"
   },
