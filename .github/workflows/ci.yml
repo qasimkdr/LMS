@@ -30,6 +30,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nexora?schema=public
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/nexora?schema=public
+      JWT_SECRET: ci-access-secret-at-least-32-characters-long
+      JWT_REFRESH_SECRET: ci-refresh-secret-at-least-32-characters-long
+      CLIENT_URL: http://localhost:5173
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,6 +62,8 @@ jobs:
         run: npm run build -w @nexora/database
       - name: Lifecycle behavior tests
         run: npm run test:lifecycle -w @nexora/api
+      - name: Multi-tenant isolation tests
+        run: npm run test:tenant
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
