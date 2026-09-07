@@ -2,84 +2,14 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '@nexora/database';
 import { requireAuth, requireRoles, requireTenant } from '../middleware/auth.js';
+import { routeParam } from '../utils/http.js';
 
 const router = Router();
 router.use(requireAuth, requireTenant);
 
-const assignmentSchema = z.object({
-  teacherId: z.string().uuid(),
-  classId: z.string().uuid(),
-  subjectId: z.string().uuid(),
-  note: z.string().max(1000).optional(),
-});
-
-async function validateRefs(schoolId: string, teacherId: string, classId: string, subjectId: string) {
-  const [teacher, klass, subject] = await Promise.all([
-    prisma.user.findFirst({ where: { id: teacherId, schoolId, role: 'TEACHER', isActive: true } }),
-    prisma.class.findFirst({ where: { id: classId, schoolId } }),
-    prisma.subject.findFirst({ where: { id: subjectId, schoolId } }),
-  ]);
-  return Boolean(teacher && klass && subject);
-}
-
-router.get('/', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => {
-  const schoolId = req.auth!.schoolId!;
-  const rows = await prisma.teacherAssignment.findMany({
-    where: { schoolId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      teacher: { select: { id: true, firstName: true, lastName: true, email: true } },
-      class: { select: { id: true, name: true, section: true, academicYear: true } },
-      subject: { select: { id: true, name: true, code: true } },
-    },
-  });
-  res.json(rows);
-});
-
-router.post('/', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => {
-  const parsed = assignmentSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ message: 'Invalid teacher assignment', issues: parsed.error.flatten() });
-  const schoolId = req.auth!.schoolId!;
-  const d = parsed.data;
-  if (!(await validateRefs(schoolId, d.teacherId, d.classId, d.subjectId))) return res.status(400).json({ message: 'Teacher, class or subject is invalid for this school' });
-
-  if (req.auth!.role === 'STAFF') {
-    const policy = await prisma.approvalPolicy.findUnique({ where: { schoolId_actionKey: { schoolId, actionKey: 'TEACHER_ASSIGNMENT' } } });
-    if (policy && !policy.staffAllowed) return res.status(403).json({ message: 'Staff are not allowed to assign teachers' });
-    const requiresApproval = policy?.requiresApproval ?? true;
-
-    if (requiresApproval) {
-      const request = await prisma.$transaction(async (tx) => {
-        const created = await tx.approvalRequest.create({ data: { schoolId, requesterId: req.auth!.userId, requestType: 'TEACHER_ASSIGNMENT', entityType: 'TeacherAssignment', proposedData: { teacherId: d.teacherId, classId: d.classId, subjectId: d.subjectId }, status: 'PENDING', submittedAt: new Date() } });
-        await tx.approvalVersion.create({ data: { approvalRequestId: created.id, revision: 1, proposedData: { teacherId: d.teacherId, classId: d.classId, subjectId: d.subjectId }, note: d.note } });
-        await tx.auditLog.create({ data: { schoolId, actorId: req.auth!.userId, action: 'APPROVAL_SUBMITTED', entityType: 'ApprovalRequest', entityId: created.id, afterData: { requestType: 'TEACHER_ASSIGNMENT' } } });
-        return created;
-      });
-      return res.status(202).json({ mode: 'APPROVAL', request });
-    }
-  }
-
-  const row = await prisma.$transaction(async (tx) => {
-    const assignment = await tx.teacherAssignment.upsert({
-      where: { schoolId_teacherId_classId_subjectId: { schoolId, teacherId: d.teacherId, classId: d.classId, subjectId: d.subjectId } },
-      create: { schoolId, teacherId: d.teacherId, classId: d.classId, subjectId: d.subjectId },
-      update: {},
-    });
-    await tx.auditLog.create({ data: { schoolId, actorId: req.auth!.userId, action: 'TEACHER_ASSIGNED', entityType: 'TeacherAssignment', entityId: assignment.id, afterData: { teacherId: d.teacherId, classId: d.classId, subjectId: d.subjectId } } });
-    return assignment;
-  });
-  res.status(201).json({ mode: 'DIRECT', assignment: row });
-});
-
-router.delete('/:id', requireRoles('PRINCIPAL'), async (req, res) => {
-  const schoolId = req.auth!.schoolId!;
-  const row = await prisma.teacherAssignment.findFirst({ where: { id: req.params.id, schoolId } });
-  if (!row) return res.status(404).json({ message: 'Assignment not found' });
-  await prisma.$transaction(async (tx) => {
-    await tx.teacherAssignment.delete({ where: { id: row.id } });
-    await tx.auditLog.create({ data: { schoolId, actorId: req.auth!.userId, action: 'TEACHER_ASSIGNMENT_REMOVED', entityType: 'TeacherAssignment', entityId: row.id } });
-  });
-  res.status(204).send();
-});
-
+const assignmentSchema = z.object({ teacherId: z.string().uuid(), classId: z.string().uuid(), subjectId: z.string().uuid(), note: z.string().max(1000).optional() });
+async function validateRefs(schoolId: string, teacherId: string, classId: string, subjectId: string) { const [teacher, klass, subject] = await Promise.all([prisma.user.findFirst({ where: { id: teacherId, schoolId, role: 'TEACHER', isActive: true } }),prisma.class.findFirst({ where: { id: classId, schoolId } }),prisma.subject.findFirst({ where: { id: subjectId, schoolId } })]); return Boolean(teacher && klass && subject); }
+router.get('/', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => { const schoolId = req.auth!.schoolId!; const rows = await prisma.teacherAssignment.findMany({where:{schoolId},orderBy:{createdAt:'desc'},include:{teacher:{select:{id:true,firstName:true,lastName:true,email:true}},class:{select:{id:true,name:true,section:true,academicYear:true}},subject:{select:{id:true,name:true,code:true}}}});res.json(rows);});
+router.post('/', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => {const parsed=assignmentSchema.safeParse(req.body);if(!parsed.success)return res.status(400).json({message:'Invalid teacher assignment',issues:parsed.error.flatten()});const schoolId=req.auth!.schoolId!,d=parsed.data;if(!(await validateRefs(schoolId,d.teacherId,d.classId,d.subjectId)))return res.status(400).json({message:'Teacher, class or subject is invalid for this school'});if(req.auth!.role==='STAFF'){const policy=await prisma.approvalPolicy.findUnique({where:{schoolId_actionKey:{schoolId,actionKey:'TEACHER_ASSIGNMENT'}}});if(policy&&!policy.staffAllowed)return res.status(403).json({message:'Staff are not allowed to assign teachers'});if(policy?.requiresApproval??true){const request=await prisma.$transaction(async tx=>{const created=await tx.approvalRequest.create({data:{schoolId,requesterId:req.auth!.userId,requestType:'TEACHER_ASSIGNMENT',entityType:'TeacherAssignment',proposedData:{teacherId:d.teacherId,classId:d.classId,subjectId:d.subjectId},status:'PENDING',submittedAt:new Date()}});await tx.approvalVersion.create({data:{approvalRequestId:created.id,revision:1,proposedData:{teacherId:d.teacherId,classId:d.classId,subjectId:d.subjectId},note:d.note}});await tx.auditLog.create({data:{schoolId,actorId:req.auth!.userId,action:'APPROVAL_SUBMITTED',entityType:'ApprovalRequest',entityId:created.id,afterData:{requestType:'TEACHER_ASSIGNMENT'}}});return created;});return res.status(202).json({mode:'APPROVAL',request});}}const row=await prisma.$transaction(async tx=>{const assignment=await tx.teacherAssignment.upsert({where:{schoolId_teacherId_classId_subjectId:{schoolId,teacherId:d.teacherId,classId:d.classId,subjectId:d.subjectId}},create:{schoolId,teacherId:d.teacherId,classId:d.classId,subjectId:d.subjectId},update:{}});await tx.auditLog.create({data:{schoolId,actorId:req.auth!.userId,action:'TEACHER_ASSIGNED',entityType:'TeacherAssignment',entityId:assignment.id,afterData:{teacherId:d.teacherId,classId:d.classId,subjectId:d.subjectId}}});return assignment;});res.status(201).json({mode:'DIRECT',assignment:row});});
+router.delete('/:id', requireRoles('PRINCIPAL'), async (req, res) => {const schoolId=req.auth!.schoolId!,id=routeParam(req.params.id);const row=await prisma.teacherAssignment.findFirst({where:{id,schoolId}});if(!row)return res.status(404).json({message:'Assignment not found'});await prisma.$transaction(async tx=>{await tx.teacherAssignment.delete({where:{id:row.id}});await tx.auditLog.create({data:{schoolId,actorId:req.auth!.userId,action:'TEACHER_ASSIGNMENT_REMOVED',entityType:'TeacherAssignment',entityId:row.id}});});res.status(204).send();});
 export default router;
