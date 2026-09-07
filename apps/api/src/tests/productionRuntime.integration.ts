@@ -85,7 +85,10 @@ async function main() {
     const ready = await fetch(`${BASE}/health/ready`);
     assert.equal(ready.status, 200, 'Readiness endpoint must pass with live PostgreSQL');
     const readyBody = await ready.json() as any;
-    assert.equal(readyBody.ready, true);
+    assert.equal(readyBody.ok, true);
+    assert.equal(readyBody.status, 'ready');
+    assert.equal(readyBody.database, 'ok');
+    assert.equal(typeof readyBody.latencyMs, 'number');
 
     const allowedPreflight = await fetch(`${BASE}/auth/login`, {
       method: 'OPTIONS',
