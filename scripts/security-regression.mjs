@@ -47,6 +47,17 @@ assert.match(
 );
 assert.match(index, /express\.json\(\{ limit: '2mb' \}\)/, 'Normal API routes must retain the smaller JSON limit');
 
+const routeMount = (path) => {
+  const quotedPath = `'${path}'`;
+  const pathIndex = index.indexOf(quotedPath);
+  assert.notEqual(pathIndex, -1, `${path} route mount must exist`);
+  const start = index.lastIndexOf('app.use(', pathIndex);
+  assert.notEqual(start, -1, `${path} must be mounted with app.use`);
+  const end = index.indexOf(');', pathIndex);
+  assert.notEqual(end, -1, `${path} app.use mount must terminate`);
+  return index.slice(start, end + 2);
+};
+
 for (const [path, module] of [
   ['/api/exams', 'EXAMS'],
   ['/api/attendance', 'ATTENDANCE'],
@@ -57,15 +68,16 @@ for (const [path, module] of [
   ['/api/storage', 'STORAGE'],
   ['/api/support', 'SUPPORT'],
 ]) {
-  const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const escapedModule = module.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const routePattern = new RegExp(
-    `app\\.use\\('${escapedPath}'[\\s\\S]{0,500}?requireAuth[\\s\\S]{0,160}?requireTenant[\\s\\S]{0,160}?requireModule\\('${escapedModule}'\\)`,
-  );
-  assert.match(
-    index,
-    routePattern,
-    `${path} must authenticate and establish tenant scope before the ${module} entitlement guard`,
+  const mount = routeMount(path);
+  const authAt = mount.indexOf('requireAuth');
+  const tenantAt = mount.indexOf('requireTenant');
+  const moduleAt = mount.indexOf(`requireModule('${module}')`);
+
+  assert.ok(authAt >= 0, `${path} must authenticate before feature routing`);
+  assert.ok(tenantAt > authAt, `${path} must establish tenant scope after authentication`);
+  assert.ok(
+    moduleAt > tenantAt,
+    `${path} must evaluate the ${module} entitlement after authentication and tenant scope`,
   );
 }
 
