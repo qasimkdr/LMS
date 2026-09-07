@@ -40,6 +40,19 @@ assert.match(backups, /Cross-tenant restore is not allowed/, 'Backup restore pla
 assert.match(backups, /createHash\('sha256'\)/, 'Restore plan must fingerprint the exact backup payload');
 assert.match(backups, /createHmac\('sha256'/, 'Restore plan token must be cryptographically signed');
 assert.match(backups, /schoolId, backupHash, exp/, 'Restore plan token must bind school, backup fingerprint and expiry');
+assert.match(backups, /'feeInvoices'/, 'School backup collections must include historical fee invoices');
+assert.match(backups, /rawCount\('FeeInvoice', schoolId\)/, 'Restore planning must count existing fee invoices');
+assert.match(backups, /SELECT \* FROM "FeeInvoice" WHERE "schoolId"=\$\{schoolId\}/, 'Backup export must include fee invoice rows');
+assert.match(
+  backups,
+  /optionalBackupCollections = new Set<BackupCollection>\(\['feeInvoices'\]\)/,
+  'Legacy v1 backups must be allowed to omit feeInvoices for backward compatibility',
+);
+assert.match(
+  backups,
+  /Backup predates \$\{key\}; this collection will be treated as empty during restore planning/,
+  'Legacy missing feeInvoices must generate a compatibility warning rather than a validation failure',
+);
 assert.match(
   index,
   /app\.use\('\/api\/backups',\s*express\.json\(\{\s*limit:\s*'20mb'\s*\}\),\s*sensitiveLimiter,\s*backupRoutes\)/,
