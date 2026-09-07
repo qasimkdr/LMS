@@ -1,0 +1,38 @@
+name: Nexora CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: nexora-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nexora?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/nexora?schema=public
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate Prisma schema
+        run: npx prisma validate --schema packages/database/prisma/schema.prisma
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Build database package
+        run: npm run build -w @nexora/database
+      - name: Build API
+        run: npm run build -w @nexora/api
+      - name: Build web
+        run: npm run build -w @nexora/web
