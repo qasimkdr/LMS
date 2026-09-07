@@ -25,6 +25,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Security regression checks
+        run: npm run test:security
       - name: Validate Prisma schema
         run: npx prisma validate --schema packages/database/prisma/schema.prisma
       - name: Generate Prisma client
