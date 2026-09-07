@@ -4,13 +4,14 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const load = async (path) => readFile(new URL(path, root), 'utf8');
 
-const [auth, storage, fees, support, index, entitlements] = await Promise.all([
+const [auth, storage, fees, support, index, entitlements, backups] = await Promise.all([
   load('apps/api/src/middleware/auth.ts'),
   load('apps/api/src/routes/storage.ts'),
   load('apps/api/src/routes/fees.ts'),
   load('apps/api/src/routes/support.ts'),
   load('apps/api/src/index.ts'),
   load('apps/api/src/middleware/entitlements.ts'),
+  load('apps/api/src/routes/backups.ts'),
 ]);
 
 assert.match(auth, /impersonatedById\?:string/, 'Auth context must preserve impersonation provenance');
@@ -25,12 +26,32 @@ assert.match(support, /Internal notes are Super Admin only/, 'Support internal n
 assert.match(entitlements, /MODULE_DISABLED/, 'Entitlement guard must explicitly deny disabled modules');
 assert.match(entitlements, /SUBSCRIPTION_EXPIRED/, 'Entitlement guard must reject expired subscriptions');
 
+assert.match(backups, /router\.post\('\/restore-plan'/, 'Backup restore must retain a dry-run planning endpoint');
+assert.match(backups, /Cross-tenant restore is not allowed/, 'Backup restore planning must reject cross-tenant backups');
+assert.match(backups, /createHash\('sha256'\)/, 'Restore plan must fingerprint the exact backup payload');
+assert.match(backups, /createHmac\('sha256'/, 'Restore plan token must be cryptographically signed');
+assert.match(backups, /schoolId, backupHash, exp/, 'Restore plan token must bind school, backup fingerprint and expiry');
+assert.match(
+  index,
+  /app\.use\('\/api\/backups',\s*express\.json\(\{\s*limit:\s*'20mb'\s*\}\),\s*sensitiveLimiter,\s*backupRoutes\)/,
+  'Backup route must keep its scoped 20 MB parser and sensitive limiter',
+);
+assert.match(index, /express\.json\(\{ limit: '2mb' \}\)/, 'Normal API routes must retain the smaller JSON limit');
+
 for (const [path, module] of [
-  ['/api/exams','EXAMS'],['/api/attendance','ATTENDANCE'],['/api/coursework','COURSEWORK'],['/api/reports','REPORTS'],['/api/fees','FINANCE'],['/api/timetable','TIMETABLE'],['/api/storage','STORAGE']
+  ['/api/exams', 'EXAMS'],
+  ['/api/attendance', 'ATTENDANCE'],
+  ['/api/coursework', 'COURSEWORK'],
+  ['/api/reports', 'REPORTS'],
+  ['/api/fees', 'FINANCE'],
+  ['/api/timetable', 'TIMETABLE'],
+  ['/api/storage', 'STORAGE'],
 ]) {
   const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const escapedModule = module.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const routePattern = new RegExp(`app\\.use\\('${escapedPath}'[\\s\\S]{0,160}?requireModule\\('${escapedModule}'\\)`);
+  const routePattern = new RegExp(
+    `app\\.use\\('${escapedPath}'[\\s\\S]{0,160}?requireModule\\('${escapedModule}'\\)`,
+  );
   assert.match(index, routePattern, `${path} must retain ${module} entitlement guard`);
 }
 
