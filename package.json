@@ -17,6 +17,7 @@
     "test:portal": "tsx apps/api/src/tests/portalPermissions.integration.ts",
     "test:support": "tsx apps/api/src/tests/supportNotifications.integration.ts",
     "test:impersonation": "tsx apps/api/src/tests/impersonation.integration.ts",
+    "test:backups": "tsx apps/api/src/tests/backupRestore.integration.ts",
     "db:generate": "npm run generate -w @nexora/database",
     "db:migrate": "npm run migrate -w @nexora/database"
   },
