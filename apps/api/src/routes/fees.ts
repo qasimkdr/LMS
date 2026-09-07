@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { Prisma, prisma } from '@nexora/database';
 import { z } from 'zod';
 import { requireAuth, requireRoles, requireTenant } from '../middleware/auth.js';
+import { ensureFeeInvoiceForStudent } from '../services/feeInvoices.js';
 import { routeParam } from '../utils/http.js';
 
 const router = Router();
@@ -11,8 +12,11 @@ router.use(requireAuth, requireTenant);
 const monthPattern = /^\d{4}-\d{2}$/;
 
 type StructureRow = {
+  id?: string;
   classId: string;
+  studentProfileId?: string;
   monthlyAmount: unknown;
+  currency?: string;
   dueDay?: unknown;
   lateFineAmount?: unknown;
   lateFineGraceDays?: unknown;
@@ -144,7 +148,7 @@ router.get('/recovery-dashboard', requireRoles('PRINCIPAL', 'STAFF'), async (req
   const schoolId = req.auth!.schoolId!;
   const month = typeof req.query.month === 'string' && monthPattern.test(req.query.month) ? req.query.month : new Date().toISOString().slice(0, 7);
 
-  const [students, structures, payments, adjustments, batches] = await Promise.all([
+  const [students, structures, invoices, payments, adjustments, batches] = await Promise.all([
     prisma.studentProfile.findMany({
       where: { schoolId },
       include: { user: { select: { firstName: true, lastName: true } }, class: true },
@@ -154,6 +158,13 @@ router.get('/recovery-dashboard', requireRoles('PRINCIPAL', 'STAFF'), async (req
       FROM "FeeStructure" fs
       JOIN "Class" c ON c.id=fs."classId"
       WHERE fs."schoolId"=${schoolId}
+    `),
+    prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT fi.id,fi."studentProfileId",fi."classId",fi."baseFee" AS "monthlyAmount",fi.currency,
+             fi."dueDay",fi."lateFineAmount",fi."lateFineGraceDays",c.name AS "className",c.section
+      FROM "FeeInvoice" fi
+      LEFT JOIN "Class" c ON c.id=fi."classId"
+      WHERE fi."schoolId"=${schoolId} AND fi.month=${month}
     `),
     prisma.$queryRaw<any[]>(Prisma.sql`
       SELECT fp.*, sp."classId", u."firstName", u."lastName", c.name AS "className", c.section,
@@ -181,23 +192,31 @@ router.get('/recovery-dashboard', requireRoles('PRINCIPAL', 'STAFF'), async (req
   ]);
 
   const structuresByClass = new Map<string, StructureRow>(structures.map((row) => [row.classId, row]));
+  const invoicesByStudent = new Map<string, StructureRow>(invoices.map((row) => [row.studentProfileId, row]));
   const paymentsByStudent = paymentMap(payments);
   const adjustmentsByStudentMonth = adjustmentMap(adjustments);
 
   const studentCards = students.map((student) => {
-    const structure = student.classId ? structuresByClass.get(student.classId) : undefined;
+    const invoice = invoicesByStudent.get(student.id);
+    const structure = invoice ?? (student.classId ? structuresByClass.get(student.classId) : undefined);
     const metrics = calculateMonth(
       month,
       structure,
       paymentsByStudent.get(student.id) ?? [],
       adjustmentsByStudentMonth.get(`${student.id}:${month}`) ?? {},
     );
+    const billingClassId = structure?.classId ?? student.classId;
+    const billingClassName = structure?.className
+      ? `${structure.className}${structure.section ? ` - ${structure.section}` : ''}`
+      : student.class
+        ? `${student.class.name}${student.class.section ? ` - ${student.class.section}` : ''}`
+        : 'No class';
     return {
       studentProfileId: student.id,
       name: `${student.user.firstName} ${student.user.lastName}`,
       admissionNo: student.admissionNo,
-      classId: student.classId,
-      className: student.class ? `${student.class.name}${student.class.section ? ` - ${student.class.section}` : ''}` : 'No class',
+      classId: billingClassId,
+      className: billingClassName,
       monthlyFee: metrics.baseFee,
       expectedAmount: metrics.expected,
       paidAmount: metrics.received,
@@ -211,18 +230,25 @@ router.get('/recovery-dashboard', requireRoles('PRINCIPAL', 'STAFF'), async (req
       overdue: metrics.overdue,
       status: metrics.status,
       configured: metrics.configured,
+      historicalSnapshot: Boolean(invoice),
     };
   });
 
-  const classRows = structures.map((structure) => {
+  const classSources = new Map<string, StructureRow>();
+  for (const structure of structures as StructureRow[]) classSources.set(structure.classId, structure);
+  for (const invoice of invoices as StructureRow[]) {
+    if (invoice.classId && !classSources.has(invoice.classId)) classSources.set(invoice.classId, invoice);
+  }
+
+  const classRows = [...classSources.values()].map((structure) => {
     const classStudents = studentCards.filter((student) => student.classId === structure.classId);
     const expected = classStudents.reduce((sum, student) => sum + student.expectedAmount, 0);
     const collected = classStudents.reduce((sum, student) => sum + student.paidAmount, 0);
     const paid = classStudents.filter((student) => student.balance <= 0).length;
     return {
       classId: structure.classId,
-      className: `${structure.className}${structure.section ? ` - ${structure.section}` : ''}`,
-      monthlyAmount: Number(structure.monthlyAmount),
+      className: `${structure.className ?? 'Class'}${structure.section ? ` - ${structure.section}` : ''}`,
+      monthlyAmount: classStudents[0]?.monthlyFee ?? Number(structure.monthlyAmount),
       students: classStudents.length,
       paid,
       remaining: Math.max(0, classStudents.length - paid),
@@ -272,12 +298,17 @@ router.get('/student-dues', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PAREN
     if (!link) return res.status(403).json({ message: 'Student is not linked to this parent' });
   }
 
-  const [students, structures, payments, adjustments] = await Promise.all([
+  const [students, structures, invoices, payments, adjustments] = await Promise.all([
     prisma.studentProfile.findMany({
       where: { schoolId, ...(targetId ? { id: targetId } : {}) },
       include: { user: { select: { firstName: true, lastName: true } }, class: true },
     }),
     prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "FeeStructure" WHERE "schoolId"=${schoolId}`),
+    prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT "studentProfileId","classId",month,"baseFee" AS "monthlyAmount",currency,"dueDay","lateFineAmount","lateFineGraceDays"
+      FROM "FeeInvoice"
+      WHERE "schoolId"=${schoolId} AND month IN (${Prisma.join(monthList)})
+    `),
     prisma.$queryRaw<any[]>(Prisma.sql`
       SELECT "studentProfileId", month, amount, "paidAt", "approvalStatus"
       FROM "FeePayment"
@@ -292,32 +323,40 @@ router.get('/student-dues', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PAREN
   ]);
 
   const structuresByClass = new Map<string, StructureRow>(structures.map((row) => [row.classId, row]));
+  const invoicesByStudentMonth = new Map<string, StructureRow>(
+    invoices.map((row) => [`${row.studentProfileId}:${row.month}`, row]),
+  );
   const paymentsByStudentMonth = paymentMap(payments, true);
   const adjustmentsByStudentMonth = adjustmentMap(adjustments);
 
   const rows = students.map((student) => {
-    const structure = student.classId ? structuresByClass.get(student.classId) : undefined;
+    const currentStructure = student.classId ? structuresByClass.get(student.classId) : undefined;
     const profileMonth = student.createdAt.toISOString().slice(0, 7);
     const eligibleMonths = monthList.filter((month) => month >= profileMonth);
-    const monthBalances = eligibleMonths.map((month) => calculateMonth(
-      month,
-      structure,
-      paymentsByStudentMonth.get(`${student.id}:${month}`) ?? [],
-      adjustmentsByStudentMonth.get(`${student.id}:${month}`) ?? {},
-    ));
+    const monthBalances = eligibleMonths.map((month) => {
+      const invoice = invoicesByStudentMonth.get(`${student.id}:${month}`);
+      return calculateMonth(
+        month,
+        invoice ?? currentStructure,
+        paymentsByStudentMonth.get(`${student.id}:${month}`) ?? [],
+        adjustmentsByStudentMonth.get(`${student.id}:${month}`) ?? {},
+      );
+    });
     const dueMonths = monthBalances.filter((balance) => balance.configured && balance.balance > 0);
+    const snapshots = eligibleMonths.filter((month) => invoicesByStudentMonth.has(`${student.id}:${month}`)).length;
     return {
       studentProfileId: student.id,
       name: `${student.user.firstName} ${student.user.lastName}`,
       admissionNo: student.admissionNo,
       className: student.class ? `${student.class.name}${student.class.section ? ` - ${student.class.section}` : ''}` : 'No class',
-      monthlyFee: structure ? Number(structure.monthlyAmount) : 0,
+      monthlyFee: currentStructure ? Number(currentStructure.monthlyAmount) : 0,
       monthsChecked: eligibleMonths.length,
+      snapshotMonths: snapshots,
       unpaidMonths: dueMonths.length,
       overdueMonths: dueMonths.filter((balance) => balance.overdue).length,
       dueAmount: dueMonths.reduce((sum, balance) => sum + balance.balance, 0),
       missingMonths: dueMonths.map((balance) => balance.month),
-      configured: Boolean(structure),
+      configured: Boolean(currentStructure) || snapshots > 0,
     };
   }).sort((a, b) => b.dueAmount - a.dueAmount || b.unpaidMonths - a.unpaidMonths);
 
@@ -349,11 +388,15 @@ router.post('/receive', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => 
       if (!student) return { error: { status: 404, message: 'Student not found' } } as const;
       if (!student.classId) return { error: { status: 400, message: 'Student is not assigned to a class' } } as const;
 
-      const structureRows = await tx.$queryRaw<any[]>(Prisma.sql`
-        SELECT * FROM "FeeStructure" WHERE "schoolId"=${schoolId} AND "classId"=${student.classId} LIMIT 1
-      `);
-      const structure = structureRows[0] as StructureRow | undefined;
-      if (!structure) return { error: { status: 400, message: 'Fee structure is not configured for this class' } } as const;
+      const structure = await ensureFeeInvoiceForStudent(tx, schoolId, data.studentProfileId, data.month);
+      if (!structure) {
+        return {
+          error: {
+            status: 400,
+            message: 'Fee invoice could not be created. Check the student admission month and class fee structure.',
+          },
+        } as const;
+      }
 
       const [payments, adjustments] = await Promise.all([
         tx.$queryRaw<any[]>(Prisma.sql`
@@ -370,7 +413,7 @@ router.post('/receive', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => 
       ]);
 
       const adjustmentTotals = Object.fromEntries(adjustments.map((row) => [row.type, Number(row.total)]));
-      const before = calculateMonth(data.month, structure, payments, adjustmentTotals);
+      const before = calculateMonth(data.month, structure as StructureRow, payments, adjustmentTotals);
       if (before.balance <= 0) return { error: { status: 409, message: 'This month is already fully paid' } } as const;
       if (data.amount > before.balance + 0.0001) {
         return { error: { status: 400, message: `Payment exceeds remaining adjusted balance of ${before.balance}` } } as const;
@@ -436,6 +479,7 @@ router.post('/receive', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => 
             amount: data.amount,
             approvalStatus,
             batchId,
+            feeInvoiceId: structure.id,
             adjustedExpected: before.expected,
             balanceBefore: before.balance,
             balanceAfter: remainingAfter,
@@ -448,6 +492,7 @@ router.post('/receive', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => 
           id,
           approvalStatus,
           batchId,
+          feeInvoiceId: structure.id,
           expected: before.expected,
           paidBefore: before.received,
           remainingBefore: before.balance,
