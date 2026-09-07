@@ -57,6 +57,8 @@ jobs:
         run: npm run db:generate
       - name: Build database package
         run: npm run build -w @nexora/database
+      - name: Lifecycle behavior tests
+        run: npm run test:lifecycle -w @nexora/api
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
