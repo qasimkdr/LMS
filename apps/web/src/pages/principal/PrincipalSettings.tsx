@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import FileUpload from '../../components/storage/FileUpload';
 import { api } from '../../lib/api';
 import BackupRestorePanel from './components/BackupRestorePanel';
+import StorageCleanupPanel from './components/StorageCleanupPanel';
 
 type School = {
   name: string;
@@ -70,6 +71,15 @@ export default function PrincipalSettings() {
       setError('Could not load school settings.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshUsage = async () => {
+    try {
+      const { data } = await api.get<Usage>('/storage/usage');
+      setUsage(data);
+    } catch {
+      setError('Storage cleanup completed, but the quota meter could not be refreshed.');
     }
   };
 
@@ -325,6 +335,7 @@ export default function PrincipalSettings() {
                       : 'Storage usage has crossed 80% of the school quota.'}
                   </Alert>
                 )}
+                <StorageCleanupPanel onCleaned={() => void refreshUsage()} />
               </div>
             </div>
           </section>
