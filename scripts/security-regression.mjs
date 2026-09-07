@@ -4,8 +4,25 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const load = async (path) => readFile(new URL(path, root), 'utf8');
 
-const [auth, storage, fees, support, index, entitlements, backups, lifecycle] = await Promise.all([
+const [
+  auth,
+  authRoutes,
+  refreshSessions,
+  tokens,
+  superAdmin,
+  storage,
+  fees,
+  support,
+  index,
+  entitlements,
+  backups,
+  lifecycle,
+] = await Promise.all([
   load('apps/api/src/middleware/auth.ts'),
+  load('apps/api/src/routes/auth.ts'),
+  load('apps/api/src/services/refreshSessions.ts'),
+  load('apps/api/src/lib/tokens.ts'),
+  load('apps/api/src/routes/superAdmin.ts'),
   load('apps/api/src/routes/storage.ts'),
   load('apps/api/src/routes/fees.ts'),
   load('apps/api/src/routes/support.ts'),
@@ -16,9 +33,22 @@ const [auth, storage, fees, support, index, entitlements, backups, lifecycle] = 
 ]);
 
 assert.match(auth, /impersonatedById\?\s*:\s*string/, 'Auth context must preserve impersonation provenance');
+assert.match(auth, /sessionId\?\s*:\s*string/, 'Auth context must preserve server-side session identity');
 assert.match(auth, /SCHOOL_READ_ONLY/, 'Tenant middleware must enforce read-only lifecycle state');
 assert.match(auth, /SCHOOL_SUSPENDED/, 'Tenant middleware must enforce suspended lifecycle state');
 assert.match(auth, /supportImpersonation/, 'Support impersonation must remain explicit in lifecycle enforcement');
+
+assert.match(tokens, /jwtid:\s*randomUUID\(\)/, 'Every refresh token must carry a unique JWT ID');
+assert.match(authRoutes, /createRefreshSession/, 'Login must create a server-side refresh session');
+assert.match(authRoutes, /validateRefreshSession/, 'Refresh must validate the presented token against server-side session state');
+assert.match(authRoutes, /rotateRefreshSession/, 'Refresh must rotate the server-side token hash');
+assert.match(authRoutes, /revokeRefreshSession/, 'Logout and invalidated users must revoke refresh sessions');
+assert.match(refreshSessions, /"tokenHash"=\$\{currentHash\}/, 'Refresh rotation must compare the currently stored token hash');
+assert.match(refreshSessions, /"revokedAt" IS NULL/, 'Refresh sessions must reject revoked state');
+assert.match(refreshSessions, /"expiresAt">NOW\(\)/, 'Refresh sessions must reject server-side expiry');
+assert.match(superAdmin, /rotateRefreshSessionFromAccess/, 'Support impersonation must rotate the existing Super Admin session');
+assert.match(superAdmin, /sessionId:\s*req\.auth!\.sessionId/, 'Impersonated tokens must stay bound to the original session');
+
 assert.match(storage, /async function canAccessObject/, 'Storage signing must use object-level authorization');
 assert.match(storage, /canAccessObject\(req\.auth! as any, obj\)/, 'Signed URLs must enforce object ACL');
 assert.match(storage, /async function isObjectLinked/, 'Storage deletion must be able to verify live references');
