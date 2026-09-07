@@ -43,7 +43,9 @@ jobs:
         run: npm run test:security
       - name: Validate Prisma schema
         run: npx prisma validate --schema packages/database/prisma/schema.prisma
-      - name: Apply migrations to clean Postgres
+      - name: Bootstrap core Prisma schema
+        run: npx prisma db push --skip-generate --schema packages/database/prisma/schema.prisma
+      - name: Apply operational migrations
         run: npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
       - name: Generate Prisma client
         run: npm run db:generate
