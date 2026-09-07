@@ -44,8 +44,9 @@ router.post('/students', async (req, res) => {
   res.status(201).json(student);
 });
 
+const logoRef=z.string().refine(v=>v.startsWith('storage://')||/^https?:\/\//i.test(v),'Logo must be a secure storage reference or http(s) URL');
 const brandingSchema = z.object({
-  name: z.string().min(2).optional(), logoUrl: z.string().url().nullable().optional(), description: z.string().max(1000).nullable().optional(), phone: z.string().nullable().optional(), email: z.string().email().nullable().optional(), address: z.string().max(500).nullable().optional(), timezone: z.string().min(2).optional(), primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional()
+  name: z.string().min(2).optional(), logoUrl: logoRef.nullable().optional(), description: z.string().max(1000).nullable().optional(), phone: z.string().nullable().optional(), email: z.string().email().nullable().optional(), address: z.string().max(500).nullable().optional(), timezone: z.string().min(2).optional(), primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(), secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional()
 });
 router.patch('/school', async (req, res) => {
   const schoolId = req.auth!.schoolId!; const parsed = brandingSchema.safeParse(req.body);
