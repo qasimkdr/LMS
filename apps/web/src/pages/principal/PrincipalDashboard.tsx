@@ -2,6 +2,7 @@ import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedI
 import Groups2RoundedIcon from '@mui/icons-material/Groups2Rounded';
 import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
 import ClassRoundedIcon from '@mui/icons-material/ClassRounded';
+import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
 import { Skeleton } from '@mui/material';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -42,8 +43,11 @@ export default function PrincipalDashboard() {
         <section className="principal-hero glass-panel relative overflow-hidden rounded-[34px] p-6 md:p-8">
           <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-gradient-to-br from-blue-300/40 via-violet-300/25 to-amber-200/30 blur-3xl" />
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-[.18em] text-blue-700">Principal command center</span><h1 className="mt-4 text-3xl font-black tracking-[-.04em] text-slate-950 md:text-5xl">Your school at a <span className="gradient-text">single glance.</span></h1><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">Approvals, performance, attendance and staff operations in one responsive workspace.</p></div>
-            <Link to="/principal/approvals" className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 via-violet-600 to-rose-500 px-5 py-3 text-sm font-black text-white shadow-[0_16px_45px_rgba(79,70,229,.28)] transition hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(79,70,229,.36)]">Open approval center</Link>
+            <div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-[.18em] text-blue-700">Principal command center</span><h1 className="mt-4 text-3xl font-black tracking-[-.04em] text-slate-950 md:text-5xl">Your school at a <span className="gradient-text">single glance.</span></h1><p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600 md:text-base">Approvals, performance, attendance, finance and staff operations in one responsive workspace.</p></div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link to="/principal/finance" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 px-5 py-3 text-sm font-black text-white shadow-[0_16px_45px_rgba(16,185,129,.24)] transition hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(16,185,129,.32)]"><AccountBalanceWalletRoundedIcon fontSize="small"/>Finance center</Link>
+              <Link to="/principal/approvals" className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 via-violet-600 to-rose-500 px-5 py-3 text-sm font-black text-white shadow-[0_16px_45px_rgba(79,70,229,.28)] transition hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(79,70,229,.36)]">Open approval center</Link>
+            </div>
           </div>
         </section>
 
