@@ -2,6 +2,7 @@ ALTER TABLE "FeeStructure" ADD COLUMN IF NOT EXISTS "dueDay" INTEGER NOT NULL DE
 ALTER TABLE "FeeStructure" ADD COLUMN IF NOT EXISTS "lateFineAmount" DECIMAL(12,2) NOT NULL DEFAULT 0;
 ALTER TABLE "FeeStructure" ADD COLUMN IF NOT EXISTS "lateFineGraceDays" INTEGER NOT NULL DEFAULT 0;
 
+ALTER TABLE "FeePayment" DROP CONSTRAINT IF EXISTS "FeePayment_school_student_month_key";
 ALTER TABLE "FeePayment" DROP CONSTRAINT IF EXISTS "FeePayment_schoolId_studentProfileId_month_key";
 CREATE INDEX IF NOT EXISTS "FeePayment_schoolId_studentProfileId_month_idx" ON "FeePayment"("schoolId","studentProfileId","month");
 
