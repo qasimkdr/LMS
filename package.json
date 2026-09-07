@@ -15,6 +15,7 @@
     "test:approvals": "tsx apps/api/src/tests/approvalEngine.integration.ts",
     "test:exams": "tsx apps/api/src/tests/examFlow.integration.ts",
     "test:portal": "tsx apps/api/src/tests/portalPermissions.integration.ts",
+    "test:support": "tsx apps/api/src/tests/supportNotifications.integration.ts",
     "db:generate": "npm run generate -w @nexora/database",
     "db:migrate": "npm run migrate -w @nexora/database"
   },
