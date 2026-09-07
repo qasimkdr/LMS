@@ -12,6 +12,7 @@
     "test:storage": "tsx apps/api/src/tests/storageAcl.integration.ts",
     "test:fees": "tsx apps/api/src/tests/feeIntegrity.integration.ts",
     "test:attendance": "tsx apps/api/src/tests/attendanceLeave.integration.ts",
+    "test:approvals": "tsx apps/api/src/tests/approvalEngine.integration.ts",
     "db:generate": "npm run generate -w @nexora/database",
     "db:migrate": "npm run migrate -w @nexora/database"
   },
