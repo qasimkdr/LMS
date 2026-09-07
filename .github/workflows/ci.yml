@@ -70,6 +70,8 @@ jobs:
         run: npm run test:storage
       - name: Fee integrity integration tests
         run: npm run test:fees
+      - name: Attendance approved-leave integration tests
+        run: npm run test:attendance
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
