@@ -1,50 +1,5 @@
-import { Router } from 'express';
-import { prisma } from '@nexora/database';
-import { requireAuth, requireRoles, requireTenant } from '../middleware/auth.js';
-
-const router=Router();
-router.use(requireAuth,requireTenant,requireRoles('PRINCIPAL'));
-
-router.get('/rankings',async(req,res)=>{
- const schoolId=req.auth!.schoolId!;
- const classId=typeof req.query.classId==='string'?req.query.classId:undefined;
- const students=await prisma.studentProfile.findMany({where:{schoolId,...(classId?{classId}: {})},include:{user:true,class:true}});
- const rows=[] as any[];
- for(const s of students){
-  const [exams,subs,att]=await Promise.all([
-   prisma.examAttempt.findMany({where:{schoolId,studentUserId:s.userId,status:'GRADED'},select:{percentage:true}}),
-   prisma.assignmentSubmission.findMany({where:{studentUserId:s.userId,status:'GRADED',assignment:{schoolId}},include:{assignment:{select:{maxMarks:true}}}}),
-   prisma.attendanceRecord.findMany({where:{studentProfileId:s.id,attendance:{schoolId}},select:{status:true}})
-  ]);
-  const examAvg=exams.length?exams.reduce((n,x)=>n+Number(x.percentage??0),0)/exams.length:0;
-  const assignmentAvg=subs.length?subs.reduce((n,x)=>n+(Number(x.assignment.maxMarks)?Number(x.score??0)/Number(x.assignment.maxMarks)*100:0),0)/subs.length:0;
-  const present=att.filter(x=>x.status==='PRESENT'||x.status==='LATE').length;
-  const attendance=att.length?present/att.length*100:0;
-  const academicPieces=[...(exams.length?[examAvg]:[]),...(subs.length?[assignmentAvg]:[])];
-  const academic=academicPieces.length?academicPieces.reduce((a,b)=>a+b,0)/academicPieces.length:0;
-  const composite=Math.round((academic*0.85+attendance*0.15)*10)/10;
-  rows.push({studentId:s.id,name:`${s.user.firstName} ${s.user.lastName}`,admissionNo:s.admissionNo,class:s.class?`${s.class.name}${s.class.section?` - ${s.class.section}`:''}`:'Unassigned',examAverage:Math.round(examAvg*10)/10,assignmentAverage:Math.round(assignmentAvg*10)/10,attendance:Math.round(attendance*10)/10,composite,needsAttention:composite<60||attendance<75});
- }
- rows.sort((a,b)=>b.composite-a.composite); rows.forEach((r,i)=>r.rank=i+1);
- res.json({top:rows.slice(0,10),weak:rows.filter(x=>x.needsAttention).sort((a,b)=>a.composite-b.composite).slice(0,20),all:rows});
-});
-
-router.get('/teacher-performance',async(req,res)=>{
- const schoolId=req.auth!.schoolId!;
- const teachers=await prisma.user.findMany({where:{schoolId,role:'TEACHER',isActive:true},select:{id:true,firstName:true,lastName:true}});
- const rows=[] as any[];
- for(const t of teachers){
-  const assignments=await prisma.teacherAssignment.findMany({where:{schoolId,teacherId:t.id},select:{classId:true}});
-  const classIds=[...new Set(assignments.map(x=>x.classId))];
-  const [sessions,exams,coursework]=await Promise.all([
-   prisma.attendanceSession.count({where:{schoolId,markedById:t.id}}),
-   prisma.exam.findMany({where:{schoolId,createdById:t.id},include:{attempts:{where:{status:'GRADED'},select:{percentage:true}}}}),
-   prisma.assignment.findMany({where:{schoolId,createdById:t.id},include:{submissions:{where:{status:'GRADED'},select:{id:true}}}})
-  ]);
-  const percentages=exams.flatMap(e=>e.attempts.map(a=>Number(a.percentage??0)));
-  rows.push({teacherId:t.id,name:`${t.firstName} ${t.lastName}`,classes:classIds.length,attendanceSessions:sessions,examsCreated:exams.length,assignmentsCreated:coursework.length,gradedExamAverage:percentages.length?Math.round((percentages.reduce((a,b)=>a+b,0)/percentages.length)*10)/10:0,gradedAssignmentSubmissions:coursework.reduce((n,a)=>n+a.submissions.length,0)});
- }
- res.json(rows.sort((a,b)=>(b.attendanceSessions+b.examsCreated+b.assignmentsCreated)-(a.attendanceSessions+a.examsCreated+a.assignmentsCreated)));
-});
-
-export default router;
+import { Router } from 'express';import { Prisma,prisma } from '@nexora/database';import { requireAuth,requireRoles,requireTenant } from '../middleware/auth.js';
+const router=Router();router.use(requireAuth,requireTenant,requireRoles('PRINCIPAL'));
+type Term={id:string;name:string;academicYear:string;startsAt:Date;endsAt:Date};async function termFor(schoolId:string,id?:string){const rows=id?await prisma.$queryRaw<Term[]>(Prisma.sql`SELECT id,name,"academicYear","startsAt","endsAt" FROM "AcademicTerm" WHERE id=${id} AND "schoolId"=${schoolId} LIMIT 1`):await prisma.$queryRaw<Term[]>(Prisma.sql`SELECT id,name,"academicYear","startsAt","endsAt" FROM "AcademicTerm" WHERE "schoolId"=${schoolId} ORDER BY "isCurrent" DESC,"startsAt" DESC LIMIT 1`);return rows[0]??null}
+router.get('/rankings',async(req,res)=>{const schoolId=req.auth!.schoolId!,classId=typeof req.query.classId==='string'?req.query.classId:undefined,term=await termFor(schoolId,typeof req.query.termId==='string'?req.query.termId:undefined);if(!term)return res.status(404).json({message:'No academic term configured'});const students=await prisma.studentProfile.findMany({where:{schoolId,...(classId?{classId}:{})},include:{user:{select:{firstName:true,lastName:true}},class:{select:{name:true,section:true}}}}),userIds=students.map(s=>s.userId),profileIds=students.map(s=>s.id);if(!students.length)return res.json({term,top:[],weak:[],all:[]});const [examGroups,subs,attGroups]=await Promise.all([prisma.examAttempt.groupBy({by:['studentUserId'],where:{schoolId,studentUserId:{in:userIds},status:'GRADED',gradedAt:{gte:term.startsAt,lte:term.endsAt}},_avg:{percentage:true}}),prisma.assignmentSubmission.findMany({where:{studentUserId:{in:userIds},status:'GRADED',gradedAt:{gte:term.startsAt,lte:term.endsAt},assignment:{schoolId}},select:{studentUserId:true,score:true,assignment:{select:{maxMarks:true}}}}),prisma.attendanceRecord.groupBy({by:['studentProfileId','status'],where:{studentProfileId:{in:profileIds},attendance:{schoolId,date:{gte:term.startsAt,lte:term.endsAt}}},_count:{_all:true}})]);const examMap=new Map(examGroups.map(x=>[x.studentUserId,Number(x._avg.percentage??0)])),subMap=new Map<string,{earned:number;total:number}>();for(const x of subs){const v=subMap.get(x.studentUserId)??{earned:0,total:0};v.earned+=Number(x.score??0);v.total+=Number(x.assignment.maxMarks??0);subMap.set(x.studentUserId,v)}const attMap=new Map<string,{present:number;total:number}>();for(const x of attGroups){const v=attMap.get(x.studentProfileId)??{present:0,total:0},count=x._count._all;v.total+=count;if(x.status==='PRESENT'||x.status==='LATE')v.present+=count;attMap.set(x.studentProfileId,v)}const rows=students.map(s=>{const exam=examMap.get(s.userId),sub=subMap.get(s.userId),att=attMap.get(s.id),examAverage=exam??0,assignmentAverage=sub?.total?sub.earned/sub.total*100:0,attendance=att?.total?att.present/att.total*100:0,pieces=[...(exam!==undefined?[examAverage]:[]),...(sub?.total?[assignmentAverage]:[])],academic=pieces.length?pieces.reduce((a,b)=>a+b,0)/pieces.length:0,composite=Math.round((academic*.85+attendance*.15)*10)/10;return{studentId:s.id,name:`${s.user.firstName} ${s.user.lastName}`,admissionNo:s.admissionNo,class:s.class?`${s.class.name}${s.class.section?` - ${s.class.section}`:''}`:'Unassigned',examAverage:Math.round(examAverage*10)/10,assignmentAverage:Math.round(assignmentAverage*10)/10,attendance:Math.round(attendance*10)/10,composite,needsAttention:composite<60||attendance<75}}).sort((a,b)=>b.composite-a.composite);rows.forEach((r,i)=>(r as any).rank=i+1);res.json({term,top:rows.slice(0,10),weak:rows.filter(x=>x.needsAttention).sort((a,b)=>a.composite-b.composite).slice(0,20),all:rows})});
+router.get('/teacher-performance',async(req,res)=>{const schoolId=req.auth!.schoolId!,term=await termFor(schoolId,typeof req.query.termId==='string'?req.query.termId:undefined);if(!term)return res.status(404).json({message:'No academic term configured'});const teachers=await prisma.user.findMany({where:{schoolId,role:'TEACHER',isActive:true},select:{id:true,firstName:true,lastName:true}}),ids=teachers.map(t=>t.id);if(!ids.length)return res.json({term,rows:[]});const [assignments,sessions,exams,coursework]=await Promise.all([prisma.teacherAssignment.findMany({where:{schoolId,teacherId:{in:ids}},select:{teacherId:true,classId:true}}),prisma.attendanceSession.groupBy({by:['markedById'],where:{schoolId,markedById:{in:ids},date:{gte:term.startsAt,lte:term.endsAt}},_count:{_all:true}}),prisma.exam.findMany({where:{schoolId,createdById:{in:ids},createdAt:{gte:term.startsAt,lte:term.endsAt}},select:{createdById:true,attempts:{where:{status:'GRADED',gradedAt:{gte:term.startsAt,lte:term.endsAt}},select:{percentage:true}}}}),prisma.assignment.findMany({where:{schoolId,createdById:{in:ids},createdAt:{gte:term.startsAt,lte:term.endsAt}},select:{createdById:true,submissions:{where:{status:'GRADED',gradedAt:{gte:term.startsAt,lte:term.endsAt}},select:{id:true}}}})]);const classMap=new Map<string,Set<string>>();for(const x of assignments){const s=classMap.get(x.teacherId)??new Set<string>();s.add(x.classId);classMap.set(x.teacherId,s)}const sessionMap=new Map(sessions.map(x=>[x.markedById,x._count._all]));const rows=teachers.map(t=>{const te=exams.filter(x=>x.createdById===t.id),ta=coursework.filter(x=>x.createdById===t.id),percentages=te.flatMap(e=>e.attempts.map(a=>Number(a.percentage??0)));return{teacherId:t.id,name:`${t.firstName} ${t.lastName}`,classes:classMap.get(t.id)?.size??0,attendanceSessions:sessionMap.get(t.id)??0,examsCreated:te.length,assignmentsCreated:ta.length,gradedExamAverage:percentages.length?Math.round(percentages.reduce((a,b)=>a+b,0)/percentages.length*10)/10:0,gradedAssignmentSubmissions:ta.reduce((n,a)=>n+a.submissions.length,0)}}).sort((a,b)=>(b.attendanceSessions+b.examsCreated+b.assignmentsCreated)-(a.attendanceSessions+a.examsCreated+a.assignmentsCreated));res.json({term,rows})});export default router;
