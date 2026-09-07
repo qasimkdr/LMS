@@ -84,6 +84,8 @@ jobs:
         run: npm run test:impersonation
       - name: Backup validation and restore-plan integration tests
         run: npm run test:backups
+      - name: Production runtime security integration tests
+        run: npm run test:production
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
