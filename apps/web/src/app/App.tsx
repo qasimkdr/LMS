@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from '../features/auth/ProtectedRoute';
 import LoginPage from '../pages/auth/LoginPage';
 import CourseworkHub from '../pages/coursework/CourseworkHub';
-import FeesRecoveryPage from '../pages/fees/FeesRecoveryPage';
+import FeeRecoveryPage from '../pages/fees/FeeRecoveryPage';
 import ParentDashboard from '../pages/parent/ParentDashboard';
 import AdvancedAnalytics from '../pages/principal/AdvancedAnalytics';
 import AnnouncementsPage from '../pages/principal/AnnouncementsPage';
@@ -52,13 +52,13 @@ export default function App() {
         <Route path="/principal/analytics" element={<PrincipalAnalytics />} />
         <Route path="/principal/advanced-analytics" element={<AdvancedAnalytics />} />
         <Route path="/principal/report-card" element={<ReportCardPage />} />
-        <Route path="/principal/fees" element={<FeesRecoveryPage />} />
+        <Route path="/principal/fees" element={<FeeRecoveryPage />} />
         <Route path="/notifications" element={<NotificationCenter />} />
       </Route>
       <Route element={<ProtectedRoute roles={['STAFF']} />}>
         <Route path="/staff/requests" element={<StaffRequests />} />
         <Route path="/staff/announcements" element={<AnnouncementsPage />} />
-        <Route path="/staff/fees" element={<FeesRecoveryPage />} />
+        <Route path="/staff/fees" element={<FeeRecoveryPage />} />
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
         <Route path="/notifications" element={<NotificationCenter />} />
       </Route>
