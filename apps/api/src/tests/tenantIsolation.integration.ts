@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@nexora/database';
 
@@ -10,7 +10,7 @@ const slugs = ['ci-tenant-a', 'ci-tenant-b'];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function waitForApi(child: ChildProcessWithoutNullStreams) {
+async function waitForApi(child: ChildProcess) {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`API exited early with code ${child.exitCode}`);
@@ -123,7 +123,7 @@ async function main() {
   });
 
   let stderr = '';
-  child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+  child.stderr?.on('data', (chunk) => { stderr += String(chunk); });
 
   try {
     await waitForApi(child);
