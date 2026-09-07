@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { requireAuth, requireTenant } from './middleware/auth.js';
 import { requireModule } from './middleware/entitlements.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
@@ -75,30 +76,128 @@ app.use('/api/super-admin/plans', sensitiveLimiter, subscriptionPlanRoutes);
 app.use('/api/super-admin', sensitiveLimiter, superAdminRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/school-directory', schoolDirectoryRoutes);
-app.use('/api/exams', requireModule('EXAMS'), examRoutes);
-app.use('/api/exam-import', sensitiveLimiter, requireModule('EXAMS'), examImportRoutes);
+
+// Entitlement checks require an authenticated tenant context. Keep this order:
+// requireAuth -> requireTenant -> requireModule -> feature router.
+app.use('/api/exams', requireAuth, requireTenant, requireModule('EXAMS'), examRoutes);
+app.use(
+  '/api/exam-import',
+  sensitiveLimiter,
+  requireAuth,
+  requireTenant,
+  requireModule('EXAMS'),
+  examImportRoutes,
+);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/school-operations', schoolOperationsRoutes);
-app.use('/api/attendance', requireModule('ATTENDANCE'), attendanceRoutes);
+app.use(
+  '/api/attendance',
+  requireAuth,
+  requireTenant,
+  requireModule('ATTENDANCE'),
+  attendanceRoutes,
+);
 app.use('/api/policies', policyRoutes);
 app.use('/api/teacher-assignments', teacherAssignmentRoutes);
-app.use('/api/exam-attempts', requireModule('EXAMS'), examAttemptRoutes);
+app.use(
+  '/api/exam-attempts',
+  requireAuth,
+  requireTenant,
+  requireModule('EXAMS'),
+  examAttemptRoutes,
+);
 app.use('/api/portal', portalRoutes);
-app.use('/api/announcements', requireModule('ANNOUNCEMENTS'), announcementRoutes);
-app.use('/api/coursework', requireModule('COURSEWORK'), courseworkRoutes);
-app.use('/api/parent-coursework', requireModule('COURSEWORK'), parentCourseworkRoutes);
+app.use(
+  '/api/announcements',
+  requireAuth,
+  requireTenant,
+  requireModule('ANNOUNCEMENTS'),
+  announcementRoutes,
+);
+app.use(
+  '/api/coursework',
+  requireAuth,
+  requireTenant,
+  requireModule('COURSEWORK'),
+  courseworkRoutes,
+);
+app.use(
+  '/api/parent-coursework',
+  requireAuth,
+  requireTenant,
+  requireModule('COURSEWORK'),
+  parentCourseworkRoutes,
+);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/parents', parentRoutes);
-app.use('/api/reports', requireModule('REPORTS'), reportRoutes);
-app.use('/api/advanced-analytics', requireModule('ANALYTICS'), advancedAnalyticsRoutes);
-app.use('/api/fees', sensitiveLimiter, requireModule('FINANCE'), feeRoutes);
-app.use('/api/fee-ledger', requireModule('FINANCE'), feeLedgerRoutes);
-app.use('/api/fee-adjustments', sensitiveLimiter, requireModule('FINANCE'), feeAdjustmentRoutes);
-app.use('/api/finance-settings', sensitiveLimiter, requireModule('FINANCE'), financeSettingsRoutes);
-app.use('/api/timetable', requireModule('TIMETABLE'), timetableRoutes);
-app.use('/api/school-life', requireModule('LEAVE'), leaveCalendarRoutes);
-app.use('/api/storage', sensitiveLimiter, requireModule('STORAGE'), storageRoutes);
-app.use('/api/support', supportRoutes);
+app.use('/api/reports', requireAuth, requireTenant, requireModule('REPORTS'), reportRoutes);
+app.use(
+  '/api/advanced-analytics',
+  requireAuth,
+  requireTenant,
+  requireModule('ANALYTICS'),
+  advancedAnalyticsRoutes,
+);
+app.use(
+  '/api/fees',
+  sensitiveLimiter,
+  requireAuth,
+  requireTenant,
+  requireModule('FINANCE'),
+  feeRoutes,
+);
+app.use(
+  '/api/fee-ledger',
+  requireAuth,
+  requireTenant,
+  requireModule('FINANCE'),
+  feeLedgerRoutes,
+);
+app.use(
+  '/api/fee-adjustments',
+  sensitiveLimiter,
+  requireAuth,
+  requireTenant,
+  requireModule('FINANCE'),
+  feeAdjustmentRoutes,
+);
+app.use(
+  '/api/finance-settings',
+  sensitiveLimiter,
+  requireAuth,
+  requireTenant,
+  requireModule('FINANCE'),
+  financeSettingsRoutes,
+);
+app.use(
+  '/api/timetable',
+  requireAuth,
+  requireTenant,
+  requireModule('TIMETABLE'),
+  timetableRoutes,
+);
+app.use(
+  '/api/school-life',
+  requireAuth,
+  requireTenant,
+  requireModule('LEAVE'),
+  leaveCalendarRoutes,
+);
+app.use(
+  '/api/storage',
+  sensitiveLimiter,
+  requireAuth,
+  requireTenant,
+  requireModule('STORAGE'),
+  storageRoutes,
+);
+app.use(
+  '/api/support',
+  requireAuth,
+  requireTenant,
+  requireModule('SUPPORT'),
+  supportRoutes,
+);
 
 app.use(
   (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
