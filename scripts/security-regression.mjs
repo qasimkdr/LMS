@@ -20,7 +20,15 @@ assert.match(auth, /SCHOOL_READ_ONLY/, 'Tenant middleware must enforce read-only
 assert.match(auth, /SCHOOL_SUSPENDED/, 'Tenant middleware must enforce suspended lifecycle state');
 assert.match(auth, /supportImpersonation/, 'Support impersonation must remain explicit in lifecycle enforcement');
 assert.match(storage, /async function canAccessObject/, 'Storage signing must use object-level authorization');
-assert.match(storage, /canAccessObject\(req\.auth! as any,obj\)/, 'Signed URLs must enforce object ACL');
+assert.match(storage, /canAccessObject\(req\.auth! as any, obj\)/, 'Signed URLs must enforce object ACL');
+assert.match(storage, /async function isObjectLinked/, 'Storage deletion must be able to verify live references');
+assert.match(storage, /router\.get\('\/orphans', requireRoles\('PRINCIPAL'\)/, 'Orphan scanning must remain Principal-only');
+assert.match(storage, /router\.post\('\/orphans\/cleanup', requireRoles\('PRINCIPAL'\)/, 'Orphan cleanup must remain Principal-only');
+assert.match(storage, /confirm: z\.literal\('DELETE_ORPHANS'\)/, 'Orphan cleanup must require explicit destructive confirmation');
+assert.match(storage, /referenceTrackedCategories = \['school-logo', 'assignment', 'material', 'submission'\]/, 'Automatic cleanup must stay limited to safely traceable categories');
+assert.match(storage, /const linked = await isObjectLinked\(obj\)/, 'Cleanup must re-check object references immediately before deletion');
+assert.match(storage, /STORAGE_OBJECT_IN_USE/, 'Manual deletion must reject files that are still referenced');
+assert.match(storage, /STORAGE_ORPHANS_CLEANED/, 'Orphan cleanup must remain audited');
 assert.match(fees, /FOR UPDATE/, 'Fee receiving must keep a row lock against concurrent over-collection');
 assert.match(fees, /Payment exceeds remaining adjusted balance/, 'Fee receiving must reject overpayment');
 assert.ok(support.includes('const schoolId = req.auth!.schoolId!;'), 'School support listing must derive tenant from auth');
