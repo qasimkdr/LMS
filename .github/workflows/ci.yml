@@ -66,6 +66,8 @@ jobs:
         run: npm run test:tenant
       - name: Auth session integration tests
         run: npm run test:auth
+      - name: Storage ACL integration tests
+        run: npm run test:storage
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
