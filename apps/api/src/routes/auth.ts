@@ -11,6 +11,13 @@ import {
   verifyRefreshToken,
 } from '../lib/tokens.js';
 import {
+  createRefreshSession,
+  newRefreshSessionId,
+  revokeRefreshSession,
+  rotateRefreshSession,
+  validateRefreshSession,
+} from '../services/refreshSessions.js';
+import {
   resolveEffectiveLifecycleStatus,
   type LifecycleStatus,
 } from '../services/subscriptionLifecycle.js';
@@ -87,13 +94,22 @@ router.post('/login', async (req, res) => {
     if (rejection) return rejection;
   }
 
+  const sessionId = newRefreshSessionId();
   const payload = {
     userId: user.id,
     role: user.role,
     ...(user.schoolId ? { schoolId: user.schoolId } : {}),
+    sessionId,
   };
+  const refreshToken = signRefreshToken(payload);
+  await createRefreshSession({
+    id: sessionId,
+    ownerUserId: user.id,
+    currentUserId: user.id,
+    token: refreshToken,
+  });
+  setRefreshCookie(res, refreshToken);
   const accessToken = signAccessToken(payload);
-  setRefreshCookie(res, signRefreshToken(payload));
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   return res.json({ accessToken, user: sessionUser(user) });
 });
@@ -104,15 +120,26 @@ router.post('/refresh', async (req, res) => {
 
   try {
     const payload = verifyRefreshToken(token);
+    const session = await validateRefreshSession({
+      sessionId: payload.sessionId,
+      currentUserId: payload.userId,
+      token,
+    });
+    if (!session) throw new Error('Refresh session is invalid or has already rotated');
+
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       include: { school: true },
     });
-    if (!user?.isActive) throw new Error('Inactive user');
+    if (!user?.isActive) {
+      await revokeRefreshSession({ sessionId: payload.sessionId, token });
+      throw new Error('Inactive user');
+    }
 
     if (user.role !== 'SUPER_ADMIN' && !payload.impersonatedById) {
       const status = effectiveSchoolStatus(user.school);
       if (status === 'SUSPENDED' || status === 'CANCELLED') {
+        await revokeRefreshSession({ sessionId: payload.sessionId, token });
         clearRefreshCookie(res);
         return rejectUnavailableSchool(status, res);
       }
@@ -122,7 +149,10 @@ router.post('/refresh', async (req, res) => {
       const admin = await prisma.user.findFirst({
         where: { id: payload.impersonatedById, role: 'SUPER_ADMIN', isActive: true },
       });
-      if (!admin) throw new Error('Impersonating admin is no longer valid');
+      if (!admin || session.ownerUserId !== admin.id) {
+        await revokeRefreshSession({ sessionId: payload.sessionId, token });
+        throw new Error('Impersonating admin is no longer valid');
+      }
     }
 
     const nextPayload = {
@@ -130,8 +160,17 @@ router.post('/refresh', async (req, res) => {
       role: user.role,
       ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       ...(payload.impersonatedById ? { impersonatedById: payload.impersonatedById } : {}),
+      sessionId: payload.sessionId,
     };
-    setRefreshCookie(res, signRefreshToken(nextPayload));
+    const nextRefreshToken = signRefreshToken(nextPayload);
+    const rotated = await rotateRefreshSession({
+      sessionId: payload.sessionId!,
+      currentToken: token,
+      nextToken: nextRefreshToken,
+    });
+    if (!rotated) throw new Error('Refresh token was already used');
+
+    setRefreshCookie(res, nextRefreshToken);
     return res.json({
       accessToken: signAccessToken(nextPayload),
       user: sessionUser(user, payload.impersonatedById),
@@ -148,17 +187,39 @@ router.post('/impersonation/exit', async (req, res) => {
 
   try {
     const payload = verifyRefreshToken(token);
-    if (!payload.impersonatedById) {
+    if (!payload.impersonatedById || !payload.sessionId) {
       return res.status(400).json({ message: 'No impersonation session is active' });
     }
+    const session = await validateRefreshSession({
+      sessionId: payload.sessionId,
+      currentUserId: payload.userId,
+      token,
+    });
+    if (!session || session.ownerUserId !== payload.impersonatedById) {
+      throw new Error('Impersonation refresh session is invalid');
+    }
+
     const admin = await prisma.user.findFirst({
       where: { id: payload.impersonatedById, role: 'SUPER_ADMIN', isActive: true },
       include: { school: true },
     });
     if (!admin) throw new Error('Original admin unavailable');
 
-    const adminPayload = { userId: admin.id, role: 'SUPER_ADMIN' as const };
-    setRefreshCookie(res, signRefreshToken(adminPayload));
+    const adminPayload = {
+      userId: admin.id,
+      role: 'SUPER_ADMIN' as const,
+      sessionId: payload.sessionId,
+    };
+    const nextRefreshToken = signRefreshToken(adminPayload);
+    const rotated = await rotateRefreshSession({
+      sessionId: payload.sessionId,
+      currentToken: token,
+      nextToken: nextRefreshToken,
+      nextCurrentUserId: admin.id,
+    });
+    if (!rotated) throw new Error('Impersonation session was already rotated');
+
+    setRefreshCookie(res, nextRefreshToken);
     if (payload.schoolId) {
       await prisma.auditLog.create({
         data: {
@@ -178,7 +239,16 @@ router.post('/impersonation/exit', async (req, res) => {
   }
 });
 
-router.post('/logout', (_req, res) => {
+router.post('/logout', async (req, res) => {
+  const token = req.cookies?.[REFRESH_COOKIE];
+  if (token) {
+    try {
+      const payload = verifyRefreshToken(token);
+      await revokeRefreshSession({ sessionId: payload.sessionId, token });
+    } catch {
+      // Always clear the browser cookie even if it is already invalid.
+    }
+  }
   clearRefreshCookie(res);
   return res.status(204).end();
 });
