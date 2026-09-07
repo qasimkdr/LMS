@@ -10,6 +10,7 @@
     "test:tenant": "tsx apps/api/src/tests/tenantIsolation.integration.ts",
     "test:auth": "tsx apps/api/src/tests/authSessions.integration.ts",
     "test:storage": "tsx apps/api/src/tests/storageAcl.integration.ts",
+    "test:fees": "tsx apps/api/src/tests/feeIntegrity.integration.ts",
     "db:generate": "npm run generate -w @nexora/database",
     "db:migrate": "npm run migrate -w @nexora/database"
   },
