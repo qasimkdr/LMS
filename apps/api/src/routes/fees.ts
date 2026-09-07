@@ -59,6 +59,7 @@ function calculateMonth(
 ) {
   if (!structure) {
     return {
+      month,
       configured: false,
       baseFee: 0,
       discount: 0,
@@ -99,6 +100,7 @@ function calculateMonth(
   else if (received > 0) status = pendingHandover > 0 ? 'PARTIAL_PENDING' : 'PARTIAL';
 
   return {
+    month,
     configured: true,
     baseFee,
     discount,
@@ -455,7 +457,8 @@ router.post('/receive', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => 
       } as const;
     });
 
-    if ('error' in result) return res.status(result.error.status).json({ message: result.error.message });
+    if ('error' in result && result.error) return res.status(result.error.status).json({ message: result.error.message });
+    if (!('value' in result) || !result.value) return res.status(500).json({ message: 'Payment transaction returned no result' });
     res.status(201).json(result.value);
   } catch (error) {
     console.error('Fee receive transaction failed', error);
