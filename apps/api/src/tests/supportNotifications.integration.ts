@@ -57,6 +57,23 @@ async function request(path: string, bearer: string, options: RequestInit = {}) 
 }
 
 async function cleanup() {
+  // Support messages can be authored by a platform Super Admin outside the tenant.
+  // Delete raw support rows first so restrictive author FKs do not block school/user cleanup.
+  await prisma.$executeRawUnsafe(`
+    DELETE FROM "SupportTicketMessage"
+    WHERE "ticketId" IN (
+      SELECT t.id
+      FROM "SupportTicket" t
+      JOIN "School" s ON s.id = t."schoolId"
+      WHERE s.slug IN ('ci-support-a','ci-support-b')
+    )
+  `);
+  await prisma.$executeRawUnsafe(`
+    DELETE FROM "SupportTicket"
+    WHERE "schoolId" IN (
+      SELECT id FROM "School" WHERE slug IN ('ci-support-a','ci-support-b')
+    )
+  `);
   await prisma.school.deleteMany({ where: { slug: { in: slugs } } });
   await prisma.user.deleteMany({ where: { username: superAdminUsername } });
 }
