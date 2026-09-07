@@ -78,6 +78,8 @@ jobs:
         run: npm run test:exams
       - name: Parent and Student permission integration tests
         run: npm run test:portal
+      - name: Support integration tests
+        run: npm run test:support
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
