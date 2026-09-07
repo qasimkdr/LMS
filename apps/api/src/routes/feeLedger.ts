@@ -45,7 +45,7 @@ router.get('/ledger', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PARENT'), a
 
   const months = Math.min(36, Math.max(1, Number(req.query.months ?? 12)));
   const list = monthsBack(months);
-  const [profile, structureRows, payments, adjustments] = await Promise.all([
+  const [profile, structureRows, invoices, payments, adjustments] = await Promise.all([
     prisma.studentProfile.findFirst({
       where: { id: student.id, schoolId },
       include: { user: { select: { firstName: true, lastName: true } }, class: true },
@@ -53,6 +53,13 @@ router.get('/ledger', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PARENT'), a
     student.classId
       ? prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "FeeStructure" WHERE "schoolId"=${schoolId} AND "classId"=${student.classId} LIMIT 1`)
       : Promise.resolve([]),
+    prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT "studentProfileId","classId",month,"baseFee" AS "monthlyAmount",currency,"dueDay","lateFineAmount","lateFineGraceDays","structureUpdatedAt","createdAt"
+      FROM "FeeInvoice"
+      WHERE "schoolId"=${schoolId}
+        AND "studentProfileId"=${student.id}
+        AND month IN (${Prisma.join(list)})
+    `),
     prisma.$queryRaw<any[]>(Prisma.sql`
       SELECT fp.*, mb."firstName" AS "markerFirstName", mb."lastName" AS "markerLastName",
              ab."firstName" AS "approverFirstName", ab."lastName" AS "approverLastName"
@@ -77,10 +84,11 @@ router.get('/ledger', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PARENT'), a
   if (!profile) return res.status(404).json({ message: 'Student profile not found' });
 
   const structure = structureRows[0];
-  const monthlyFee = Number(structure?.monthlyAmount ?? 0);
-  const dueDay = Number(structure?.dueDay ?? 10);
-  const lateFineAmount = Number(structure?.lateFineAmount ?? 0);
-  const lateFineGraceDays = Number(structure?.lateFineGraceDays ?? 0);
+  const currentMonthlyFee = Number(structure?.monthlyAmount ?? 0);
+  const currentDueDay = Number(structure?.dueDay ?? 10);
+  const currentLateFineAmount = Number(structure?.lateFineAmount ?? 0);
+  const currentLateFineGraceDays = Number(structure?.lateFineGraceDays ?? 0);
+  const invoicesByMonth = new Map<string, any>(invoices.map((invoice) => [invoice.month, invoice]));
 
   const paymentsByMonth = new Map<string, any[]>();
   for (const payment of payments) {
@@ -98,6 +106,12 @@ router.get('/ledger', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PARENT'), a
 
   const now = new Date();
   const ledger = list.map((month) => {
+    const invoice = invoicesByMonth.get(month);
+    const feeSource = invoice ?? structure;
+    const monthlyFee = Number(feeSource?.monthlyAmount ?? 0);
+    const dueDay = Number(feeSource?.dueDay ?? 10);
+    const lateFineAmount = Number(feeSource?.lateFineAmount ?? 0);
+    const lateFineGraceDays = Number(feeSource?.lateFineGraceDays ?? 0);
     const monthPayments = paymentsByMonth.get(month) ?? [];
     const validPayments = monthPayments.filter((p) => p.approvalStatus !== 'REJECTED');
     const approvedPayments = validPayments.filter((p) => p.approvalStatus === 'APPROVED');
@@ -139,6 +153,8 @@ router.get('/ledger', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PARENT'), a
       dueDate: deadline.toISOString(),
       overdue: now > deadline && balance > 0,
       status,
+      historicalSnapshot: Boolean(invoice),
+      snapshotClassId: invoice?.classId ?? null,
       payments: monthPayments.map((p) => ({
         id: p.id,
         amount: Number(p.amount),
@@ -165,8 +181,13 @@ router.get('/ledger', requireRoles('PRINCIPAL', 'STAFF', 'STUDENT', 'PARENT'), a
       admissionNo: profile.admissionNo,
       className: profile.class ? `${profile.class.name}${profile.class.section ? ` - ${profile.class.section}` : ''}` : 'No class',
     },
-    feeSettings: { monthlyFee, dueDay, lateFineAmount, lateFineGraceDays },
-    monthlyFee,
+    feeSettings: {
+      monthlyFee: currentMonthlyFee,
+      dueDay: currentDueDay,
+      lateFineAmount: currentLateFineAmount,
+      lateFineGraceDays: currentLateFineGraceDays,
+    },
+    monthlyFee: currentMonthlyFee,
     summary: {
       expected,
       received,
