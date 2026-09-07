@@ -3,8 +3,23 @@ import { Prisma, prisma } from '@nexora/database';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LIFECYCLE_LOCK_ID = 20_260_907;
 
+export type LifecycleStatus =
+  | 'TRIAL'
+  | 'ACTIVE'
+  | 'GRACE_PERIOD'
+  | 'READ_ONLY'
+  | 'SUSPENDED'
+  | 'CANCELLED';
+
 type TerminalStatus = 'READ_ONLY' | 'SUSPENDED';
 type TransitionStatus = 'GRACE_PERIOD' | TerminalStatus;
+
+export type LifecycleSchoolState = {
+  status: LifecycleStatus;
+  trialEndsAt: Date | null;
+  subscriptionEnd: Date | null;
+  graceEndsAt: Date | null;
+};
 
 type LifecycleStats = {
   skipped: boolean;
@@ -22,6 +37,30 @@ const afterGraceStatus = (): TerminalStatus =>
   process.env.SUBSCRIPTION_AFTER_GRACE_STATUS === 'SUSPENDED' ? 'SUSPENDED' : 'READ_ONLY';
 
 const addDays = (date: Date, days: number) => new Date(date.getTime() + days * DAY_MS);
+
+export function resolveEffectiveLifecycleStatus(
+  school: LifecycleSchoolState,
+  now = new Date(),
+): LifecycleStatus {
+  if (
+    school.status === 'READ_ONLY' ||
+    school.status === 'SUSPENDED' ||
+    school.status === 'CANCELLED'
+  ) {
+    return school.status;
+  }
+
+  if (school.status === 'GRACE_PERIOD') {
+    if (school.graceEndsAt && school.graceEndsAt <= now) return afterGraceStatus();
+    return 'GRACE_PERIOD';
+  }
+
+  const expiry = school.status === 'TRIAL' ? school.trialEndsAt : school.subscriptionEnd;
+  if (!expiry || expiry > now) return school.status;
+
+  if (school.graceEndsAt && school.graceEndsAt <= now) return afterGraceStatus();
+  return 'GRACE_PERIOD';
+}
 
 const notifyPrincipals = async (
   tx: Prisma.TransactionClient,
@@ -198,25 +237,21 @@ export async function runSubscriptionLifecycle(now = new Date()): Promise<Lifecy
     for (const school of schools) {
       reminders += await maybeSendExpiryReminder(tx, school, now);
 
-      const expiry = school.status === 'TRIAL' ? school.trialEndsAt : school.subscriptionEnd;
-      if ((school.status === 'TRIAL' || school.status === 'ACTIVE') && expiry && expiry <= now) {
-        const configuredGraceEnd = school.graceEndsAt;
-        const graceEnd = configuredGraceEnd ?? addDays(now, graceLength);
-        if (graceEnd <= now) {
-          if (
-            await transitionSchool(
-              tx,
-              school,
-              terminalStatus,
-              null,
-              school.status === 'TRIAL'
-                ? 'Trial and configured grace period expired'
-                : 'Subscription and configured grace period expired',
-            )
-          ) {
-            transitioned += 1;
-          }
-        } else if (
+      const effectiveStatus = resolveEffectiveLifecycleStatus(
+        {
+          status: school.status as LifecycleStatus,
+          trialEndsAt: school.trialEndsAt,
+          subscriptionEnd: school.subscriptionEnd,
+          graceEndsAt: school.graceEndsAt,
+        },
+        now,
+      );
+
+      if (effectiveStatus === school.status) continue;
+
+      if (effectiveStatus === 'GRACE_PERIOD') {
+        const graceEnd = school.graceEndsAt ?? addDays(now, graceLength);
+        if (
           await transitionSchool(
             tx,
             school,
@@ -230,16 +265,14 @@ export async function runSubscriptionLifecycle(now = new Date()): Promise<Lifecy
         continue;
       }
 
-      if (school.status === 'GRACE_PERIOD' && school.graceEndsAt && school.graceEndsAt <= now) {
-        if (
-          await transitionSchool(
-            tx,
-            school,
-            terminalStatus,
-            null,
-            'Subscription grace period expired',
-          )
-        ) {
+      if (effectiveStatus === terminalStatus) {
+        const reason =
+          school.status === 'GRACE_PERIOD'
+            ? 'Subscription grace period expired'
+            : school.status === 'TRIAL'
+              ? 'Trial and configured grace period expired'
+              : 'Subscription and configured grace period expired';
+        if (await transitionSchool(tx, school, terminalStatus, null, reason)) {
           transitioned += 1;
         }
       }
