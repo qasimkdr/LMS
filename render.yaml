@@ -30,7 +30,6 @@ services:
   - type: web
     name: nexora-lms-web
     runtime: static
-    plan: free
     buildCommand: npm install --no-audit --no-fund && npm run build -w @nexora/web
     staticPublishPath: apps/web/dist
     autoDeployTrigger: commit
