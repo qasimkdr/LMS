@@ -13,6 +13,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nexora
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d nexora"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nexora?schema=public
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/nexora?schema=public
@@ -29,6 +43,8 @@ jobs:
         run: npm run test:security
       - name: Validate Prisma schema
         run: npx prisma validate --schema packages/database/prisma/schema.prisma
+      - name: Apply migrations to clean Postgres
+        run: npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
       - name: Generate Prisma client
         run: npm run db:generate
       - name: Build database package
