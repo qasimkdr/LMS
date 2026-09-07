@@ -39,6 +39,7 @@ import backupRoutes from './routes/backups.js';
 import supportRoutes from './routes/support.js';
 import healthRoutes from './routes/health.js';
 import { startSubscriptionLifecycleScheduler } from './services/subscriptionLifecycle.js';
+import { startFeeInvoiceSnapshotScheduler } from './services/feeInvoices.js';
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -216,3 +217,4 @@ app.use((_req, res) => res.status(404).json({ message: 'Route not found' }));
 
 app.listen(port, () => console.log(`Nexora API listening on port ${port}`));
 startSubscriptionLifecycleScheduler();
+startFeeInvoiceSnapshotScheduler();
