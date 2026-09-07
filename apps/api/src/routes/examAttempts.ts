@@ -37,7 +37,16 @@ router.post('/:examId/start', requireRoles('STUDENT'), async (req, res) => {
   const now = new Date();
   if (exam.startsAt && now < exam.startsAt) return res.status(403).json({ message: 'Exam has not started yet' });
   if (exam.endsAt && now > exam.endsAt) return res.status(403).json({ message: 'Exam has ended' });
-  const attempt = await prisma.examAttempt.upsert({ where: { examId_studentUserId: { examId: exam.id, studentUserId: req.auth!.userId } }, create: { schoolId, examId: exam.id, studentUserId: req.auth!.userId }, update: {} });
+
+  const existing = await prisma.examAttempt.findUnique({
+    where: { examId_studentUserId: { examId: exam.id, studentUserId: req.auth!.userId } },
+  });
+  if (existing && existing.status !== 'IN_PROGRESS') {
+    return res.status(409).json({ message: 'Exam attempt is already completed', status: existing.status });
+  }
+  const attempt = existing ?? await prisma.examAttempt.create({
+    data: { schoolId, examId: exam.id, studentUserId: req.auth!.userId },
+  });
   res.json({ attempt, exam: { id: exam.id, title: exam.title, instructions: exam.instructions, durationMin: exam.durationMin, totalMarks: exam.totalMarks, subject: exam.subjectId, questions: exam.questions.map(q => ({ id: q.id, type: q.type, prompt: q.prompt, marks: q.marks, options: q.options })) } });
 });
 
