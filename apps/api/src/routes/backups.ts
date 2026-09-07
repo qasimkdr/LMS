@@ -33,12 +33,15 @@ const backupCollections = [
   'feePayments',
   'feeBatches',
   'feeAdjustments',
+  'feeInvoices',
   'schoolEvents',
   'storageObjects',
   'reportCards',
 ] as const;
 
 type BackupCollection = (typeof backupCollections)[number];
+const optionalBackupCollections = new Set<BackupCollection>(['feeInvoices']);
+
 type BackupInspection = {
   valid: boolean;
   counts: Record<BackupCollection, number>;
@@ -81,6 +84,12 @@ const inspectBackup = (backup: any, currentSchoolId: string): BackupInspection =
     for (const key of backupCollections) {
       const value = backup.data[key];
       if (value === undefined) {
+        if (optionalBackupCollections.has(key)) {
+          warnings.push(
+            `Backup predates ${key}; this collection will be treated as empty during restore planning.`,
+          );
+          continue;
+        }
         issues.push(`Missing collection: ${key}`);
         continue;
       }
@@ -131,6 +140,7 @@ const rawCount = async (table: string, schoolId: string) => {
     'FeePayment',
     'FeeRecoveryBatch',
     'FeeAdjustment',
+    'FeeInvoice',
     'SchoolEvent',
     'StorageObject',
     'ReportCardPublication',
@@ -168,6 +178,7 @@ const getCurrentCounts = async (schoolId: string): Promise<Record<BackupCollecti
     feePayments,
     feeBatches,
     feeAdjustments,
+    feeInvoices,
     schoolEvents,
     storageObjects,
     reportCards,
@@ -195,6 +206,7 @@ const getCurrentCounts = async (schoolId: string): Promise<Record<BackupCollecti
     rawCount('FeePayment', schoolId),
     rawCount('FeeRecoveryBatch', schoolId),
     rawCount('FeeAdjustment', schoolId),
+    rawCount('FeeInvoice', schoolId),
     rawCount('SchoolEvent', schoolId),
     rawCount('StorageObject', schoolId),
     rawCount('ReportCardPublication', schoolId),
@@ -224,6 +236,7 @@ const getCurrentCounts = async (schoolId: string): Promise<Record<BackupCollecti
     feePayments,
     feeBatches,
     feeAdjustments,
+    feeInvoices,
     schoolEvents,
     storageObjects,
     reportCards,
@@ -269,6 +282,7 @@ router.get('/export', async (req, res) => {
     feePayments,
     feeBatches,
     feeAdjustments,
+    feeInvoices,
     schoolEvents,
     storageObjects,
     reportCards,
@@ -310,6 +324,7 @@ router.get('/export', async (req, res) => {
     prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "FeePayment" WHERE "schoolId"=${schoolId}`),
     prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "FeeRecoveryBatch" WHERE "schoolId"=${schoolId}`),
     prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "FeeAdjustment" WHERE "schoolId"=${schoolId}`),
+    prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "FeeInvoice" WHERE "schoolId"=${schoolId} ORDER BY month,"studentProfileId"`),
     prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "SchoolEvent" WHERE "schoolId"=${schoolId}`),
     prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "StorageObject" WHERE "schoolId"=${schoolId}`),
     prisma.$queryRaw<any[]>(Prisma.sql`SELECT * FROM "ReportCardPublication" WHERE "schoolId"=${schoolId}`),
@@ -353,6 +368,7 @@ router.get('/export', async (req, res) => {
       feePayments,
       feeBatches,
       feeAdjustments,
+      feeInvoices,
       schoolEvents,
       storageObjects,
       reportCards,
