@@ -24,10 +24,14 @@ assert.ok(support.includes('AND "schoolId" = ${req.auth!.schoolId!}'), 'Support 
 assert.match(support, /Internal notes are Super Admin only/, 'Support internal notes must remain Super Admin-only');
 assert.match(entitlements, /MODULE_DISABLED/, 'Entitlement guard must explicitly deny disabled modules');
 assert.match(entitlements, /SUBSCRIPTION_EXPIRED/, 'Entitlement guard must reject expired subscriptions');
+
 for (const [path, module] of [
   ['/api/exams','EXAMS'],['/api/attendance','ATTENDANCE'],['/api/coursework','COURSEWORK'],['/api/reports','REPORTS'],['/api/fees','FINANCE'],['/api/timetable','TIMETABLE'],['/api/storage','STORAGE']
 ]) {
-  assert.ok(index.includes(`app.use('${path}',requireModule('${module}')`), `${path} must retain ${module} entitlement guard`);
+  const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedModule = module.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const routePattern = new RegExp(`app\\.use\\('${escapedPath}'[\\s\\S]{0,160}?requireModule\\('${escapedModule}'\\)`);
+  assert.match(index, routePattern, `${path} must retain ${module} entitlement guard`);
 }
 
 console.log('Security regression checks passed');
