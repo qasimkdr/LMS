@@ -51,7 +51,18 @@ router.get('/parent/children', requireRoles('PARENT'), async (req, res) => {
   const schoolId = req.auth!.schoolId!;
   const parent = await prisma.parentProfile.findFirst({
     where: { userId: req.auth!.userId, schoolId },
-    include: { students: { include: { student: { include: { user: { select: { firstName: true, lastName: true } }, class: true } } } } } },
+    include: {
+      students: {
+        include: {
+          student: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+              class: true,
+            },
+          },
+        },
+      },
+    },
   });
   if (!parent) return res.status(404).json({ message: 'Parent profile not found' });
   res.json(parent.students.map(link => ({ relation: link.relation, ...link.student })));
@@ -61,9 +72,17 @@ router.get('/parent/children/:studentId', requireRoles('PARENT'), async (req, re
   const schoolId = req.auth!.schoolId!;
   const parent = await prisma.parentProfile.findFirst({ where: { userId: req.auth!.userId, schoolId } });
   if (!parent) return res.status(404).json({ message: 'Parent profile not found' });
+
   const link = await prisma.studentParent.findFirst({
     where: { parentId: parent.id, studentId: req.params.studentId },
-    include: { student: { include: { user: { select: { firstName: true, lastName: true } }, class: true } } },
+    include: {
+      student: {
+        include: {
+          user: { select: { firstName: true, lastName: true } },
+          class: true,
+        },
+      },
+    },
   });
   if (!link || link.student.schoolId !== schoolId) return res.status(404).json({ message: 'Linked student not found' });
 
