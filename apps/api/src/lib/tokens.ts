@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import type { Response } from 'express';
 import type { AuthContext } from '../middleware/auth.js';
@@ -21,7 +22,10 @@ export function signAccessToken(payload: AuthContext) {
 }
 
 export function signRefreshToken(payload: AuthContext) {
-  return jwt.sign(payload, refreshSecret(), { expiresIn: REFRESH_TTL });
+  return jwt.sign(payload, refreshSecret(), {
+    expiresIn: REFRESH_TTL,
+    jwtid: randomUUID(),
+  });
 }
 
 export function verifyRefreshToken(token: string) {
