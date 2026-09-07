@@ -11,6 +11,7 @@ export type AuthContext = {
   role: 'SUPER_ADMIN' | 'PRINCIPAL' | 'STAFF' | 'TEACHER' | 'STUDENT' | 'PARENT';
   schoolId?: string;
   impersonatedById?: string;
+  sessionId?: string;
 };
 
 type TenantAccess = {
