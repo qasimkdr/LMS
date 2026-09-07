@@ -115,7 +115,7 @@ async function main() {
       ...process.env,
       PORT: String(PORT),
       CLIENT_URL: 'http://localhost:5173',
-      JWT_SECRET: process.env.JWT_SECRET ?? 'ci-access-secret-at-least-32-characters',
+      JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET ?? 'ci-access-secret-at-least-32-characters',
       JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ?? 'ci-refresh-secret-at-least-32-characters',
       NODE_ENV: 'test',
     },
