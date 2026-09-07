@@ -74,6 +74,8 @@ jobs:
         run: npm run test:attendance
       - name: Approval engine integration tests
         run: npm run test:approvals
+      - name: Exam flow and import integration tests
+        run: npm run test:exams
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
