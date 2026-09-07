@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@nexora/database';
@@ -50,10 +50,7 @@ function sessionUser(user: any, impersonatedById?: string) {
   };
 }
 
-const rejectUnavailableSchool = (
-  status: LifecycleStatus | null,
-  res: Parameters<Parameters<typeof router.post>[1]>[1],
-) => {
+const rejectUnavailableSchool = (status: LifecycleStatus | null, res: Response) => {
   if (status === 'CANCELLED') {
     return res.status(403).json({
       message: 'This school account has been cancelled. Contact Nexora support.',
