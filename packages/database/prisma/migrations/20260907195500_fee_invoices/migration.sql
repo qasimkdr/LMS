@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS "FeeInvoice" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "FeeInvoice_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "FeeInvoice_month_check" CHECK ("month" ~ '^\\d{4}-\\d{2}$'),
+  CONSTRAINT "FeeInvoice_month_check" CHECK ("month" ~ '^[0-9]{4}-[0-9]{2}$'),
   CONSTRAINT "FeeInvoice_schoolId_fkey" FOREIGN KEY ("schoolId") REFERENCES "School"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "FeeInvoice_studentProfileId_fkey" FOREIGN KEY ("studentProfileId") REFERENCES "StudentProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "FeeInvoice_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE SET NULL ON UPDATE CASCADE
