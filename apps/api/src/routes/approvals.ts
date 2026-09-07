@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '@nexora/database';
 import { requireAuth, requireRoles, requireTenant } from '../middleware/auth.js';
+import { routeParam } from '../utils/http.js';
 
 const router = Router();
 router.use(requireAuth, requireTenant);
@@ -18,11 +19,7 @@ router.get('/', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => {
   const requests = await prisma.approvalRequest.findMany({
     where: { schoolId: req.auth!.schoolId!, ...(req.auth!.role === 'STAFF' ? { requesterId: req.auth!.userId } : {}) },
     orderBy: { updatedAt: 'desc' },
-    include: {
-      requester: { select: { id: true, firstName: true, lastName: true } },
-      reviewer: { select: { id: true, firstName: true, lastName: true } },
-      versions: { orderBy: { revision: 'desc' } },
-    },
+    include: { requester: { select: { id: true, firstName: true, lastName: true } }, reviewer: { select: { id: true, firstName: true, lastName: true } }, versions: { orderBy: { revision: 'desc' } } },
   });
   res.json(requests);
 });
@@ -30,7 +27,6 @@ router.get('/', requireRoles('PRINCIPAL', 'STAFF'), async (req, res) => {
 router.post('/', requireRoles('STAFF'), async (req, res) => {
   const parsed = teacherAssignmentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: 'Invalid approval request', issues: parsed.error.flatten() });
-
   const { teacherId, classId, subjectId } = parsed.data.proposedData;
   const [teacher, klass, subject] = await Promise.all([
     prisma.user.findFirst({ where: { id: teacherId, schoolId: req.auth!.schoolId, role: 'TEACHER', isActive: true } }),
@@ -38,16 +34,8 @@ router.post('/', requireRoles('STAFF'), async (req, res) => {
     prisma.subject.findFirst({ where: { id: subjectId, schoolId: req.auth!.schoolId } }),
   ]);
   if (!teacher || !klass || !subject) return res.status(400).json({ message: 'Teacher, class or subject is outside your school or invalid' });
-
   const created = await prisma.$transaction(async (tx) => {
-    const request = await tx.approvalRequest.create({
-      data: {
-        schoolId: req.auth!.schoolId!, requesterId: req.auth!.userId,
-        requestType: parsed.data.requestType, entityType: parsed.data.entityType,
-        entityId: parsed.data.entityId, proposedData: parsed.data.proposedData,
-        status: 'PENDING', submittedAt: new Date(),
-      },
-    });
+    const request = await tx.approvalRequest.create({ data: { schoolId: req.auth!.schoolId!, requesterId: req.auth!.userId, requestType: parsed.data.requestType, entityType: parsed.data.entityType, entityId: parsed.data.entityId, proposedData: parsed.data.proposedData, status: 'PENDING', submittedAt: new Date() } });
     await tx.approvalVersion.create({ data: { approvalRequestId: request.id, revision: 1, proposedData: parsed.data.proposedData, note: parsed.data.note } });
     await tx.auditLog.create({ data: { schoolId: req.auth!.schoolId!, actorId: req.auth!.userId, action: 'APPROVAL_SUBMITTED', entityType: 'ApprovalRequest', entityId: request.id, afterData: parsed.data.proposedData } });
     return request;
@@ -56,7 +44,8 @@ router.post('/', requireRoles('STAFF'), async (req, res) => {
 });
 
 router.patch('/:id/resubmit', requireRoles('STAFF'), async (req, res) => {
-  const current = await prisma.approvalRequest.findFirst({ where: { id: req.params.id, schoolId: req.auth!.schoolId, requesterId: req.auth!.userId, status: 'REVISION_REQUIRED' } });
+  const id = routeParam(req.params.id);
+  const current = await prisma.approvalRequest.findFirst({ where: { id, schoolId: req.auth!.schoolId, requesterId: req.auth!.userId, status: 'REVISION_REQUIRED' } });
   if (!current) return res.status(404).json({ message: 'Revision request not found' });
   const proposedData = req.body?.proposedData;
   if (!proposedData || typeof proposedData !== 'object') return res.status(400).json({ message: 'Invalid revision' });
@@ -71,46 +60,32 @@ router.patch('/:id/resubmit', requireRoles('STAFF'), async (req, res) => {
 });
 
 const reviewSchema = z.object({ decision: z.enum(['APPROVE', 'REJECT', 'REVISION_REQUIRED']), remark: z.string().max(1000).optional() });
-
 router.patch('/:id/review', requireRoles('PRINCIPAL'), async (req, res) => {
   const parsed = reviewSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: 'Invalid review decision' });
   if (parsed.data.decision !== 'APPROVE' && !parsed.data.remark) return res.status(400).json({ message: 'A remark is required when rejecting or requesting revision' });
-
-  const current = await prisma.approvalRequest.findFirst({ where: { id: req.params.id, schoolId: req.auth!.schoolId, status: { in: ['PENDING', 'RESUBMITTED'] } } });
+  const id = routeParam(req.params.id);
+  const current = await prisma.approvalRequest.findFirst({ where: { id, schoolId: req.auth!.schoolId, status: { in: ['PENDING', 'RESUBMITTED'] } } });
   if (!current) return res.status(404).json({ message: 'Pending request not found' });
-
   const result = await prisma.$transaction(async (tx) => {
     if (parsed.data.decision === 'APPROVE' && current.requestType === 'TEACHER_ASSIGNMENT') {
       const data = current.proposedData as { teacherId: string; classId: string; subjectId: string };
       const [teacher, klass, subject] = await Promise.all([
-        tx.user.findFirst({ where: { id: data.teacherId, schoolId: req.auth!.schoolId, role: 'TEACHER' } }),
-        tx.class.findFirst({ where: { id: data.classId, schoolId: req.auth!.schoolId } }),
-        tx.subject.findFirst({ where: { id: data.subjectId, schoolId: req.auth!.schoolId } }),
+        tx.user.findFirst({ where: { id: data.teacherId, schoolId: req.auth!.schoolId, role: 'TEACHER' } }), tx.class.findFirst({ where: { id: data.classId, schoolId: req.auth!.schoolId } }), tx.subject.findFirst({ where: { id: data.subjectId, schoolId: req.auth!.schoolId } }),
       ]);
       if (!teacher || !klass || !subject) throw new Error('Referenced school records are no longer valid');
-      await tx.teacherAssignment.upsert({
-        where: { schoolId_teacherId_classId_subjectId: { schoolId: req.auth!.schoolId!, teacherId: data.teacherId, classId: data.classId, subjectId: data.subjectId } },
-        create: { schoolId: req.auth!.schoolId!, teacherId: data.teacherId, classId: data.classId, subjectId: data.subjectId },
-        update: {},
-      });
+      await tx.teacherAssignment.upsert({ where: { schoolId_teacherId_classId_subjectId: { schoolId: req.auth!.schoolId!, teacherId: data.teacherId, classId: data.classId, subjectId: data.subjectId } }, create: { schoolId: req.auth!.schoolId!, teacherId: data.teacherId, classId: data.classId, subjectId: data.subjectId }, update: {} });
     }
-
     if (parsed.data.decision === 'APPROVE' && current.requestType === 'ANNOUNCEMENT_PUBLISH') {
       const data = current.proposedData as { title: string; body: string; audience: Array<'PRINCIPAL'|'STAFF'|'TEACHER'|'STUDENT'|'PARENT'>; classId?: string; publishAt?: string | Date; expiresAt?: string | Date };
-      if (data.classId) {
-        const klass = await tx.class.findFirst({ where: { id: data.classId, schoolId: req.auth!.schoolId } });
-        if (!klass) throw new Error('Announcement class is no longer valid');
-      }
+      if (data.classId) { const klass = await tx.class.findFirst({ where: { id: data.classId, schoolId: req.auth!.schoolId } }); if (!klass) throw new Error('Announcement class is no longer valid'); }
       await tx.announcement.create({ data: { schoolId: req.auth!.schoolId!, createdById: current.requesterId, title: data.title, body: data.body, audience: data.audience, classId: data.classId, publishAt: data.publishAt ? new Date(data.publishAt) : undefined, expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined } });
     }
-
     const status = parsed.data.decision === 'APPROVE' ? 'APPROVED' : parsed.data.decision === 'REJECT' ? 'REJECTED' : 'REVISION_REQUIRED';
     const request = await tx.approvalRequest.update({ where: { id: current.id }, data: { status, reviewerId: req.auth!.userId, reviewedAt: new Date(), principalRemark: parsed.data.remark } });
     await tx.auditLog.create({ data: { schoolId: req.auth!.schoolId!, actorId: req.auth!.userId, action: `APPROVAL_${status}`, entityType: 'ApprovalRequest', entityId: current.id, afterData: { remark: parsed.data.remark ?? null } } });
     return request;
   });
-
   res.json(result);
 });
 
