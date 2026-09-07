@@ -40,6 +40,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Security regression checks
@@ -64,6 +66,8 @@ jobs:
         run: npm run test:lifecycle -w @nexora/api
       - name: Multi-tenant isolation tests
         run: npm run test:tenant
+      - name: Auth session integration tests
+        run: npm run test:auth
       - name: Build API
         run: npm run build -w @nexora/api
       - name: Build web
