@@ -134,7 +134,8 @@ export default function PrincipalSettings() {
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      URL.revokeObjectURL(url);
+      // Give slower/cloud browsers time to consume the download first.
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
       setMessage('School backup exported securely.');
     } catch {
       setError('Could not export school backup.');

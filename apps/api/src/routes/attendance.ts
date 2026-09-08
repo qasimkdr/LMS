@@ -190,23 +190,17 @@ router.post('/mark', async (req, res) => {
       update: { markedById: req.auth!.userId },
     });
 
-    for (const record of effectiveRecords) {
-      await tx.attendanceRecord.upsert({
-        where: {
-          attendanceId_studentProfileId: {
-            attendanceId: created.id,
-            studentProfileId: record.studentProfileId,
-          },
-        },
-        create: {
-          attendanceId: created.id,
-          studentProfileId: record.studentProfileId,
-          status: record.status,
-          remark: record.remark,
-        },
-        update: { status: record.status, remark: record.remark },
-      });
-    }
+    // This payload is the complete register. Two bulk statements avoid one
+    // hosted-database round trip per student and prevent request timeouts.
+    await tx.attendanceRecord.deleteMany({ where: { attendanceId: created.id } });
+    await tx.attendanceRecord.createMany({
+      data: effectiveRecords.map((record) => ({
+        attendanceId: created.id,
+        studentProfileId: record.studentProfileId,
+        status: record.status,
+        remark: record.remark,
+      })),
+    });
 
     await tx.auditLog.create({
       data: {

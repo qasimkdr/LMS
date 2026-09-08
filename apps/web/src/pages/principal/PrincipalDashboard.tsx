@@ -23,6 +23,7 @@ export default function PrincipalDashboard() {
   }, []);
 
   useEffect(() => {
+    if (loading) return;
     const ctx = gsap.context(() => {
       gsap.from('.principal-hero', { y: 24, opacity: 0, duration: .65, ease: 'power3.out' });
       gsap.from('.principal-card', { y: 30, opacity: 0, stagger: .08, duration: .55, delay: .08, ease: 'power3.out' });

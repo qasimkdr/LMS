@@ -9,7 +9,7 @@ type Analytics={term:Term;students:number;examAverage:number;assignmentAverage:n
 export default function PrincipalAnalytics(){
  const [terms,setTerms]=useState<Term[]>([]),[termId,setTermId]=useState(''),[data,setData]=useState<Analytics|null>(null),[loading,setLoading]=useState(true),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState('');
  const [form,setForm]=useState({name:'Term 1',academicYear:new Date().getFullYear().toString(),startsAt:'',endsAt:'',isCurrent:true});
- const loadTerms=async()=>{const {data}=await api.get('/reports/terms');setTerms(data);const active=data.find((x:Term)=>x.isCurrent)??data[0];if(active&&!termId)setTermId(active.id);};
+ const loadTerms=async()=>{const {data}=await api.get('/reports/terms');setTerms(data);const active=data.find((x:Term)=>x.isCurrent)??data[0];if(active&&!termId)setTermId(active.id);if(!active)setLoading(false);};
  useEffect(()=>{loadTerms().catch(()=>setError('Could not load academic terms.'));},[]);
  useEffect(()=>{if(!termId)return;setLoading(true);api.get('/reports/principal-analytics',{params:{termId}}).then(r=>setData(r.data)).catch((e:any)=>setError(e?.response?.data?.message??'Could not load analytics.')).finally(()=>setLoading(false));},[termId]);
  const create=async()=>{setSaving(true);setError('');try{const {data}=await api.post('/reports/terms',form);setOpen(false);await loadTerms();setTermId(data.id);}catch(e:any){setError(e?.response?.data?.message??'Could not create term.');}finally{setSaving(false);}};

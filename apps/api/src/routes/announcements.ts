@@ -13,6 +13,17 @@ const createSchema = z.object({
   classId: z.string().uuid().optional(),
   publishAt: z.coerce.date().optional(),
   expiresAt: z.coerce.date().optional(),
+  isPinned: z.boolean().optional(),
+});
+
+router.get('/manage', requireRoles('PRINCIPAL','STAFF'), async (req, res) => {
+  const rows = await prisma.announcement.findMany({
+    where: { schoolId: req.auth!.schoolId! },
+    include: { class: { select: { name: true, section: true } } },
+    orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
+    take: 100,
+  });
+  res.json(rows);
 });
 
 router.get('/', async (req, res) => {
@@ -29,6 +40,10 @@ router.post('/', requireRoles('PRINCIPAL','STAFF'), async (req, res) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ message: 'Invalid announcement', issues: parsed.error.flatten() });
   const schoolId = req.auth!.schoolId!;
+  if (parsed.data.classId) {
+    const classExists = await prisma.class.count({ where: { id: parsed.data.classId, schoolId } });
+    if (!classExists) return res.status(400).json({ message: 'Class target does not belong to this school' });
+  }
   const policy = await prisma.approvalPolicy.findUnique({ where: { schoolId_actionKey: { schoolId, actionKey: 'ANNOUNCEMENT_PUBLISH' } } });
   if (req.auth!.role === 'STAFF' && policy && !policy.staffAllowed) return res.status(403).json({ message: 'Staff are not allowed to publish announcements' });
   if (req.auth!.role === 'STAFF' && policy?.requiresApproval) {

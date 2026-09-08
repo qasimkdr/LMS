@@ -35,6 +35,7 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
+    if (loading) return;
     const ctx = gsap.context(() => {
       gsap.from('.dashboard-intro', { y: 24, opacity: 0, duration: 0.65, ease: 'power3.out' });
       gsap.from('.kpi-card', { y: 28, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out', delay: 0.08 });
