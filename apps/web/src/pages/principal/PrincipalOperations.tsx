@@ -5,9 +5,12 @@ import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import {
   Alert,
+  Avatar,
   Button,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -18,6 +21,7 @@ import {
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api";
+import FileUpload from "../../components/storage/FileUpload";
 
 type Overview = {
   school: {
@@ -58,6 +62,22 @@ type Overview = {
   }>;
   subjects: Array<{ id: string; name: string; code?: string | null }>;
 };
+type PersonCard = {
+  id: string;
+  role: "STUDENT" | "TEACHER" | "STAFF";
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  cnic?: string | null;
+  avatarUrl?: string | null;
+  isActive: boolean;
+  studentProfile?: {
+    id: string;
+    admissionNo: string;
+    class?: { name: string; section?: string | null } | null;
+  } | null;
+};
 
 export default function PrincipalOperations() {
   const [data, setData] = useState<Overview | null>(null);
@@ -68,6 +88,13 @@ export default function PrincipalOperations() {
   >(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<any>({});
+  const [people, setPeople] = useState<PersonCard[]>([]);
+  const [peopleCursor, setPeopleCursor] = useState<string | null>(null);
+  const [peopleLoading, setPeopleLoading] = useState(false);
+  const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [selected, setSelected] = useState<any>(null);
   const load = async () => {
     setLoading(true);
     try {
@@ -82,6 +109,53 @@ export default function PrincipalOperations() {
   useEffect(() => {
     void load();
   }, []);
+  const loadPeople = async (reset = false) => {
+    if (peopleLoading) return;
+    setPeopleLoading(true);
+    try {
+      const { data } = await api.get("/school-operations/people", {
+        params: {
+          q: query || undefined,
+          role: roleFilter,
+          status: statusFilter,
+          cursor: reset ? undefined : peopleCursor || undefined,
+          limit: 12,
+        },
+      });
+      setPeople((current) =>
+        reset ? data.items : [...current, ...data.items],
+      );
+      setPeopleCursor(data.nextCursor);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not load people.");
+    } finally {
+      setPeopleLoading(false);
+    }
+  };
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadPeople(true), 250);
+    return () => window.clearTimeout(timer);
+  }, [query, roleFilter, statusFilter]);
+  useEffect(() => {
+    const sentinel = document.getElementById("people-load-more");
+    if (!sentinel || !peopleCursor) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void loadPeople(false);
+      },
+      { rootMargin: "240px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [peopleCursor, peopleLoading]);
+  const openPerson = async (id: string) => {
+    try {
+      const { data } = await api.get(`/school-operations/people/${id}`);
+      setSelected(data);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not load person details.");
+    }
+  };
   const stats = useMemo(
     () => [
       {
@@ -128,6 +202,7 @@ export default function PrincipalOperations() {
       setModal(null);
       setForm({});
       await load();
+      await loadPeople(true);
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not save changes.");
     } finally {
@@ -172,17 +247,30 @@ export default function PrincipalOperations() {
     <>
       <main className="px-4 py-6 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-[1450px]">
-          <section className="glass-panel rounded-[32px] p-6 md:p-8">
-            <span className="text-xs font-black uppercase tracking-[.2em] text-blue-600">
-              School operations
-            </span>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-              Manage the academic structure
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-500">
-              Students, teachers, staff, classes and subjects stay isolated to
-              your school tenant.
-            </p>
+          <section className="relative overflow-hidden rounded-[36px] bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-800 p-7 text-white shadow-[0_30px_90px_rgba(49,46,129,.32)] md:p-10">
+            <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
+            <div className="relative flex flex-wrap items-center gap-6">
+              <SchoolLogo
+                reference={data?.school?.logoUrl}
+                name={data?.school?.name ?? "School"}
+              />
+              <div>
+                <span className="text-xs font-black uppercase tracking-[.24em] text-cyan-300">
+                  Principal people command center
+                </span>
+                <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
+                  {data?.school?.name ?? "Your school"}
+                </h1>
+                <p className="mt-3 max-w-3xl text-sm text-indigo-100 md:text-base">
+                  {data?.school?.description ||
+                    "Manage admissions, staff hiring and complete school records from one secure directory."}
+                </p>
+                <p className="mt-3 text-xs font-bold text-white/60">
+                  {data?.school?.address || "School address not added"}
+                  {data?.school?.email ? ` · ${data.school.email}` : ""}
+                </p>
+              </div>
+            </div>
           </section>
           {error && (
             <Alert
@@ -250,67 +338,114 @@ export default function PrincipalOperations() {
             ))}
           </section>
           <section className="mt-6 grid gap-5 xl:grid-cols-2">
-            <div className="glass-panel rounded-[30px] p-5">
-              <h2 className="text-xl font-black text-slate-900">People</h2>
-              <div className="mt-4 space-y-2">
-                {loading ? (
-                  <Skeleton height={220} />
-                ) : (
-                  data?.users.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex items-center justify-between rounded-2xl bg-white/70 p-3"
-                    >
-                      <div>
-                        <div className="font-black text-slate-800">
-                          {u.firstName} {u.lastName}
-                        </div>
-                        <div className="text-xs text-slate-500">{u.email}</div>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-end gap-1">
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
-                          {u.role} · {u.isActive ? "Active" : "Inactive"}
-                        </span>
-                        {["TEACHER", "STAFF"].includes(u.role) && (
-                          <>
-                            <Button
-                              size="small"
-                              startIcon={<EditRoundedIcon />}
-                              onClick={() =>
-                                void patchRecord(
-                                  `/school-operations/users/${u.id}`,
-                                  u.firstName,
-                                  "firstName",
-                                )
-                              }
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="small"
-                              color={u.isActive ? "warning" : "success"}
-                              onClick={() => void toggleUser(u.id, u.isActive)}
-                            >
-                              {u.isActive ? "Deactivate" : "Reactivate"}
-                            </Button>
-                            <Button
-                              size="small"
-                              color="error"
-                              startIcon={<DeleteRoundedIcon />}
-                              onClick={() =>
-                                void deleteRecord(
-                                  `/school-operations/users/${u.id}`,
-                                  `${u.firstName} ${u.lastName}`,
-                                )
-                              }
-                            >
-                              Delete
-                            </Button>
-                          </>
-                        )}
+            <div className="glass-panel rounded-[30px] p-5 xl:col-span-2">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">
+                    People directory
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    Cards load in small pages as you scroll. Select a card for
+                    the full record.
+                  </p>
+                </div>
+                <div className="grid w-full gap-2 md:grid-cols-3 xl:w-auto">
+                  <TextField
+                    size="small"
+                    label="Search name, ID, email or phone"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <SearchRoundedIcon className="mr-2 text-slate-400" />
+                      ),
+                    }}
+                  />
+                  <TextField
+                    size="small"
+                    select
+                    SelectProps={{ native: true }}
+                    label="Role"
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                  >
+                    <option value="ALL">All roles</option>
+                    <option value="STUDENT">Students</option>
+                    <option value="TEACHER">Teachers</option>
+                    <option value="STAFF">Staff</option>
+                  </TextField>
+                  <TextField
+                    size="small"
+                    select
+                    SelectProps={{ native: true }}
+                    label="Status"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="ALL">All statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </TextField>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {people.map((person) => (
+                  <button
+                    key={person.id}
+                    onClick={() => void openPerson(person.id)}
+                    className="rounded-[24px] border border-white bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ProfileAvatar
+                        reference={person.avatarUrl}
+                        name={`${person.firstName} ${person.lastName}`}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-black text-slate-900">
+                          {person.firstName} {person.lastName}
+                        </p>
+                        <p className="truncate text-xs text-slate-500">
+                          {person.email}
+                        </p>
                       </div>
                     </div>
-                  ))
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Chip
+                        size="small"
+                        label={person.role}
+                        color={
+                          person.role === "STUDENT"
+                            ? "info"
+                            : person.role === "TEACHER"
+                              ? "secondary"
+                              : "warning"
+                        }
+                      />
+                      <Chip
+                        size="small"
+                        label={person.isActive ? "Active" : "Inactive"}
+                        color={person.isActive ? "success" : "default"}
+                      />
+                    </div>
+                    <p className="mt-3 text-xs font-bold text-slate-500">
+                      {person.studentProfile
+                        ? `${person.studentProfile.admissionNo} · ${person.studentProfile.class?.name ?? "No class"}`
+                        : person.phone || person.cnic || "Open full record"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+              {!people.length && !peopleLoading && (
+                <div className="py-12 text-center text-slate-500">
+                  No matching people.
+                </div>
+              )}
+              <div id="people-load-more" className="py-4 text-center">
+                {peopleLoading && <CircularProgress size={24} />}
+                {!peopleCursor && people.length > 0 && (
+                  <span className="text-xs font-bold text-slate-400">
+                    All matching records loaded
+                  </span>
                 )}
               </div>
             </div>
@@ -492,6 +627,86 @@ export default function PrincipalOperations() {
                   v={form.guardianPhone}
                   s={(v) => setForm({ ...form, guardianPhone: v })}
                 />
+                <F
+                  label="Guardian name"
+                  v={form.profileData?.guardianName}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, guardianName: v },
+                    })
+                  }
+                />
+                <F
+                  label="Guardian CNIC"
+                  v={form.profileData?.guardianCnic}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, guardianCnic: v },
+                    })
+                  }
+                />
+                <F
+                  label="Guardian relation and occupation"
+                  v={form.profileData?.guardianDetails}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, guardianDetails: v },
+                    })
+                  }
+                />
+                <F
+                  label="Mother name, CNIC, occupation and phone"
+                  v={form.profileData?.motherDetails}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, motherDetails: v },
+                    })
+                  }
+                />
+                <F
+                  label="Emergency contact (name, relation, phone)"
+                  v={form.profileData?.emergencyContact}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, emergencyContact: v },
+                    })
+                  }
+                />
+                <F
+                  label="Previous school, last class and leaving reason"
+                  v={form.profileData?.previousSchool}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, previousSchool: v },
+                    })
+                  }
+                />
+                <F
+                  label="Nationality / religion / blood group"
+                  v={form.profileData?.identityDetails}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, identityDetails: v },
+                    })
+                  }
+                />
+                <F
+                  label="Medical conditions, allergies and accessibility needs"
+                  v={form.profileData?.medicalNotes}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, medicalNotes: v },
+                    })
+                  }
+                />
               </>
             )}
           </div>
@@ -509,6 +724,130 @@ export default function PrincipalOperations() {
             {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
           </Button>
         </DialogActions>
+      </Dialog>
+      <Dialog
+        open={Boolean(selected)}
+        onClose={() => setSelected(null)}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 5 } }}
+      >
+        {selected && (
+          <>
+            <DialogTitle sx={{ fontWeight: 900 }}>
+              <div className="flex items-center gap-4">
+                <ProfileAvatar
+                  reference={selected.avatarUrl}
+                  name={`${selected.firstName} ${selected.lastName}`}
+                  size={72}
+                />
+                <div>
+                  <div>
+                    {selected.firstName} {selected.lastName}
+                  </div>
+                  <div className="mt-1 flex gap-2">
+                    <Chip size="small" label={selected.role} />
+                    <Chip
+                      size="small"
+                      color={selected.isActive ? "success" : "default"}
+                      label={selected.isActive ? "Active" : "Inactive"}
+                    />
+                  </div>
+                </div>
+              </div>
+            </DialogTitle>
+            <DialogContent>
+              <div className="mb-5">
+                <FileUpload
+                  category="profile-image"
+                  accept="image/jpeg,image/png,image/webp"
+                  label="Change profile picture"
+                  value={selected.avatarUrl ?? ""}
+                  onChange={async (reference) => {
+                    if (!reference) return;
+                    await api.patch(`/storage/profile-image/${selected.id}`, {
+                      reference,
+                    });
+                    setSelected({ ...selected, avatarUrl: reference });
+                    await loadPeople(true);
+                  }}
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ["Email", selected.email],
+                  ["Username", selected.username],
+                  ["CNIC / B-Form", selected.cnic],
+                  ["Phone", selected.phone],
+                  ["Alternate phone", selected.alternatePhone],
+                  ["WhatsApp", selected.whatsappNo],
+                  [
+                    "Date of birth",
+                    selected.dateOfBirth
+                      ? new Date(selected.dateOfBirth).toLocaleDateString()
+                      : "",
+                  ],
+                  ["Gender", selected.gender],
+                  ["Address", selected.address],
+                  ["Admission no", selected.studentProfile?.admissionNo],
+                  [
+                    "Class",
+                    selected.studentProfile?.class
+                      ? `${selected.studentProfile.class.name}${selected.studentProfile.class.section ? ` · ${selected.studentProfile.class.section}` : ""}`
+                      : "",
+                  ],
+                ]
+                  .filter(([, value]) => value)
+                  .map(([label, value]) => (
+                    <div key={label} className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                        {label}
+                      </p>
+                      <p className="mt-1 font-bold text-slate-800">
+                        {String(value)}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+              {selected.profileData && (
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {Object.entries(selected.profileData)
+                    .filter(([, value]) => value)
+                    .map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="rounded-2xl border border-slate-100 p-4"
+                      >
+                        <p className="text-xs font-black uppercase tracking-wider text-indigo-500">
+                          {key.replace(/([A-Z])/g, " $1")}
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">
+                          {String(value)}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </DialogContent>
+            <DialogActions sx={{ p: 3 }}>
+              <Button onClick={() => setSelected(null)}>Close</Button>
+              <Button
+                color={selected.isActive ? "warning" : "success"}
+                onClick={async () => {
+                  const path =
+                    selected.role === "STUDENT"
+                      ? `/school-operations/students/${selected.studentProfile.id}`
+                      : `/school-operations/users/${selected.id}`;
+                  await api.patch(path, { isActive: !selected.isActive });
+                  setSelected({ ...selected, isActive: !selected.isActive });
+                  await loadPeople(true);
+                }}
+              >
+                {selected.isActive ? "Deactivate" : "Reactivate"}
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </>
   );
@@ -569,6 +908,209 @@ function PersonFields({
         v={form.password}
         s={(v) => setForm({ ...form, password: v })}
       />
+      <FileUpload
+        category="profile-image"
+        accept="image/jpeg,image/png,image/webp"
+        label="Upload profile picture"
+        value={form.avatarUrl ?? ""}
+        onChange={(avatarUrl) => setForm({ ...form, avatarUrl })}
+      />
+      <F
+        label="CNIC / B-Form"
+        v={form.cnic}
+        s={(v) => setForm({ ...form, cnic: v })}
+      />
+      <F
+        label="Date of birth (YYYY-MM-DD)"
+        v={form.dateOfBirth}
+        s={(v) => setForm({ ...form, dateOfBirth: v })}
+      />
+      <F
+        label="Gender"
+        v={form.gender}
+        s={(v) => setForm({ ...form, gender: v })}
+      />
+      <F
+        label="Phone number"
+        v={form.phone}
+        s={(v) => setForm({ ...form, phone: v })}
+      />
+      <F
+        label="Second phone number"
+        v={form.alternatePhone}
+        s={(v) => setForm({ ...form, alternatePhone: v })}
+      />
+      <F
+        label="WhatsApp number"
+        v={form.whatsappNo}
+        s={(v) => setForm({ ...form, whatsappNo: v })}
+      />
+      <F
+        label="Residential address"
+        v={form.address}
+        s={(v) => setForm({ ...form, address: v })}
+      />
+      {form.role && (
+        <>
+          <F
+            label="Highest qualification and specialization"
+            v={form.profileData?.education}
+            s={(v) =>
+              setForm({
+                ...form,
+                profileData: { ...form.profileData, education: v },
+              })
+            }
+          />
+          <F
+            label="Institutions, grades and passing years"
+            v={form.profileData?.educationHistory}
+            s={(v) =>
+              setForm({
+                ...form,
+                profileData: { ...form.profileData, educationHistory: v },
+              })
+            }
+          />
+          <F
+            label="Employment history and experience"
+            v={form.profileData?.experience}
+            s={(v) =>
+              setForm({
+                ...form,
+                profileData: { ...form.profileData, experience: v },
+              })
+            }
+          />
+          <F
+            label="Training, certifications and skills"
+            v={form.profileData?.certifications}
+            s={(v) =>
+              setForm({
+                ...form,
+                profileData: { ...form.profileData, certifications: v },
+              })
+            }
+          />
+          <F
+            label="Emergency contact (name, relation, phone)"
+            v={form.profileData?.emergencyContact}
+            s={(v) =>
+              setForm({
+                ...form,
+                profileData: { ...form.profileData, emergencyContact: v },
+              })
+            }
+          />
+          <F
+            label="References"
+            v={form.profileData?.references}
+            s={(v) =>
+              setForm({
+                ...form,
+                profileData: { ...form.profileData, references: v },
+              })
+            }
+          />
+          <F
+            label="Position, availability and salary expectation"
+            v={form.profileData?.employmentPreferences}
+            s={(v) =>
+              setForm({
+                ...form,
+                profileData: { ...form.profileData, employmentPreferences: v },
+              })
+            }
+          />
+        </>
+      )}
     </>
+  );
+}
+
+function ProfileAvatar({
+  reference,
+  name,
+  size = 54,
+}: {
+  reference?: string | null;
+  name: string;
+  size?: number;
+}) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    let active = true;
+    if (!reference) {
+      setUrl("");
+      return;
+    }
+    if (!reference.startsWith("storage://")) {
+      setUrl(reference);
+      return;
+    }
+    api
+      .post("/storage/sign", { reference })
+      .then(({ data }) => {
+        if (active) setUrl(data.url);
+      })
+      .catch(() => {
+        if (active) setUrl("");
+      });
+    return () => {
+      active = false;
+    };
+  }, [reference]);
+  return (
+    <Avatar
+      src={url || undefined}
+      alt={name}
+      sx={{ width: size, height: size, bgcolor: "#4f46e5", fontWeight: 900 }}
+    >
+      {name
+        .split(" ")
+        .map((x) => x[0])
+        .slice(0, 2)
+        .join("")}
+    </Avatar>
+  );
+}
+
+function SchoolLogo({
+  reference,
+  name,
+}: {
+  reference?: string | null;
+  name: string;
+}) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    let active = true;
+    if (!reference) return;
+    if (!reference.startsWith("storage://")) {
+      setUrl(reference);
+      return;
+    }
+    api
+      .post("/storage/sign", { reference })
+      .then(({ data }) => {
+        if (active) setUrl(data.url);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [reference]);
+  return (
+    <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[28px] border border-white/25 bg-white/95 p-3 shadow-2xl">
+      {url ? (
+        <img
+          src={url}
+          alt={`${name} logo`}
+          className="h-full w-full object-contain"
+        />
+      ) : (
+        <SchoolRoundedIcon sx={{ fontSize: 50, color: "#4f46e5" }} />
+      )}
+    </div>
   );
 }

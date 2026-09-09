@@ -120,6 +120,14 @@ model User {
   firstName    String
   lastName     String
   avatarUrl    String?
+  cnic         String?
+  phone        String?
+  alternatePhone String?
+  whatsappNo   String?
+  address      String?
+  dateOfBirth  DateTime?
+  gender       String?
+  profileData  Json?
   isActive     Boolean      @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime     @default(now())
@@ -152,6 +160,7 @@ model StudentProfile {
   classId       String?
   section       String?
   guardianPhone String?
+  profileData   Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

@@ -70,6 +70,115 @@ router.get("/overview", async (req, res) => {
   res.json({ school, users, students, classes, subjects });
 });
 
+router.get("/people", async (req, res) => {
+  const schoolId = req.auth!.schoolId!;
+  const query = z
+    .object({
+      q: z.string().max(100).optional(),
+      role: z.enum(["ALL", "STUDENT", "TEACHER", "STAFF"]).default("ALL"),
+      status: z.enum(["ALL", "ACTIVE", "INACTIVE"]).default("ALL"),
+      cursor: z.string().uuid().optional(),
+      limit: z.coerce.number().int().min(6).max(30).default(12),
+    })
+    .safeParse(req.query);
+  if (!query.success)
+    return res.status(400).json({ message: "Invalid people filters" });
+  const { q, role, status, cursor, limit } = query.data;
+  const rows = await prisma.user.findMany({
+    where: {
+      schoolId,
+      role: { in: role === "ALL" ? ["STUDENT", "TEACHER", "STAFF"] : [role] },
+      ...(status === "ALL" ? {} : { isActive: status === "ACTIVE" }),
+      ...(q
+        ? {
+            OR: [
+              { firstName: { contains: q, mode: "insensitive" } },
+              { lastName: { contains: q, mode: "insensitive" } },
+              { email: { contains: q, mode: "insensitive" } },
+              { phone: { contains: q, mode: "insensitive" } },
+              { cnic: { contains: q, mode: "insensitive" } },
+              {
+                studentProfile: {
+                  admissionNo: { contains: q, mode: "insensitive" },
+                },
+              },
+            ],
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      cnic: true,
+      avatarUrl: true,
+      isActive: true,
+      createdAt: true,
+      studentProfile: {
+        select: {
+          id: true,
+          admissionNo: true,
+          class: { select: { id: true, name: true, section: true } },
+        },
+      },
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    take: limit + 1,
+  });
+  const hasMore = rows.length > limit;
+  const items = rows.slice(0, limit);
+  res.json({ items, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null });
+});
+
+router.get("/people/:id", async (req, res) => {
+  const row = await prisma.user.findFirst({
+    where: { id: req.params.id as string, schoolId: req.auth!.schoolId! },
+    select: {
+      id: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      username: true,
+      avatarUrl: true,
+      cnic: true,
+      phone: true,
+      alternatePhone: true,
+      whatsappNo: true,
+      address: true,
+      dateOfBirth: true,
+      gender: true,
+      profileData: true,
+      isActive: true,
+      createdAt: true,
+      studentProfile: {
+        include: { class: { select: { id: true, name: true, section: true } } },
+      },
+    },
+  });
+  if (!row) return res.status(404).json({ message: "Person not found" });
+  res.json(row);
+});
+
+const profileDataSchema = z.record(z.string(), z.unknown()).optional();
+const commonPersonFields = {
+  avatarUrl: z
+    .string()
+    .regex(/^storage:\/\/[0-9a-f-]+$/i)
+    .optional(),
+  cnic: z.string().max(30).optional(),
+  phone: z.string().max(40).optional(),
+  alternatePhone: z.string().max(40).optional(),
+  whatsappNo: z.string().max(40).optional(),
+  address: z.string().max(500).optional(),
+  dateOfBirth: z.coerce.date().optional(),
+  gender: z.string().max(40).optional(),
+  profileData: profileDataSchema,
+};
 const personSchema = z.object({
   role: z.enum(["STAFF", "TEACHER"]),
   firstName: z.string().min(2),
@@ -77,6 +186,7 @@ const personSchema = z.object({
   email: z.string().email(),
   username: z.string().min(3),
   password: z.string().min(8),
+  ...commonPersonFields,
 });
 const personUpdateSchema = personSchema
   .omit({ password: true })
@@ -132,7 +242,7 @@ router.patch("/users/:id", async (req, res) => {
     ...parsed.data,
     ...(parsed.data.email ? { email: parsed.data.email.toLowerCase() } : {}),
   };
-  const user = await prisma.user.update({ where: { id }, data });
+  const user = await prisma.user.update({ where: { id }, data: data as any });
   await prisma.auditLog.create({
     data: {
       schoolId,
@@ -145,7 +255,7 @@ router.patch("/users/:id", async (req, res) => {
         email: before.email,
         isActive: before.isActive,
       },
-      afterData: data,
+      afterData: data as any,
     },
   });
   res.json(user);
@@ -166,12 +276,10 @@ router.delete("/users/:id", async (req, res) => {
     prisma.approvalRequest.count({ where: { requesterId: id } }),
   ]);
   if (assignments || attendance || approvals)
-    return res
-      .status(409)
-      .json({
-        message:
-          "This account has school records. Deactivate it instead of deleting it.",
-      });
+    return res.status(409).json({
+      message:
+        "This account has school records. Deactivate it instead of deleting it.",
+    });
   await prisma.$transaction([
     prisma.user.delete({ where: { id } }),
     prisma.auditLog.create({
@@ -242,12 +350,10 @@ router.delete("/classes/:id", async (req, res) => {
     });
   if (!row) return res.status(404).json({ message: "Class not found" });
   if (Object.values(row._count).some(Boolean))
-    return res
-      .status(409)
-      .json({
-        message:
-          "Class is in use. Move or remove its students and academic records first.",
-      });
+    return res.status(409).json({
+      message:
+        "Class is in use. Move or remove its students and academic records first.",
+    });
   await prisma.class.delete({ where: { id } });
   await prisma.auditLog.create({
     data: {
@@ -317,12 +423,10 @@ router.delete("/subjects/:id", async (req, res) => {
     });
   if (!row) return res.status(404).json({ message: "Subject not found" });
   if (Object.values(row._count).some(Boolean))
-    return res
-      .status(409)
-      .json({
-        message:
-          "Subject is in use. Remove its assignments and learning records first.",
-      });
+    return res.status(409).json({
+      message:
+        "Subject is in use. Remove its assignments and learning records first.",
+    });
   await prisma.subject.delete({ where: { id } });
   await prisma.auditLog.create({
     data: {
@@ -347,23 +451,23 @@ const studentSchema = z.object({
   classId: z.string().uuid().optional(),
   section: z.string().optional(),
   guardianPhone: z.string().optional(),
+  ...commonPersonFields,
 });
 router.post("/students", async (req, res) => {
   const schoolId = req.auth!.schoolId!;
   const parsed = studentSchema.safeParse(req.body);
   if (!parsed.success)
-    return res
-      .status(400)
-      .json({
-        message: "Invalid student data",
-        issues: parsed.error.flatten(),
-      });
+    return res.status(400).json({
+      message: "Invalid student data",
+      issues: parsed.error.flatten(),
+    });
   const {
     admissionNo,
     classId,
     section,
     guardianPhone,
     password,
+    profileData,
     ...userData
   } = parsed.data;
   const passwordHash = await bcrypt.hash(password, 12);
@@ -375,6 +479,7 @@ router.post("/students", async (req, res) => {
         ...userData,
         email: userData.email.toLowerCase(),
         passwordHash,
+        profileData: profileData as any,
       },
     });
     const profile = await tx.studentProfile.create({
@@ -410,6 +515,7 @@ const studentUpdateSchema = z.object({
   section: z.string().nullable().optional(),
   guardianPhone: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
+  ...commonPersonFields,
 });
 router.patch("/students/:id", async (req, res) => {
   const schoolId = req.auth!.schoolId!,
@@ -431,17 +537,55 @@ router.patch("/students/:id", async (req, res) => {
     return res
       .status(400)
       .json({ message: "Class does not belong to this school" });
-  const { firstName, lastName, email, isActive, ...profile } = p.data;
+  const {
+    firstName,
+    lastName,
+    email,
+    isActive,
+    avatarUrl,
+    cnic,
+    phone,
+    alternatePhone,
+    whatsappNo,
+    address,
+    dateOfBirth,
+    gender,
+    profileData,
+    ...profile
+  } = p.data;
   const row = await prisma.$transaction(async (tx) => {
     if (
       firstName !== undefined ||
       lastName !== undefined ||
       email !== undefined ||
-      isActive !== undefined
+      isActive !== undefined ||
+      avatarUrl !== undefined ||
+      cnic !== undefined ||
+      phone !== undefined ||
+      alternatePhone !== undefined ||
+      whatsappNo !== undefined ||
+      address !== undefined ||
+      dateOfBirth !== undefined ||
+      gender !== undefined ||
+      profileData !== undefined
     )
       await tx.user.update({
         where: { id: before.userId },
-        data: { firstName, lastName, email: email?.toLowerCase(), isActive },
+        data: {
+          firstName,
+          lastName,
+          email: email?.toLowerCase(),
+          isActive,
+          avatarUrl,
+          cnic,
+          phone,
+          alternatePhone,
+          whatsappNo,
+          address,
+          dateOfBirth,
+          gender,
+          profileData: profileData as any,
+        },
       });
     const updated = await tx.studentProfile.update({
       where: { id },
@@ -459,7 +603,7 @@ router.patch("/students/:id", async (req, res) => {
           classId: before.classId,
           isActive: before.user.isActive,
         },
-        afterData: p.data,
+        afterData: p.data as any,
       },
     });
     return updated;
@@ -484,12 +628,10 @@ router.delete("/students/:id", async (req, res) => {
       where: { studentUserId: row.userId },
     });
   if (attempts || submissions || row._count.attendanceRecords)
-    return res
-      .status(409)
-      .json({
-        message:
-          "Student has academic history. Deactivate the account instead of deleting it.",
-      });
+    return res.status(409).json({
+      message:
+        "Student has academic history. Deactivate the account instead of deleting it.",
+    });
   await prisma.$transaction([
     prisma.user.delete({ where: { id: row.userId } }),
     prisma.auditLog.create({
@@ -533,12 +675,10 @@ router.patch("/school", async (req, res) => {
   const schoolId = req.auth!.schoolId!;
   const parsed = brandingSchema.safeParse(req.body);
   if (!parsed.success)
-    return res
-      .status(400)
-      .json({
-        message: "Invalid school settings",
-        issues: parsed.error.flatten(),
-      });
+    return res.status(400).json({
+      message: "Invalid school settings",
+      issues: parsed.error.flatten(),
+    });
   const before = await prisma.school.findUnique({ where: { id: schoolId } });
   const school = await prisma.school.update({
     where: { id: schoolId },
