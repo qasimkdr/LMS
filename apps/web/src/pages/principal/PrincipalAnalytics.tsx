@@ -1,23 +1,360 @@
-import { AddRounded, AssessmentRounded, CalendarMonthRounded, ChecklistRounded, SchoolRounded, TrendingUpRounded } from '@mui/icons-material';
-import { Alert, Button, CircularProgress, Dialog, DialogContent, DialogTitle, MenuItem, Skeleton, TextField } from '@mui/material';
-import { useEffect, useState } from 'react';
-import { api } from '../../lib/api';
+import {
+  AddRounded,
+  AssessmentRounded,
+  CalendarMonthRounded,
+  ChecklistRounded,
+  DeleteRounded,
+  EditRounded,
+  SchoolRounded,
+  TrendingUpRounded,
+} from "@mui/icons-material";
+import {
+  Alert,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Skeleton,
+  TextField,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { api } from "../../lib/api";
+import PortableDateField from "../../components/forms/PortableDateField";
 
-type Term={id:string;name:string;academicYear:string;startsAt:string;endsAt:string;isCurrent:boolean};
-type Analytics={term:Term;students:number;examAverage:number;assignmentAverage:number;attendanceRate:number;syllabusProgress:number;gradedExamCount:number;gradedAssignmentCount:number};
+type Term = {
+  id: string;
+  name: string;
+  academicYear: string;
+  startsAt: string;
+  endsAt: string;
+  isCurrent: boolean;
+};
+type Analytics = {
+  term: Term;
+  students: number;
+  examAverage: number;
+  assignmentAverage: number;
+  attendanceRate: number;
+  syllabusProgress: number;
+  gradedExamCount: number;
+  gradedAssignmentCount: number;
+};
 
-export default function PrincipalAnalytics(){
- const [terms,setTerms]=useState<Term[]>([]),[termId,setTermId]=useState(''),[data,setData]=useState<Analytics|null>(null),[loading,setLoading]=useState(true),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState('');
- const [form,setForm]=useState({name:'Term 1',academicYear:new Date().getFullYear().toString(),startsAt:'',endsAt:'',isCurrent:true});
- const loadTerms=async()=>{const {data}=await api.get('/reports/terms');setTerms(data);const active=data.find((x:Term)=>x.isCurrent)??data[0];if(active&&!termId)setTermId(active.id);if(!active)setLoading(false);};
- useEffect(()=>{loadTerms().catch(()=>setError('Could not load academic terms.'));},[]);
- useEffect(()=>{if(!termId)return;setLoading(true);api.get('/reports/principal-analytics',{params:{termId}}).then(r=>setData(r.data)).catch((e:any)=>setError(e?.response?.data?.message??'Could not load analytics.')).finally(()=>setLoading(false));},[termId]);
- const create=async()=>{setSaving(true);setError('');try{const {data}=await api.post('/reports/terms',form);setOpen(false);await loadTerms();setTermId(data.id);}catch(e:any){setError(e?.response?.data?.message??'Could not create term.');}finally{setSaving(false);}};
- const cards=data?[["Students",data.students,SchoolRounded,'from-blue-500 to-cyan-400'],['Exam average',`${data.examAverage}%`,AssessmentRounded,'from-violet-500 to-fuchsia-400'],['Assignment average',`${data.assignmentAverage}%`,ChecklistRounded,'from-emerald-500 to-lime-400'],['Attendance',`${data.attendanceRate}%`,CalendarMonthRounded,'from-amber-500 to-orange-400'],['Syllabus progress',`${data.syllabusProgress}%`,TrendingUpRounded,'from-rose-500 to-pink-400']]:[];
- return <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef4ff,transparent_35%),radial-gradient(circle_at_top_right,#fff1e7,transparent_30%),#f8faff] p-4 md:p-8"><section className="mx-auto max-w-7xl">
-  <header className="rounded-[32px] border border-white bg-white/80 p-6 shadow-[0_30px_90px_rgba(70,90,140,.13)] backdrop-blur-xl"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.2em] text-indigo-600">Principal intelligence</p><h1 className="mt-2 text-3xl font-black text-slate-950 md:text-4xl">Academic analytics</h1><p className="mt-2 text-slate-500">Real term-level performance from attendance, exams, coursework and syllabus progress.</p></div><div className="flex flex-wrap gap-3"><TextField select label="Term" value={termId} onChange={e=>setTermId(e.target.value)} sx={{minWidth:210}}>{terms.map(t=><MenuItem key={t.id} value={t.id}>{t.name} · {t.academicYear}</MenuItem>)}</TextField><Button startIcon={<AddRounded/>} variant="contained" onClick={()=>setOpen(true)} sx={{borderRadius:3,fontWeight:900,background:'linear-gradient(90deg,#2563eb,#7c3aed)'}}>New term</Button></div></div></header>
-  {error&&<Alert severity="error" className="mt-5">{error}</Alert>}
-  {loading?<div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{[1,2,3,4,5].map(x=><Skeleton key={x} height={150} variant="rounded" sx={{borderRadius:5}}/>)}</div>:data&&<><section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{cards.map(([label,value,Icon,grad]:any)=><article key={label} className="rounded-[26px] border border-white bg-white/85 p-5 shadow-xl transition hover:-translate-y-2"><div className={`inline-flex rounded-2xl bg-gradient-to-br ${grad} p-3 text-white`}><Icon/></div><p className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-400">{label}</p><p className="mt-1 text-3xl font-black text-slate-950">{value}</p></article>)}</section><section className="mt-6 grid gap-4 md:grid-cols-2"><article className="rounded-[28px] border border-white bg-white/85 p-6 shadow-xl"><h2 className="text-xl font-black">Assessment volume</h2><p className="mt-2 text-slate-500">Graded work included in this term.</p><div className="mt-6 grid grid-cols-2 gap-4"><div className="rounded-2xl bg-indigo-50 p-5"><p className="text-xs font-bold uppercase text-indigo-500">Exam attempts</p><p className="mt-2 text-4xl font-black text-indigo-900">{data.gradedExamCount}</p></div><div className="rounded-2xl bg-emerald-50 p-5"><p className="text-xs font-bold uppercase text-emerald-500">Assignments</p><p className="mt-2 text-4xl font-black text-emerald-900">{data.gradedAssignmentCount}</p></div></div></article><article className="rounded-[28px] border border-white bg-white/85 p-6 shadow-xl"><h2 className="text-xl font-black">Term window</h2><p className="mt-2 text-slate-500">All report-card calculations are limited to these dates.</p><p className="mt-6 text-2xl font-black">{new Date(data.term.startsAt).toLocaleDateString()} → {new Date(data.term.endsAt).toLocaleDateString()}</p><p className="mt-2 text-indigo-600 font-bold">{data.term.name} · {data.term.academicYear}</p></article></section></>}
-  <Dialog open={open} onClose={()=>!saving&&setOpen(false)} fullWidth maxWidth="sm"><DialogTitle sx={{fontWeight:900}}>Create academic term</DialogTitle><DialogContent><div className="grid gap-4 pt-2"><TextField label="Term name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/><TextField label="Academic year" value={form.academicYear} onChange={e=>setForm({...form,academicYear:e.target.value})}/><TextField type="date" label="Starts" value={form.startsAt} onChange={e=>setForm({...form,startsAt:e.target.value})} InputLabelProps={{shrink:true}}/><TextField type="date" label="Ends" value={form.endsAt} onChange={e=>setForm({...form,endsAt:e.target.value})} InputLabelProps={{shrink:true}}/><TextField select label="Current term" value={form.isCurrent?'yes':'no'} onChange={e=>setForm({...form,isCurrent:e.target.value==='yes'})}><MenuItem value="yes">Yes</MenuItem><MenuItem value="no">No</MenuItem></TextField><Button variant="contained" onClick={()=>void create()} disabled={saving||!form.startsAt||!form.endsAt} sx={{borderRadius:3,py:1.4,fontWeight:900}}>{saving?<CircularProgress size={20} color="inherit"/>:'Create term'}</Button></div></DialogContent></Dialog>
- </section></main>;
+export default function PrincipalAnalytics() {
+  const [terms, setTerms] = useState<Term[]>([]),
+    [termId, setTermId] = useState(""),
+    [data, setData] = useState<Analytics | null>(null),
+    [loading, setLoading] = useState(true),
+    [open, setOpen] = useState(false),
+    [saving, setSaving] = useState(false),
+    [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: "Term 1",
+    academicYear: new Date().getFullYear().toString(),
+    startsAt: "",
+    endsAt: "",
+    isCurrent: true,
+  });
+  const loadTerms = async () => {
+    const { data } = await api.get("/reports/terms");
+    setTerms(data);
+    const active = data.find((x: Term) => x.isCurrent) ?? data[0];
+    if (active && !termId) setTermId(active.id);
+    if (!active) setLoading(false);
+  };
+  useEffect(() => {
+    loadTerms().catch(() => setError("Could not load academic terms."));
+  }, []);
+  useEffect(() => {
+    if (!termId) return;
+    setLoading(true);
+    api
+      .get("/reports/principal-analytics", { params: { termId } })
+      .then((r) => setData(r.data))
+      .catch((e: any) =>
+        setError(e?.response?.data?.message ?? "Could not load analytics."),
+      )
+      .finally(() => setLoading(false));
+  }, [termId]);
+  const create = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const { data } = await api.post("/reports/terms", form);
+      setOpen(false);
+      await loadTerms();
+      setTermId(data.id);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not create term.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const editTerm = async () => {
+    const term = terms.find((x) => x.id === termId);
+    if (!term) return;
+    const name = window.prompt("Term name", term.name);
+    if (name === null || !name.trim()) return;
+    try {
+      await api.patch(`/reports/terms/${term.id}`, { name: name.trim() });
+      await loadTerms();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not update term.");
+    }
+  };
+  const deleteTerm = async () => {
+    const term = terms.find((x) => x.id === termId);
+    if (
+      !term ||
+      !window.confirm(
+        `Delete ${term.name}? Published report cards will prevent deletion.`,
+      )
+    )
+      return;
+    try {
+      await api.delete(`/reports/terms/${term.id}`);
+      setTermId("");
+      setData(null);
+      await loadTerms();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not delete term.");
+    }
+  };
+  const cards = data
+    ? [
+        ["Students", data.students, SchoolRounded, "from-blue-500 to-cyan-400"],
+        [
+          "Exam average",
+          `${data.examAverage}%`,
+          AssessmentRounded,
+          "from-violet-500 to-fuchsia-400",
+        ],
+        [
+          "Assignment average",
+          `${data.assignmentAverage}%`,
+          ChecklistRounded,
+          "from-emerald-500 to-lime-400",
+        ],
+        [
+          "Attendance",
+          `${data.attendanceRate}%`,
+          CalendarMonthRounded,
+          "from-amber-500 to-orange-400",
+        ],
+        [
+          "Syllabus progress",
+          `${data.syllabusProgress}%`,
+          TrendingUpRounded,
+          "from-rose-500 to-pink-400",
+        ],
+      ]
+    : [];
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eef4ff,transparent_35%),radial-gradient(circle_at_top_right,#fff1e7,transparent_30%),#f8faff] p-4 md:p-8">
+      <section className="mx-auto max-w-7xl">
+        <header className="rounded-[32px] border border-white bg-white/80 p-6 shadow-[0_30px_90px_rgba(70,90,140,.13)] backdrop-blur-xl">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[.2em] text-indigo-600">
+                Principal intelligence
+              </p>
+              <h1 className="mt-2 text-3xl font-black text-slate-950 md:text-4xl">
+                Academic analytics
+              </h1>
+              <p className="mt-2 text-slate-500">
+                Real term-level performance from attendance, exams, coursework
+                and syllabus progress.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <TextField
+                select
+                label="Term"
+                value={termId}
+                onChange={(e) => setTermId(e.target.value)}
+                sx={{ minWidth: 210 }}
+              >
+                {terms.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.name} · {t.academicYear}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Button
+                startIcon={<AddRounded />}
+                variant="contained"
+                onClick={() => setOpen(true)}
+                sx={{
+                  borderRadius: 3,
+                  fontWeight: 900,
+                  background: "linear-gradient(90deg,#2563eb,#7c3aed)",
+                }}
+              >
+                New term
+              </Button>
+              <Button
+                disabled={!termId}
+                startIcon={<EditRounded />}
+                onClick={() => void editTerm()}
+              >
+                Edit term
+              </Button>
+              <Button
+                disabled={!termId}
+                color="error"
+                startIcon={<DeleteRounded />}
+                onClick={() => void deleteTerm()}
+              >
+                Delete term
+              </Button>
+            </div>
+          </div>
+        </header>
+        {error && (
+          <Alert severity="error" className="mt-5">
+            {error}
+          </Alert>
+        )}
+        {loading ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            {[1, 2, 3, 4, 5].map((x) => (
+              <Skeleton
+                key={x}
+                height={150}
+                variant="rounded"
+                sx={{ borderRadius: 5 }}
+              />
+            ))}
+          </div>
+        ) : (
+          data && (
+            <>
+              <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                {cards.map(([label, value, Icon, grad]: any) => (
+                  <article
+                    key={label}
+                    className="rounded-[26px] border border-white bg-white/85 p-5 shadow-xl transition hover:-translate-y-2"
+                  >
+                    <div
+                      className={`inline-flex rounded-2xl bg-gradient-to-br ${grad} p-3 text-white`}
+                    >
+                      <Icon />
+                    </div>
+                    <p className="mt-5 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      {label}
+                    </p>
+                    <p className="mt-1 text-3xl font-black text-slate-950">
+                      {value}
+                    </p>
+                  </article>
+                ))}
+              </section>
+              <section className="mt-6 grid gap-4 md:grid-cols-2">
+                <article className="rounded-[28px] border border-white bg-white/85 p-6 shadow-xl">
+                  <h2 className="text-xl font-black">Assessment volume</h2>
+                  <p className="mt-2 text-slate-500">
+                    Graded work included in this term.
+                  </p>
+                  <div className="mt-6 grid grid-cols-2 gap-4">
+                    <div className="rounded-2xl bg-indigo-50 p-5">
+                      <p className="text-xs font-bold uppercase text-indigo-500">
+                        Exam attempts
+                      </p>
+                      <p className="mt-2 text-4xl font-black text-indigo-900">
+                        {data.gradedExamCount}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-emerald-50 p-5">
+                      <p className="text-xs font-bold uppercase text-emerald-500">
+                        Assignments
+                      </p>
+                      <p className="mt-2 text-4xl font-black text-emerald-900">
+                        {data.gradedAssignmentCount}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article className="rounded-[28px] border border-white bg-white/85 p-6 shadow-xl">
+                  <h2 className="text-xl font-black">Term window</h2>
+                  <p className="mt-2 text-slate-500">
+                    All report-card calculations are limited to these dates.
+                  </p>
+                  <p className="mt-6 text-2xl font-black">
+                    {new Date(data.term.startsAt).toLocaleDateString()} →{" "}
+                    {new Date(data.term.endsAt).toLocaleDateString()}
+                  </p>
+                  <p className="mt-2 text-indigo-600 font-bold">
+                    {data.term.name} · {data.term.academicYear}
+                  </p>
+                </article>
+              </section>
+            </>
+          )
+        )}
+        <Dialog
+          open={open}
+          onClose={() => !saving && setOpen(false)}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogTitle sx={{ fontWeight: 900 }}>
+            Create academic term
+          </DialogTitle>
+          <DialogContent>
+            <div className="grid gap-4 pt-2">
+              <TextField
+                label="Term name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+              <TextField
+                label="Academic year"
+                value={form.academicYear}
+                onChange={(e) =>
+                  setForm({ ...form, academicYear: e.target.value })
+                }
+              />
+              <PortableDateField
+                kind="date"
+                label="Starts"
+                value={form.startsAt}
+                onValueChange={(startsAt) => setForm({ ...form, startsAt })}
+              />
+              <PortableDateField
+                kind="date"
+                label="Ends"
+                value={form.endsAt}
+                onValueChange={(endsAt) => setForm({ ...form, endsAt })}
+              />
+              <TextField
+                select
+                label="Current term"
+                value={form.isCurrent ? "yes" : "no"}
+                onChange={(e) =>
+                  setForm({ ...form, isCurrent: e.target.value === "yes" })
+                }
+              >
+                <MenuItem value="yes">Yes</MenuItem>
+                <MenuItem value="no">No</MenuItem>
+              </TextField>
+              <Button
+                variant="contained"
+                onClick={() => void create()}
+                disabled={saving || !form.startsAt || !form.endsAt}
+                sx={{ borderRadius: 3, py: 1.4, fontWeight: 900 }}
+              >
+                {saving ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Create term"
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </section>
+    </main>
+  );
 }

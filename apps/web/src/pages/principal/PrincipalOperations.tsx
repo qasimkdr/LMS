@@ -1,35 +1,574 @@
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
-import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
-import SchoolRoundedIcon from '@mui/icons-material/SchoolRounded';
-import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
-import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton, TextField } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
-import { api } from '../../lib/api';
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import SchoolRoundedIcon from "@mui/icons-material/SchoolRounded";
+import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import {
+  Alert,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Skeleton,
+  TextField,
+} from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../../lib/api";
 
 type Overview = {
-  school: { id:string; name:string; logoUrl?:string|null; description?:string|null; phone?:string|null; email?:string|null; address?:string|null; timezone:string } | null;
-  users: Array<{id:string;role:string;firstName:string;lastName:string;email:string;isActive:boolean}>;
-  students: Array<{id:string;admissionNo:string;section?:string|null;user:{firstName:string;lastName:string;email:string;isActive:boolean};class?:{id:string;name:string;section?:string|null}|null}>;
-  classes: Array<{id:string;name:string;section?:string|null;academicYear?:string|null}>;
-  subjects: Array<{id:string;name:string;code?:string|null}>;
+  school: {
+    id: string;
+    name: string;
+    logoUrl?: string | null;
+    description?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    timezone: string;
+  } | null;
+  users: Array<{
+    id: string;
+    role: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    isActive: boolean;
+  }>;
+  students: Array<{
+    id: string;
+    admissionNo: string;
+    section?: string | null;
+    user: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      isActive: boolean;
+    };
+    class?: { id: string; name: string; section?: string | null } | null;
+  }>;
+  classes: Array<{
+    id: string;
+    name: string;
+    section?: string | null;
+    academicYear?: string | null;
+  }>;
+  subjects: Array<{ id: string; name: string; code?: string | null }>;
 };
 
-export default function PrincipalOperations(){
-  const [data,setData]=useState<Overview|null>(null); const [loading,setLoading]=useState(true); const [error,setError]=useState(''); const [modal,setModal]=useState<'class'|'subject'|'user'|'student'|null>(null); const [saving,setSaving]=useState(false); const [form,setForm]=useState<any>({});
-  const load=async()=>{setLoading(true);try{const r=await api.get<Overview>('/school-operations/overview');setData(r.data);}catch{setError('Could not load school operations.');}finally{setLoading(false)}};
-  useEffect(()=>{void load()},[]);
-  const stats=useMemo(()=>[{label:'Students',value:data?.students.length??0,icon:GroupsRoundedIcon,accent:'from-blue-500 to-cyan-400'},{label:'Teachers',value:data?.users.filter(x=>x.role==='TEACHER').length??0,icon:SchoolRoundedIcon,accent:'from-violet-500 to-fuchsia-400'},{label:'Classes',value:data?.classes.length??0,icon:MenuBookRoundedIcon,accent:'from-emerald-500 to-lime-400'},{label:'Staff',value:data?.users.filter(x=>x.role==='STAFF').length??0,icon:PersonAddAlt1RoundedIcon,accent:'from-amber-400 to-rose-500'}],[data]);
-  const submit=async()=>{if(!modal)return;setSaving(true);setError('');try{const path=modal==='class'?'/school-operations/classes':modal==='subject'?'/school-operations/subjects':modal==='user'?'/school-operations/users':'/school-operations/students';await api.post(path,form);setModal(null);setForm({});await load();}catch(e:any){setError(e?.response?.data?.message??'Could not save changes.');}finally{setSaving(false)}};
-  return <><main className="px-4 py-6 sm:px-8 lg:px-10"><div className="mx-auto max-w-[1450px]">
-    <section className="glass-panel rounded-[32px] p-6 md:p-8"><span className="text-xs font-black uppercase tracking-[.2em] text-blue-600">School operations</span><h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">Manage the academic structure</h1><p className="mt-2 max-w-3xl text-sm text-slate-500">Students, teachers, staff, classes and subjects stay isolated to your school tenant.</p></section>
-    {error&&<Alert severity="error" className="mt-5" onClose={()=>setError('')}>{error}</Alert>}
-    <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{loading?Array.from({length:4}).map((_,i)=><Skeleton key={i} variant="rounded" height={130} sx={{borderRadius:6}}/>):stats.map(({label,value,icon:Icon,accent})=><article key={label} className="card-3d glass-panel group rounded-[26px] p-5 transition hover:-translate-y-1"><div className="flex items-center justify-between"><div><p className="text-sm font-bold text-slate-500">{label}</p><div className="mt-2 text-3xl font-black text-slate-950">{value}</div></div><div className={`rounded-2xl bg-gradient-to-br ${accent} p-3 text-white shadow-lg transition group-hover:rotate-3 group-hover:scale-110`}><Icon/></div></div></article>)}</section>
-    <section className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">{[['class','Add class','Create grade, section and academic year'],['subject','Add subject','Create reusable subject records'],['user','Add teacher/staff','Create school team credentials'],['student','Add student','Enroll student into a class']].map(([key,title,desc])=><button key={key} onClick={()=>{setModal(key as any);setForm({role:key==='user'?'TEACHER':undefined})}} className="glass-panel rounded-[26px] p-5 text-left transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_60px_rgba(30,64,175,.14)]"><AddRoundedIcon className="text-blue-600"/><h2 className="mt-3 text-lg font-black text-slate-900">{title}</h2><p className="mt-1 text-sm text-slate-500">{desc}</p></button>)}</section>
-    <section className="mt-6 grid gap-5 xl:grid-cols-2"><div className="glass-panel rounded-[30px] p-5"><h2 className="text-xl font-black text-slate-900">People</h2><div className="mt-4 space-y-2">{loading?<Skeleton height={220}/>:data?.users.map(u=><div key={u.id} className="flex items-center justify-between rounded-2xl bg-white/70 p-3"><div><div className="font-black text-slate-800">{u.firstName} {u.lastName}</div><div className="text-xs text-slate-500">{u.email}</div></div><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">{u.role}</span></div>)}</div></div>
-    <div className="glass-panel rounded-[30px] p-5"><h2 className="text-xl font-black text-slate-900">Classes & subjects</h2><div className="mt-4 grid gap-3 sm:grid-cols-2"><div>{data?.classes.map(c=><div key={c.id} className="mb-2 rounded-2xl bg-blue-50 p-3 text-sm font-black text-blue-800">{c.name}{c.section?` · ${c.section}`:''}</div>)}</div><div>{data?.subjects.map(s=><div key={s.id} className="mb-2 rounded-2xl bg-violet-50 p-3 text-sm font-black text-violet-800">{s.name}{s.code?` · ${s.code}`:''}</div>)}</div></div></div></section>
-  </div></main>
-  <Dialog open={Boolean(modal)} onClose={()=>!saving&&setModal(null)} fullWidth maxWidth="sm" PaperProps={{sx:{borderRadius:5}}}><DialogTitle sx={{fontWeight:900}}>Create {modal}</DialogTitle><DialogContent><div className="grid gap-4 pt-2">{modal==='class'&&<><F label="Class name" v={form.name} s={(v)=>setForm({...form,name:v})}/><F label="Section" v={form.section} s={(v)=>setForm({...form,section:v})}/><F label="Academic year" v={form.academicYear} s={(v)=>setForm({...form,academicYear:v})}/></>}{modal==='subject'&&<><F label="Subject name" v={form.name} s={(v)=>setForm({...form,name:v})}/><F label="Code" v={form.code} s={(v)=>setForm({...form,code:v})}/></>}{modal==='user'&&<><TextField select SelectProps={{native:true}} label="Role" value={form.role??'TEACHER'} onChange={e=>setForm({...form,role:e.target.value})}><option value="TEACHER">Teacher</option><option value="STAFF">Staff</option></TextField><PersonFields form={form} setForm={setForm}/></>}{modal==='student'&&<><PersonFields form={form} setForm={setForm}/><F label="Admission no" v={form.admissionNo} s={(v)=>setForm({...form,admissionNo:v})}/><TextField select SelectProps={{native:true}} label="Class" value={form.classId??''} onChange={e=>setForm({...form,classId:e.target.value||undefined})}><option value="">Select class</option>{data?.classes.map(c=><option key={c.id} value={c.id}>{c.name}{c.section?` - ${c.section}`:''}</option>)}</TextField><F label="Guardian phone" v={form.guardianPhone} s={(v)=>setForm({...form,guardianPhone:v})}/></>}</div></DialogContent><DialogActions sx={{p:3}}><Button onClick={()=>setModal(null)} disabled={saving}>Cancel</Button><Button variant="contained" onClick={()=>void submit()} disabled={saving} sx={{borderRadius:3,fontWeight:900}}>{saving?<CircularProgress size={20} color="inherit"/>:'Save'}</Button></DialogActions></Dialog></>
+export default function PrincipalOperations() {
+  const [data, setData] = useState<Overview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [modal, setModal] = useState<
+    "class" | "subject" | "user" | "student" | null
+  >(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<any>({});
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await api.get<Overview>("/school-operations/overview");
+      setData(r.data);
+    } catch {
+      setError("Could not load school operations.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    void load();
+  }, []);
+  const stats = useMemo(
+    () => [
+      {
+        label: "Students",
+        value: data?.students.length ?? 0,
+        icon: GroupsRoundedIcon,
+        accent: "from-blue-500 to-cyan-400",
+      },
+      {
+        label: "Teachers",
+        value: data?.users.filter((x) => x.role === "TEACHER").length ?? 0,
+        icon: SchoolRoundedIcon,
+        accent: "from-violet-500 to-fuchsia-400",
+      },
+      {
+        label: "Classes",
+        value: data?.classes.length ?? 0,
+        icon: MenuBookRoundedIcon,
+        accent: "from-emerald-500 to-lime-400",
+      },
+      {
+        label: "Staff",
+        value: data?.users.filter((x) => x.role === "STAFF").length ?? 0,
+        icon: PersonAddAlt1RoundedIcon,
+        accent: "from-amber-400 to-rose-500",
+      },
+    ],
+    [data],
+  );
+  const submit = async () => {
+    if (!modal) return;
+    setSaving(true);
+    setError("");
+    try {
+      const path =
+        modal === "class"
+          ? "/school-operations/classes"
+          : modal === "subject"
+            ? "/school-operations/subjects"
+            : modal === "user"
+              ? "/school-operations/users"
+              : "/school-operations/students";
+      await api.post(path, form);
+      setModal(null);
+      setForm({});
+      await load();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not save changes.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const patchRecord = async (path: string, current: string, field = "name") => {
+    const value = window.prompt(`New ${field}`, current);
+    if (value === null || !value.trim()) return;
+    try {
+      await api.patch(path, { [field]: value.trim() });
+      await load();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not update record.");
+    }
+  };
+  const deleteRecord = async (path: string, label: string) => {
+    if (
+      !window.confirm(
+        `Delete ${label}? Records with history will be protected.`,
+      )
+    )
+      return;
+    try {
+      await api.delete(path);
+      await load();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not delete record.");
+    }
+  };
+  const toggleUser = async (id: string, active: boolean) => {
+    try {
+      await api.patch(`/school-operations/users/${id}`, { isActive: !active });
+      await load();
+    } catch (e: any) {
+      setError(
+        e?.response?.data?.message ?? "Could not change account status.",
+      );
+    }
+  };
+  return (
+    <>
+      <main className="px-4 py-6 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-[1450px]">
+          <section className="glass-panel rounded-[32px] p-6 md:p-8">
+            <span className="text-xs font-black uppercase tracking-[.2em] text-blue-600">
+              School operations
+            </span>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
+              Manage the academic structure
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-500">
+              Students, teachers, staff, classes and subjects stay isolated to
+              your school tenant.
+            </p>
+          </section>
+          {error && (
+            <Alert
+              severity="error"
+              className="mt-5"
+              onClose={() => setError("")}
+            >
+              {error}
+            </Alert>
+          )}
+          <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    variant="rounded"
+                    height={130}
+                    sx={{ borderRadius: 6 }}
+                  />
+                ))
+              : stats.map(({ label, value, icon: Icon, accent }) => (
+                  <article
+                    key={label}
+                    className="card-3d glass-panel group rounded-[26px] p-5 transition hover:-translate-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-500">
+                          {label}
+                        </p>
+                        <div className="mt-2 text-3xl font-black text-slate-950">
+                          {value}
+                        </div>
+                      </div>
+                      <div
+                        className={`rounded-2xl bg-gradient-to-br ${accent} p-3 text-white shadow-lg transition group-hover:rotate-3 group-hover:scale-110`}
+                      >
+                        <Icon />
+                      </div>
+                    </div>
+                  </article>
+                ))}
+          </section>
+          <section className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            {[
+              ["class", "Add class", "Create grade, section and academic year"],
+              ["subject", "Add subject", "Create reusable subject records"],
+              ["user", "Add teacher/staff", "Create school team credentials"],
+              ["student", "Add student", "Enroll student into a class"],
+            ].map(([key, title, desc]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setModal(key as any);
+                  setForm({ role: key === "user" ? "TEACHER" : undefined });
+                }}
+                className="glass-panel rounded-[26px] p-5 text-left transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_60px_rgba(30,64,175,.14)]"
+              >
+                <AddRoundedIcon className="text-blue-600" />
+                <h2 className="mt-3 text-lg font-black text-slate-900">
+                  {title}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">{desc}</p>
+              </button>
+            ))}
+          </section>
+          <section className="mt-6 grid gap-5 xl:grid-cols-2">
+            <div className="glass-panel rounded-[30px] p-5">
+              <h2 className="text-xl font-black text-slate-900">People</h2>
+              <div className="mt-4 space-y-2">
+                {loading ? (
+                  <Skeleton height={220} />
+                ) : (
+                  data?.users.map((u) => (
+                    <div
+                      key={u.id}
+                      className="flex items-center justify-between rounded-2xl bg-white/70 p-3"
+                    >
+                      <div>
+                        <div className="font-black text-slate-800">
+                          {u.firstName} {u.lastName}
+                        </div>
+                        <div className="text-xs text-slate-500">{u.email}</div>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                          {u.role} · {u.isActive ? "Active" : "Inactive"}
+                        </span>
+                        {["TEACHER", "STAFF"].includes(u.role) && (
+                          <>
+                            <Button
+                              size="small"
+                              startIcon={<EditRoundedIcon />}
+                              onClick={() =>
+                                void patchRecord(
+                                  `/school-operations/users/${u.id}`,
+                                  u.firstName,
+                                  "firstName",
+                                )
+                              }
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="small"
+                              color={u.isActive ? "warning" : "success"}
+                              onClick={() => void toggleUser(u.id, u.isActive)}
+                            >
+                              {u.isActive ? "Deactivate" : "Reactivate"}
+                            </Button>
+                            <Button
+                              size="small"
+                              color="error"
+                              startIcon={<DeleteRoundedIcon />}
+                              onClick={() =>
+                                void deleteRecord(
+                                  `/school-operations/users/${u.id}`,
+                                  `${u.firstName} ${u.lastName}`,
+                                )
+                              }
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="glass-panel rounded-[30px] p-5">
+              <h2 className="text-xl font-black text-slate-900">
+                Classes & subjects
+              </h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  {data?.classes.map((c) => (
+                    <div
+                      key={c.id}
+                      className="mb-2 rounded-2xl bg-blue-50 p-3 text-sm font-black text-blue-800"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span>
+                          {c.name}
+                          {c.section ? ` · ${c.section}` : ""}
+                        </span>
+                        <span>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              void patchRecord(
+                                `/school-operations/classes/${c.id}`,
+                                c.name,
+                              )
+                            }
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              void deleteRecord(
+                                `/school-operations/classes/${c.id}`,
+                                c.name,
+                              )
+                            }
+                          >
+                            Delete
+                          </Button>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  {data?.subjects.map((s) => (
+                    <div
+                      key={s.id}
+                      className="mb-2 rounded-2xl bg-violet-50 p-3 text-sm font-black text-violet-800"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span>
+                          {s.name}
+                          {s.code ? ` · ${s.code}` : ""}
+                        </span>
+                        <span>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              void patchRecord(
+                                `/school-operations/subjects/${s.id}`,
+                                s.name,
+                              )
+                            }
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              void deleteRecord(
+                                `/school-operations/subjects/${s.id}`,
+                                s.name,
+                              )
+                            }
+                          >
+                            Delete
+                          </Button>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+      <Dialog
+        open={Boolean(modal)}
+        onClose={() => !saving && setModal(null)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: { borderRadius: 5 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 900 }}>Create {modal}</DialogTitle>
+        <DialogContent>
+          <div className="grid gap-4 pt-2">
+            {modal === "class" && (
+              <>
+                <F
+                  label="Class name"
+                  v={form.name}
+                  s={(v) => setForm({ ...form, name: v })}
+                />
+                <F
+                  label="Section"
+                  v={form.section}
+                  s={(v) => setForm({ ...form, section: v })}
+                />
+                <F
+                  label="Academic year"
+                  v={form.academicYear}
+                  s={(v) => setForm({ ...form, academicYear: v })}
+                />
+              </>
+            )}
+            {modal === "subject" && (
+              <>
+                <F
+                  label="Subject name"
+                  v={form.name}
+                  s={(v) => setForm({ ...form, name: v })}
+                />
+                <F
+                  label="Code"
+                  v={form.code}
+                  s={(v) => setForm({ ...form, code: v })}
+                />
+              </>
+            )}
+            {modal === "user" && (
+              <>
+                <TextField
+                  select
+                  SelectProps={{ native: true }}
+                  label="Role"
+                  value={form.role ?? "TEACHER"}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                >
+                  <option value="TEACHER">Teacher</option>
+                  <option value="STAFF">Staff</option>
+                </TextField>
+                <PersonFields form={form} setForm={setForm} />
+              </>
+            )}
+            {modal === "student" && (
+              <>
+                <PersonFields form={form} setForm={setForm} />
+                <F
+                  label="Admission no"
+                  v={form.admissionNo}
+                  s={(v) => setForm({ ...form, admissionNo: v })}
+                />
+                <TextField
+                  select
+                  SelectProps={{ native: true }}
+                  label="Class"
+                  value={form.classId ?? ""}
+                  onChange={(e) =>
+                    setForm({ ...form, classId: e.target.value || undefined })
+                  }
+                >
+                  <option value="">Select class</option>
+                  {data?.classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.section ? ` - ${c.section}` : ""}
+                    </option>
+                  ))}
+                </TextField>
+                <F
+                  label="Guardian phone"
+                  v={form.guardianPhone}
+                  s={(v) => setForm({ ...form, guardianPhone: v })}
+                />
+              </>
+            )}
+          </div>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setModal(null)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void submit()}
+            disabled={saving}
+            sx={{ borderRadius: 3, fontWeight: 900 }}
+          >
+            {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
 }
-function F({label,v,s,type='text'}:{label:string;v?:string;s:(v:string)=>void;type?:string}){return <TextField label={label} value={v??''} type={type} onChange={e=>s(e.target.value)} fullWidth/>}
-function PersonFields({form,setForm}:{form:any;setForm:(x:any)=>void}){return <><F label="First name" v={form.firstName} s={(v)=>setForm({...form,firstName:v})}/><F label="Last name" v={form.lastName} s={(v)=>setForm({...form,lastName:v})}/><F label="Email" v={form.email} s={(v)=>setForm({...form,email:v})}/><F label="Username" v={form.username} s={(v)=>setForm({...form,username:v})}/><F label="Temporary password" type="password" v={form.password} s={(v)=>setForm({...form,password:v})}/></>}
+function F({
+  label,
+  v,
+  s,
+  type = "text",
+}: {
+  label: string;
+  v?: string;
+  s: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <TextField
+      label={label}
+      value={v ?? ""}
+      type={type}
+      onChange={(e) => s(e.target.value)}
+      fullWidth
+    />
+  );
+}
+function PersonFields({
+  form,
+  setForm,
+}: {
+  form: any;
+  setForm: (x: any) => void;
+}) {
+  return (
+    <>
+      <F
+        label="First name"
+        v={form.firstName}
+        s={(v) => setForm({ ...form, firstName: v })}
+      />
+      <F
+        label="Last name"
+        v={form.lastName}
+        s={(v) => setForm({ ...form, lastName: v })}
+      />
+      <F
+        label="Email"
+        v={form.email}
+        s={(v) => setForm({ ...form, email: v })}
+      />
+      <F
+        label="Username"
+        v={form.username}
+        s={(v) => setForm({ ...form, username: v })}
+      />
+      <F
+        label="Temporary password"
+        type="password"
+        v={form.password}
+        s={(v) => setForm({ ...form, password: v })}
+      />
+    </>
+  );
+}

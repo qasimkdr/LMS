@@ -1,4 +1,404 @@
-import { AssessmentRounded, CalendarMonthRounded, EmojiEventsRounded, PrintRounded, PublishRounded, SchoolRounded } from '@mui/icons-material';
-import { Alert, Button, CircularProgress, MenuItem, Skeleton, TextField } from '@mui/material';import { useEffect,useMemo,useState } from 'react';import { api } from '../../lib/api';import { useAuth } from '../../features/auth/AuthProvider';
-type Term={id:string;name:string;academicYear:string;startsAt:string;endsAt:string;isCurrent:boolean};type Report={school?:{name:string;logoUrl?:string|null;address?:string|null;phone?:string|null;email?:string|null;primaryColor?:string;secondaryColor?:string};term:Term;student:{id:string;admissionNo:string;name:string;class?:{name:string;section?:string|null}|null};attendance:{rate:number;present:number;total:number};overall:{earned:number;total:number;percentage:number;grade:string};subjects:Array<{subjectId:string;subject:string;examEarned:number;examTotal:number;assignmentEarned:number;assignmentTotal:number;earned:number;total:number;percentage:number;grade:string}>;publication?:{published:boolean;publishedAt?:string;remarks?:string|null}};
-export default function ReportCardPage(){const {user}=useAuth();const [terms,setTerms]=useState<Term[]>([]),[termId,setTermId]=useState(''),[report,setReport]=useState<Report|null>(null),[logo,setLogo]=useState(''),[loading,setLoading]=useState(true),[publishing,setPublishing]=useState(false),[remarks,setRemarks]=useState(''),[error,setError]=useState('');const params=useMemo(()=>new URLSearchParams(location.search),[]),studentId=params.get('studentId')??params.get('studentProfileId');useEffect(()=>{api.get('/reports/terms').then(({data})=>{setTerms(data);const t=data.find((x:Term)=>x.isCurrent)??data[0];if(t)setTermId(t.id)}).catch(()=>setError('Could not load academic terms.'))},[]);async function load(){if(!termId)return;setLoading(true);setError('');try{const {data}=await api.get('/reports/report-card',{params:{termId,studentId:studentId||undefined}});setReport(data);setRemarks(data.publication?.remarks??'');setLogo('');const ref=data.school?.logoUrl;if(ref){if(ref.startsWith('storage://')){try{const signed=await api.post('/storage/sign',{reference:ref});setLogo(signed.data.url)}catch{setLogo('')}}else setLogo(ref)}}catch(e:any){setError(e?.response?.data?.message??'Could not build report card.')}finally{setLoading(false)}}useEffect(()=>{void load()},[termId,studentId]);async function publish(){if(!studentId||!termId)return;setPublishing(true);setError('');try{const {data}=await api.post('/reports/report-card/publish',{studentId,termId,remarks:remarks||undefined});setReport(data)}catch(e:any){setError(e?.response?.data?.message??'Could not publish report card.')}finally{setPublishing(false)}}const primary=report?.school?.primaryColor||'#2563eb',secondary=report?.school?.secondaryColor||'#7c3aed';return <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eaf2ff,transparent_35%),radial-gradient(circle_at_top_right,#fff0e8,transparent_30%),#f8faff] p-4 text-slate-800 md:p-8 print:bg-white print:p-0"><section className="mx-auto max-w-6xl"><header className="rounded-[32px] border border-white bg-white/80 p-6 shadow-[0_30px_90px_rgba(70,90,140,.13)] backdrop-blur-xl print:rounded-none print:border-0 print:shadow-none"><div className="flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-4">{logo?<img src={logo} alt="School logo" className="h-16 w-16 rounded-2xl object-contain ring-1 ring-slate-200 print:h-20 print:w-20"/>:<div className="grid h-16 w-16 place-items-center rounded-2xl text-white" style={{background:`linear-gradient(135deg,${primary},${secondary})`}}><SchoolRounded/></div>}<div><p className="text-xs font-black uppercase tracking-[.2em]" style={{color:primary}}>{report?.school?.name||'Academic intelligence'}</p><h1 className="mt-1 text-3xl font-black md:text-4xl">Report Card</h1><p className="mt-1 text-slate-500">{report?.school?.address||'Results from exams, assignments and attendance.'}</p>{report?.publication?.published&&<p className="mt-2 text-xs font-black uppercase tracking-wider text-emerald-600">Published & frozen · {new Date(report.publication.publishedAt!).toLocaleDateString()}</p>}</div></div><div className="flex flex-wrap items-center gap-3 print:hidden"><TextField select label="Academic term" value={termId} onChange={e=>setTermId(e.target.value)} sx={{minWidth:220}}>{terms.map(t=><MenuItem key={t.id} value={t.id}>{t.name} · {t.academicYear}</MenuItem>)}</TextField><Button variant="contained" startIcon={<PrintRounded/>} onClick={()=>window.print()} sx={{borderRadius:3,px:2.5,py:1.4,fontWeight:900,background:`linear-gradient(90deg,${primary},${secondary})`}}>Print / Save PDF</Button></div></div></header>{error&&<Alert severity="error" className="mt-5">{error}</Alert>}{loading?<div className="mt-6 grid gap-4">{[1,2,3,4].map(x=><Skeleton key={x} height={110} variant="rounded" sx={{borderRadius:5}}/>)}</div>:report&&<><section className="mt-6 grid gap-4 md:grid-cols-4 print:grid-cols-4">{[[report.student.name,report.student.class?`${report.student.class.name}${report.student.class.section?` - ${report.student.class.section}`:''}`:'No class',SchoolRounded],['Overall',`${report.overall.percentage}% · ${report.overall.grade}`,EmojiEventsRounded],['Attendance',`${report.attendance.rate}%`,CalendarMonthRounded],['Marks',`${report.overall.earned.toFixed(1)} / ${report.overall.total.toFixed(1)}`,AssessmentRounded]].map(([a,b,Icon]:any)=><article key={a} className="rounded-[26px] border border-white bg-white/85 p-5 shadow-xl print:rounded-none print:border-slate-200 print:shadow-none"><div className="inline-flex rounded-2xl p-3 text-white print:hidden" style={{background:`linear-gradient(135deg,${primary},${secondary})`}}><Icon/></div><p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">{a}</p><p className="mt-1 text-xl font-black">{b}</p></article>)}</section>{user?.role==='PRINCIPAL'&&studentId&&!report.publication?.published&&<section className="mt-6 rounded-[28px] border border-amber-100 bg-amber-50/80 p-5 print:hidden"><h2 className="font-black text-slate-900">Publish this report card</h2><p className="mt-1 text-sm text-slate-500">Publishing freezes this term snapshot so later grade edits cannot silently change the issued report.</p><div className="mt-4 flex flex-col gap-3 md:flex-row"><TextField fullWidth label="Principal remarks (optional)" value={remarks} onChange={e=>setRemarks(e.target.value)}/><Button disabled={publishing} onClick={publish} variant="contained" startIcon={publishing?<CircularProgress size={18} color="inherit"/>:<PublishRounded/>} sx={{minWidth:190,borderRadius:3,fontWeight:900}}>Publish & freeze</Button></div></section>}{report.publication?.remarks&&<section className="mt-6 rounded-[24px] border border-blue-100 bg-blue-50/60 p-5"><p className="text-xs font-black uppercase tracking-wider text-blue-600">Principal remarks</p><p className="mt-2 text-sm text-slate-700">{report.publication.remarks}</p></section>}<section className="mt-6 overflow-hidden rounded-[30px] border border-white bg-white/85 shadow-xl print:rounded-none print:border-slate-200 print:shadow-none"><div className="border-b border-slate-100 p-6"><h2 className="text-xl font-black">Subject performance</h2><p className="text-sm text-slate-500">Exam and coursework marks combined for {report.term.name} · {report.term.academicYear}.</p><p className="mt-1 text-xs font-bold text-slate-400">Admission No: {report.student.admissionNo}</p></div><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-400"><tr><th className="p-4">Subject</th><th className="p-4">Exams</th><th className="p-4">Assignments</th><th className="p-4">Total</th><th className="p-4">%</th><th className="p-4">Grade</th></tr></thead><tbody>{report.subjects.map(s=><tr key={s.subjectId} className="border-t border-slate-100"><td className="p-4 font-black">{s.subject}</td><td className="p-4">{s.examEarned.toFixed(1)} / {s.examTotal.toFixed(1)}</td><td className="p-4">{s.assignmentEarned.toFixed(1)} / {s.assignmentTotal.toFixed(1)}</td><td className="p-4 font-bold">{s.earned.toFixed(1)} / {s.total.toFixed(1)}</td><td className="p-4"><span className="rounded-full px-3 py-1 font-black" style={{background:`${primary}12`,color:primary}}>{s.percentage}%</span></td><td className="p-4 text-lg font-black">{s.grade}</td></tr>)}</tbody></table></div></section><footer className="mt-8 hidden grid-cols-2 gap-16 pt-12 text-sm print:grid"><div className="border-t border-slate-400 pt-2 text-center">Class Teacher Signature</div><div className="border-t border-slate-400 pt-2 text-center">Principal Signature</div></footer></>}</section></main>}
+import {
+  AssessmentRounded,
+  CalendarMonthRounded,
+  EmojiEventsRounded,
+  PrintRounded,
+  PublishRounded,
+  SchoolRounded,
+} from "@mui/icons-material";
+import {
+  Alert,
+  Button,
+  CircularProgress,
+  MenuItem,
+  Skeleton,
+  TextField,
+} from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../../lib/api";
+import { useAuth } from "../../features/auth/AuthProvider";
+type Term = {
+  id: string;
+  name: string;
+  academicYear: string;
+  startsAt: string;
+  endsAt: string;
+  isCurrent: boolean;
+};
+type Report = {
+  school?: {
+    name: string;
+    logoUrl?: string | null;
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    primaryColor?: string;
+    secondaryColor?: string;
+  };
+  term: Term;
+  student: {
+    id: string;
+    admissionNo: string;
+    name: string;
+    class?: { name: string; section?: string | null } | null;
+  };
+  attendance: { rate: number; present: number; total: number };
+  overall: { earned: number; total: number; percentage: number; grade: string };
+  subjects: Array<{
+    subjectId: string;
+    subject: string;
+    examEarned: number;
+    examTotal: number;
+    assignmentEarned: number;
+    assignmentTotal: number;
+    earned: number;
+    total: number;
+    percentage: number;
+    grade: string;
+  }>;
+  publication?: {
+    published: boolean;
+    publishedAt?: string;
+    remarks?: string | null;
+  };
+};
+export default function ReportCardPage() {
+  const { user } = useAuth();
+  const [terms, setTerms] = useState<Term[]>([]),
+    [termId, setTermId] = useState(""),
+    [report, setReport] = useState<Report | null>(null),
+    [logo, setLogo] = useState(""),
+    [loading, setLoading] = useState(true),
+    [publishing, setPublishing] = useState(false),
+    [remarks, setRemarks] = useState(""),
+    [error, setError] = useState("");
+  const params = useMemo(() => new URLSearchParams(location.search), []),
+    studentId = params.get("studentId") ?? params.get("studentProfileId");
+  useEffect(() => {
+    api
+      .get("/reports/terms")
+      .then(({ data }) => {
+        setTerms(data);
+        const t = data.find((x: Term) => x.isCurrent) ?? data[0];
+        if (t) setTermId(t.id);
+        else setLoading(false);
+      })
+      .catch(() => {
+        setError("Could not load academic terms.");
+        setLoading(false);
+      });
+  }, []);
+  async function load() {
+    if (!termId) return;
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await api.get("/reports/report-card", {
+        params: { termId, studentId: studentId || undefined },
+      });
+      setReport(data);
+      setRemarks(data.publication?.remarks ?? "");
+      setLogo("");
+      const ref = data.school?.logoUrl;
+      if (ref) {
+        if (ref.startsWith("storage://")) {
+          try {
+            const signed = await api.post("/storage/sign", { reference: ref });
+            setLogo(signed.data.url);
+          } catch {
+            setLogo("");
+          }
+        } else setLogo(ref);
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not build report card.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, [termId, studentId]);
+  async function publish() {
+    if (!studentId || !termId) return;
+    setPublishing(true);
+    setError("");
+    try {
+      const { data } = await api.post("/reports/report-card/publish", {
+        studentId,
+        termId,
+        remarks: remarks || undefined,
+      });
+      setReport(data);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not publish report card.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+  const primary = report?.school?.primaryColor || "#2563eb",
+    secondary = report?.school?.secondaryColor || "#7c3aed";
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#eaf2ff,transparent_35%),radial-gradient(circle_at_top_right,#fff0e8,transparent_30%),#f8faff] p-4 text-slate-800 md:p-8 print:bg-white print:p-0">
+      <section className="mx-auto max-w-6xl">
+        <header className="rounded-[32px] border border-white bg-white/80 p-6 shadow-[0_30px_90px_rgba(70,90,140,.13)] backdrop-blur-xl print:rounded-none print:border-0 print:shadow-none">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              {logo ? (
+                <img
+                  src={logo}
+                  alt="School logo"
+                  className="h-16 w-16 rounded-2xl object-contain ring-1 ring-slate-200 print:h-20 print:w-20"
+                />
+              ) : (
+                <div
+                  className="grid h-16 w-16 place-items-center rounded-2xl text-white"
+                  style={{
+                    background: `linear-gradient(135deg,${primary},${secondary})`,
+                  }}
+                >
+                  <SchoolRounded />
+                </div>
+              )}
+              <div>
+                <p
+                  className="text-xs font-black uppercase tracking-[.2em]"
+                  style={{ color: primary }}
+                >
+                  {report?.school?.name || "Academic intelligence"}
+                </p>
+                <h1 className="mt-1 text-3xl font-black md:text-4xl">
+                  Report Card
+                </h1>
+                <p className="mt-1 text-slate-500">
+                  {report?.school?.address ||
+                    "Results from exams, assignments and attendance."}
+                </p>
+                {report?.publication?.published && (
+                  <p className="mt-2 text-xs font-black uppercase tracking-wider text-emerald-600">
+                    Published & frozen ·{" "}
+                    {new Date(
+                      report.publication.publishedAt!,
+                    ).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 print:hidden">
+              <TextField
+                select
+                label="Academic term"
+                value={termId}
+                onChange={(e) => setTermId(e.target.value)}
+                sx={{ minWidth: 220 }}
+              >
+                {terms.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.name} · {t.academicYear}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Button
+                variant="contained"
+                startIcon={<PrintRounded />}
+                onClick={() => window.print()}
+                sx={{
+                  borderRadius: 3,
+                  px: 2.5,
+                  py: 1.4,
+                  fontWeight: 900,
+                  background: `linear-gradient(90deg,${primary},${secondary})`,
+                }}
+              >
+                Print / Save PDF
+              </Button>
+            </div>
+          </div>
+        </header>
+        {error && (
+          <Alert severity="error" className="mt-5">
+            {error}
+          </Alert>
+        )}
+        {!loading && terms.length === 0 ? (
+          <Alert severity="info" className="mt-5">
+            No academic term exists yet. A principal must create one before
+            report cards can be generated.
+          </Alert>
+        ) : loading ? (
+          <div className="mt-6 grid gap-4">
+            {[1, 2, 3, 4].map((x) => (
+              <Skeleton
+                key={x}
+                height={110}
+                variant="rounded"
+                sx={{ borderRadius: 5 }}
+              />
+            ))}
+          </div>
+        ) : (
+          report && (
+            <>
+              <section className="mt-6 grid gap-4 md:grid-cols-4 print:grid-cols-4">
+                {[
+                  [
+                    report.student.name,
+                    report.student.class
+                      ? `${report.student.class.name}${report.student.class.section ? ` - ${report.student.class.section}` : ""}`
+                      : "No class",
+                    SchoolRounded,
+                  ],
+                  [
+                    "Overall",
+                    `${report.overall.percentage}% · ${report.overall.grade}`,
+                    EmojiEventsRounded,
+                  ],
+                  [
+                    "Attendance",
+                    `${report.attendance.rate}%`,
+                    CalendarMonthRounded,
+                  ],
+                  [
+                    "Marks",
+                    `${report.overall.earned.toFixed(1)} / ${report.overall.total.toFixed(1)}`,
+                    AssessmentRounded,
+                  ],
+                ].map(([a, b, Icon]: any) => (
+                  <article
+                    key={a}
+                    className="rounded-[26px] border border-white bg-white/85 p-5 shadow-xl print:rounded-none print:border-slate-200 print:shadow-none"
+                  >
+                    <div
+                      className="inline-flex rounded-2xl p-3 text-white print:hidden"
+                      style={{
+                        background: `linear-gradient(135deg,${primary},${secondary})`,
+                      }}
+                    >
+                      <Icon />
+                    </div>
+                    <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      {a}
+                    </p>
+                    <p className="mt-1 text-xl font-black">{b}</p>
+                  </article>
+                ))}
+              </section>
+              {user?.role === "PRINCIPAL" &&
+                studentId &&
+                !report.publication?.published && (
+                  <section className="mt-6 rounded-[28px] border border-amber-100 bg-amber-50/80 p-5 print:hidden">
+                    <h2 className="font-black text-slate-900">
+                      Publish this report card
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Publishing freezes this term snapshot so later grade edits
+                      cannot silently change the issued report.
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3 md:flex-row">
+                      <TextField
+                        fullWidth
+                        label="Principal remarks (optional)"
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                      />
+                      <Button
+                        disabled={publishing}
+                        onClick={publish}
+                        variant="contained"
+                        startIcon={
+                          publishing ? (
+                            <CircularProgress size={18} color="inherit" />
+                          ) : (
+                            <PublishRounded />
+                          )
+                        }
+                        sx={{ minWidth: 190, borderRadius: 3, fontWeight: 900 }}
+                      >
+                        Publish & freeze
+                      </Button>
+                    </div>
+                  </section>
+                )}
+              {report.publication?.remarks && (
+                <section className="mt-6 rounded-[24px] border border-blue-100 bg-blue-50/60 p-5">
+                  <p className="text-xs font-black uppercase tracking-wider text-blue-600">
+                    Principal remarks
+                  </p>
+                  <p className="mt-2 text-sm text-slate-700">
+                    {report.publication.remarks}
+                  </p>
+                </section>
+              )}
+              <section className="mt-6 overflow-hidden rounded-[30px] border border-white bg-white/85 shadow-xl print:rounded-none print:border-slate-200 print:shadow-none">
+                <div className="border-b border-slate-100 p-6">
+                  <h2 className="text-xl font-black">Subject performance</h2>
+                  <p className="text-sm text-slate-500">
+                    Exam and coursework marks combined for {report.term.name} ·{" "}
+                    {report.term.academicYear}.
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-slate-400">
+                    Admission No: {report.student.admissionNo}
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-400">
+                      <tr>
+                        <th className="p-4">Subject</th>
+                        <th className="p-4">Exams</th>
+                        <th className="p-4">Assignments</th>
+                        <th className="p-4">Total</th>
+                        <th className="p-4">%</th>
+                        <th className="p-4">Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.subjects.map((s) => (
+                        <tr
+                          key={s.subjectId}
+                          className="border-t border-slate-100"
+                        >
+                          <td className="p-4 font-black">{s.subject}</td>
+                          <td className="p-4">
+                            {s.examEarned.toFixed(1)} / {s.examTotal.toFixed(1)}
+                          </td>
+                          <td className="p-4">
+                            {s.assignmentEarned.toFixed(1)} /{" "}
+                            {s.assignmentTotal.toFixed(1)}
+                          </td>
+                          <td className="p-4 font-bold">
+                            {s.earned.toFixed(1)} / {s.total.toFixed(1)}
+                          </td>
+                          <td className="p-4">
+                            <span
+                              className="rounded-full px-3 py-1 font-black"
+                              style={{
+                                background: `${primary}12`,
+                                color: primary,
+                              }}
+                            >
+                              {s.percentage}%
+                            </span>
+                          </td>
+                          <td className="p-4 text-lg font-black">{s.grade}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+              <footer className="mt-8 hidden grid-cols-2 gap-16 pt-12 text-sm print:grid">
+                <div className="border-t border-slate-400 pt-2 text-center">
+                  Class Teacher Signature
+                </div>
+                <div className="border-t border-slate-400 pt-2 text-center">
+                  Principal Signature
+                </div>
+              </footer>
+            </>
+          )
+        )}
+      </section>
+    </main>
+  );
+}

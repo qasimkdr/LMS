@@ -1,19 +1,21 @@
-import { randomUUID } from 'node:crypto';
-import jwt from 'jsonwebtoken';
-import type { Response } from 'express';
-import type { AuthContext } from '../middleware/auth.js';
+import { randomUUID } from "node:crypto";
+import jwt from "jsonwebtoken";
+import type { Response } from "express";
+import type { AuthContext } from "../middleware/auth.js";
 
-const ACCESS_TTL = '15m';
-const REFRESH_TTL = '3d';
-export const REFRESH_COOKIE = 'nexora_refresh';
+const ACCESS_TTL = "15m";
+const REFRESH_TTL = "3d";
+export const REFRESH_COOKIE = "nexora_refresh";
 
 function accessSecret() {
-  if (!process.env.JWT_ACCESS_SECRET) throw new Error('JWT_ACCESS_SECRET is not configured');
+  if (!process.env.JWT_ACCESS_SECRET)
+    throw new Error("JWT_ACCESS_SECRET is not configured");
   return process.env.JWT_ACCESS_SECRET;
 }
 
 function refreshSecret() {
-  if (!process.env.JWT_REFRESH_SECRET) throw new Error('JWT_REFRESH_SECRET is not configured');
+  if (!process.env.JWT_REFRESH_SECRET)
+    throw new Error("JWT_REFRESH_SECRET is not configured");
   return process.env.JWT_REFRESH_SECRET;
 }
 
@@ -35,20 +37,24 @@ export function verifyRefreshToken(token: string) {
 export function setRefreshCookie(res: Response, token: string) {
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === "production",
     // Hosted web and API services use different origins, so production refresh
     // requests require a cross-site cookie.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    // CHIPS keeps the cookie available to the web app even when Render's API
+    // hostname is treated as a third-party origin by the browser.
+    partitioned: process.env.NODE_ENV === "production",
     maxAge: 3 * 24 * 60 * 60 * 1000,
-    path: '/api/auth',
+    path: "/api/auth",
   });
 }
 
 export function clearRefreshCookie(res: Response) {
   res.clearCookie(REFRESH_COOKIE, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    path: '/api/auth',
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    partitioned: process.env.NODE_ENV === "production",
+    path: "/api/auth",
   });
 }
