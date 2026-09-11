@@ -95,6 +95,7 @@ export default function PrincipalOperations() {
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selected, setSelected] = useState<any>(null);
+  const [editPerson, setEditPerson] = useState<any>(null);
   const load = async () => {
     setLoading(true);
     try {
@@ -154,6 +155,79 @@ export default function PrincipalOperations() {
       setSelected(data);
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not load person details.");
+    }
+  };
+  const beginPersonEdit = () => {
+    if (!selected) return;
+    setEditPerson({
+      ...selected,
+      dateOfBirth: selected.dateOfBirth
+        ? new Date(selected.dateOfBirth).toISOString().slice(0, 10)
+        : "",
+      admissionNo: selected.studentProfile?.admissionNo ?? "",
+      classId: selected.studentProfile?.classId ?? selected.studentProfile?.class?.id ?? "",
+      section: selected.studentProfile?.section ?? "",
+      guardianPhone: selected.studentProfile?.guardianPhone ?? "",
+      profileData: selected.profileData ?? {},
+    });
+  };
+  const savePersonEdit = async () => {
+    if (!editPerson) return;
+    setSaving(true);
+    setError("");
+    try {
+      const isStudent = editPerson.role === "STUDENT";
+      const path = isStudent
+        ? `/school-operations/students/${editPerson.studentProfile.id}`
+        : `/school-operations/users/${editPerson.id}`;
+      const payload = {
+        firstName: editPerson.firstName,
+        lastName: editPerson.lastName,
+        email: editPerson.email,
+        ...(isStudent ? {} : { username: editPerson.username, role: editPerson.role }),
+        cnic: editPerson.cnic || undefined,
+        phone: editPerson.phone || undefined,
+        alternatePhone: editPerson.alternatePhone || undefined,
+        whatsappNo: editPerson.whatsappNo || undefined,
+        address: editPerson.address || undefined,
+        dateOfBirth: editPerson.dateOfBirth || undefined,
+        gender: editPerson.gender || undefined,
+        profileData: editPerson.profileData ?? {},
+        ...(isStudent
+          ? {
+              admissionNo: editPerson.admissionNo,
+              classId: editPerson.classId || null,
+              section: editPerson.section || null,
+              guardianPhone: editPerson.guardianPhone || null,
+            }
+          : {}),
+      };
+      await api.patch(path, payload);
+      const { data: refreshed } = await api.get(
+        `/school-operations/people/${editPerson.id}`,
+      );
+      setSelected(refreshed);
+      setEditPerson(null);
+      await loadPeople(true);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not update this profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const deletePerson = async () => {
+    if (!selected) return;
+    if (!window.confirm(`Permanently delete ${selected.firstName} ${selected.lastName}? Accounts with school history will be protected.`)) return;
+    try {
+      const path = selected.role === "STUDENT"
+        ? `/school-operations/students/${selected.studentProfile.id}`
+        : `/school-operations/users/${selected.id}`;
+      await api.delete(path);
+      setSelected(null);
+      await load();
+      await loadPeople(true);
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Could not delete this profile.");
     }
   };
   const stats = useMemo(
@@ -831,6 +905,9 @@ export default function PrincipalOperations() {
             </DialogContent>
             <DialogActions sx={{ p: 3 }}>
               <Button onClick={() => setSelected(null)}>Close</Button>
+              <Button startIcon={<EditRoundedIcon />} onClick={beginPersonEdit}>
+                Edit profile
+              </Button>
               <Button
                 color={selected.isActive ? "warning" : "success"}
                 onClick={async () => {
@@ -845,9 +922,38 @@ export default function PrincipalOperations() {
               >
                 {selected.isActive ? "Deactivate" : "Reactivate"}
               </Button>
+              <Button
+                color="error"
+                startIcon={<DeleteRoundedIcon />}
+                onClick={() => void deletePerson()}
+              >
+                Delete
+              </Button>
             </DialogActions>
           </>
         )}
+      </Dialog>
+      <Dialog
+        open={Boolean(editPerson)}
+        onClose={() => !saving && setEditPerson(null)}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 5 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 900 }}>Edit profile</DialogTitle>
+        <DialogContent>
+          {editPerson && (
+            <div className="grid gap-4 pt-2 sm:grid-cols-2">
+              <PersonEditFields form={editPerson} setForm={setEditPerson} classes={data?.classes ?? []} />
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setEditPerson(null)} disabled={saving}>Cancel</Button>
+          <Button variant="contained" onClick={() => void savePersonEdit()} disabled={saving}>
+            {saving ? <CircularProgress size={20} color="inherit" /> : "Save changes"}
+          </Button>
+        </DialogActions>
       </Dialog>
     </>
   );
@@ -1024,6 +1130,61 @@ function PersonFields({
           />
         </>
       )}
+    </>
+  );
+}
+
+function PersonEditFields({ form, setForm, classes }: { form: any; setForm: (x: any) => void; classes: Overview["classes"] }) {
+  const set = (key: string, value: string) => setForm({ ...form, [key]: value });
+  const setProfile = (key: string, value: string) =>
+    setForm({ ...form, profileData: { ...form.profileData, [key]: value } });
+  const profileFields = form.role === "STUDENT"
+    ? [
+        ["guardianName", "Guardian name"],
+        ["guardianCnic", "Guardian CNIC"],
+        ["guardianDetails", "Guardian relation and occupation"],
+        ["motherDetails", "Mother details"],
+        ["emergencyContact", "Emergency contact"],
+        ["previousSchool", "Previous school and leaving reason"],
+        ["identityDetails", "Nationality / religion / blood group"],
+        ["medicalNotes", "Medical and accessibility notes"],
+      ]
+    : [
+        ["education", "Highest qualification and specialization"],
+        ["educationHistory", "Education history"],
+        ["experience", "Employment history and experience"],
+        ["certifications", "Training, certifications and skills"],
+        ["emergencyContact", "Emergency contact"],
+        ["references", "References"],
+        ["employmentPreferences", "Position, availability and salary expectation"],
+      ];
+  return (
+    <>
+      <F label="First name" v={form.firstName} s={(v) => set("firstName", v)} />
+      <F label="Last name" v={form.lastName} s={(v) => set("lastName", v)} />
+      <F label="Email" v={form.email} s={(v) => set("email", v)} />
+      {form.role !== "STUDENT" && <F label="Username" v={form.username} s={(v) => set("username", v)} />}
+      <F label="CNIC / B-Form" v={form.cnic} s={(v) => set("cnic", v)} />
+      <F label="Date of birth (YYYY-MM-DD)" v={form.dateOfBirth} s={(v) => set("dateOfBirth", v)} />
+      <F label="Gender" v={form.gender} s={(v) => set("gender", v)} />
+      <F label="Phone number" v={form.phone} s={(v) => set("phone", v)} />
+      <F label="Second phone number" v={form.alternatePhone} s={(v) => set("alternatePhone", v)} />
+      <F label="WhatsApp number" v={form.whatsappNo} s={(v) => set("whatsappNo", v)} />
+      <div className="sm:col-span-2"><F label="Residential address" v={form.address} s={(v) => set("address", v)} /></div>
+      {form.role === "STUDENT" && (
+        <>
+          <F label="Admission no" v={form.admissionNo} s={(v) => set("admissionNo", v)} />
+          <TextField select SelectProps={{ native: true }} label="Class" value={form.classId ?? ""} onChange={(e) => set("classId", e.target.value)}>
+            <option value="">No class</option>
+            {classes.map((c) => <option key={c.id} value={c.id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
+          </TextField>
+          <F label="Section" v={form.section} s={(v) => set("section", v)} />
+          <F label="Guardian phone" v={form.guardianPhone} s={(v) => set("guardianPhone", v)} />
+        </>
+      )}
+      {profileFields.map(([key, label]) => (
+        <F key={key} label={label} v={form.profileData?.[key]} s={(v) => setProfile(key, v)} />
+      ))}
     </>
   );
 }
