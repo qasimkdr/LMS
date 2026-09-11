@@ -83,8 +83,10 @@ type PersonCard = {
     academicAverage: number;
     examAverage: number;
     assignmentAverage: number;
+    manualTestAverage: number;
     examsTaken: number;
     gradedAssignments: number;
+    manualTestsTaken: number;
   } | null;
 };
 
@@ -931,8 +933,10 @@ export default function PrincipalOperations() {
                       ["Academic average", `${selected.performance.academicAverage}%`],
                       ["Exam average", `${selected.performance.examAverage}%`],
                       ["Assignment average", `${selected.performance.assignmentAverage}%`],
+                      ["Manual test average", `${selected.performance.manualTestAverage}%`],
                       ["Exams taken", selected.performance.examsTaken],
                       ["Graded assignments", selected.performance.gradedAssignments],
+                      ["Manual tests", selected.performance.manualTestsTaken],
                     ].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/80 p-3"><p className="text-[10px] font-black uppercase text-slate-400">{label}</p><p className="mt-1 text-xl font-black text-slate-900">{value}</p></div>)}
                   </div>
                 </div>

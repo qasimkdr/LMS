@@ -49,6 +49,7 @@ function sessionUser(user: any, impersonatedById?: string) {
           id: user.school.id,
           name: user.school.name,
           logoUrl: user.school.logoUrl,
+          description: user.school.description,
           status,
         }
       : null,

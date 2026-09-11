@@ -23,6 +23,7 @@ import examAttemptRoutes from './routes/examAttempts.js';
 import portalRoutes from './routes/portal.js';
 import announcementRoutes from './routes/announcements.js';
 import courseworkRoutes from './routes/coursework.js';
+import manualTestRoutes from './routes/manualTests.js';
 import parentCourseworkRoutes from './routes/parentCoursework.js';
 import notificationRoutes from './routes/notifications.js';
 import parentRoutes from './routes/parents.js';
@@ -74,6 +75,7 @@ app.use('/api/exam-attempts', requireAuth, requireTenant, requireModule('EXAMS')
 app.use('/api/portal', portalRoutes);
 app.use('/api/announcements', requireAuth, requireTenant, requireModule('ANNOUNCEMENTS'), announcementRoutes);
 app.use('/api/coursework', requireAuth, requireTenant, requireModule('COURSEWORK'), courseworkRoutes);
+app.use('/api/manual-tests', requireAuth, requireTenant, requireModule('COURSEWORK'), manualTestRoutes);
 app.use('/api/parent-coursework', requireAuth, requireTenant, requireModule('COURSEWORK'), parentCourseworkRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/parents', parentRoutes);

@@ -40,3 +40,11 @@ button, input, textarea, select { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+@keyframes toast-in {
+  from { opacity: 0; transform: translate3d(42px,-18px,-120px) rotateY(-18deg) scale(.82); }
+  to { opacity: 1; transform: translate3d(0,0,0) rotateY(0) scale(1); }
+}
+@keyframes toast-out {
+  to { opacity: 0; transform: translate3d(48px,-12px,-100px) rotateY(16deg) scale(.88); }
+}
+@keyframes toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }

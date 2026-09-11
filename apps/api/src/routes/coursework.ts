@@ -64,16 +64,26 @@ router.get(
         where: { schoolId, userId: req.auth!.userId },
       });
       if (!profile?.classId) return res.json([]);
-      return res.json(
-        await prisma.assignment.findMany({
+      const assignments = await prisma.assignment.findMany({
           where: { schoolId, classId: profile.classId },
           orderBy: { publishedAt: "desc" },
           include: {
+            class: true,
             subject: true,
             submissions: { where: { studentUserId: req.auth!.userId } },
           },
-        }),
-      );
+        });
+      const teacherAssignments = await prisma.teacherAssignment.findMany({
+        where: {
+          schoolId,
+          OR: assignments.map((assignment) => ({ classId: assignment.classId, subjectId: assignment.subjectId })),
+        },
+        include: { teacher: { select: { id: true, firstName: true, lastName: true } } },
+      });
+      return res.json(assignments.map((assignment) => ({
+        ...assignment,
+        teacher: teacherAssignments.find((row) => row.classId === assignment.classId && row.subjectId === assignment.subjectId)?.teacher ?? null,
+      })));
     }
     if (req.auth!.role === "PARENT")
       return res
@@ -276,6 +286,12 @@ router.put(
     });
     if (!assignment)
       return res.status(404).json({ message: "Assignment not found" });
+    const existing = await prisma.assignmentSubmission.findUnique({
+      where: { assignmentId_studentUserId: { assignmentId: assignment.id, studentUserId: req.auth!.userId } },
+      select: { status: true },
+    });
+    if (existing?.status === "GRADED")
+      return res.status(409).json({ message: "A graded submission cannot be changed" });
     const now = new Date();
     const status = p.data.submit
       ? assignment.dueAt && now > assignment.dueAt

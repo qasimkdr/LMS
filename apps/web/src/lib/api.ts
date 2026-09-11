@@ -1,4 +1,5 @@
 import axios from "axios";
+import { emitToast } from "../features/toast/ToastProvider";
 
 let accessToken: string | null = (() => {
   try {
@@ -33,8 +34,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const shouldToast = (config: any) => {
+  const method = String(config?.method ?? "get").toLowerCase();
+  const url = String(config?.url ?? "");
+  return ["post", "put", "patch", "delete"].includes(method) &&
+    !url.includes("/auth/") && !url.includes("/storage/") &&
+    !/\/exam-attempts\/[^/]+\/answers/.test(url) && !config?._retry;
+};
+const successTitle = (config: any) => {
+  const method = String(config?.method ?? "").toLowerCase();
+  if (method === "delete") return "Deleted successfully";
+  if (method === "patch" || method === "put") return "Saved successfully";
+  return "Created successfully";
+};
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (shouldToast(response.config)) emitToast({ kind: "success", title: successTitle(response.config), message: response.data?.message });
+    return response;
+  },
   async (error) => {
     const original = error.config;
     if (
@@ -42,6 +60,7 @@ api.interceptors.response.use(
       original?._retry ||
       original?.url?.includes("/auth/refresh")
     ) {
+      if (shouldToast(original)) emitToast({ kind: "error", title: "Action failed", message: error.response?.data?.message ?? "Please try again." });
       return Promise.reject(error);
     }
     original._retry = true;
@@ -60,7 +79,10 @@ api.interceptors.response.use(
       });
 
     const token = await refreshPromise;
-    if (!token) return Promise.reject(error);
+    if (!token) {
+      if (shouldToast(original)) emitToast({ kind: "error", title: "Action failed", message: error.response?.data?.message ?? "Please sign in again." });
+      return Promise.reject(error);
+    }
     original.headers.Authorization = `Bearer ${token}`;
     return api(original);
   },

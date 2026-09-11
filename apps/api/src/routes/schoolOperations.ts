@@ -25,7 +25,7 @@ async function studentPerformance(
   const userIds = rows.map((x) => x.id);
   const profileIds = rows.map((x) => x.studentProfile!.id);
   const period = term ? { gte: term.startsAt, lte: term.endsAt } : undefined;
-  const [examGroups, submissions, attendanceGroups] = await Promise.all([
+  const [examGroups, submissions, manualResults, attendanceGroups] = await Promise.all([
     prisma.examAttempt.groupBy({
       by: ["studentUserId"],
       where: {
@@ -50,6 +50,13 @@ async function studentPerformance(
         assignment: { select: { maxMarks: true } },
       },
     }),
+    prisma.manualTestResult.findMany({
+      where: {
+        studentUserId: { in: userIds },
+        manualTest: { schoolId, ...(period ? { heldAt: period } : {}) },
+      },
+      select: { studentUserId: true, score: true, manualTest: { select: { totalMarks: true } } },
+    }),
     prisma.attendanceRecord.groupBy({
       by: ["studentProfileId", "status"],
       where: {
@@ -69,6 +76,14 @@ async function studentPerformance(
     assignments.set(row.studentUserId, value);
   }
   const attendance = new Map<string, { present: number; total: number }>();
+  const manualTests = new Map<string, { earned: number; total: number; count: number }>();
+  for (const row of manualResults) {
+    const value = manualTests.get(row.studentUserId) ?? { earned: 0, total: 0, count: 0 };
+    value.earned += Number(row.score);
+    value.total += Number(row.manualTest.totalMarks);
+    value.count += 1;
+    manualTests.set(row.studentUserId, value);
+  }
   for (const row of attendanceGroups) {
     const value = attendance.get(row.studentProfileId) ?? { present: 0, total: 0 };
     value.total += row._count._all;
@@ -80,11 +95,14 @@ async function studentPerformance(
       const exam = exams.get(student.id);
       const work = assignments.get(student.id);
       const attend = attendance.get(student.studentProfile!.id);
+      const manual = manualTests.get(student.id);
       const examAverage = Number(exam?._avg.percentage ?? 0);
       const assignmentAverage = work?.total ? (work.earned / work.total) * 100 : 0;
+      const manualTestAverage = manual?.total ? (manual.earned / manual.total) * 100 : 0;
       const academicParts = [
         ...(exam ? [examAverage] : []),
         ...(work?.total ? [assignmentAverage] : []),
+        ...(manual?.total ? [manualTestAverage] : []),
       ];
       const academicAverage = academicParts.length
         ? academicParts.reduce((sum, value) => sum + value, 0) / academicParts.length
@@ -95,8 +113,10 @@ async function studentPerformance(
         academicAverage: Math.round(academicAverage * 10) / 10,
         examAverage: Math.round(examAverage * 10) / 10,
         assignmentAverage: Math.round(assignmentAverage * 10) / 10,
+        manualTestAverage: Math.round(manualTestAverage * 10) / 10,
         examsTaken: exam?._count._all ?? 0,
         gradedAssignments: work?.count ?? 0,
+        manualTestsTaken: manual?.count ?? 0,
       }];
     }),
   );

@@ -50,6 +50,7 @@ const nav:Record<Role,NavItem[]> = {
     {to:'/principal/timetable',label:'Timetable',icon:CalendarMonthRoundedIcon},
     {to:'/principal/attendance',label:'Attendance',icon:FactCheckRoundedIcon},
     {to:'/principal/coursework',label:'Coursework',icon:MenuBookRoundedIcon},
+    {to:'/principal/manual-tests',label:'Manual Tests',icon:AssessmentRoundedIcon},
     {to:'/teacher/exams/new',label:'Exam Studio',icon:QuizRoundedIcon},
     {to:'/principal/report-card',label:'Report Cards',icon:AssessmentRoundedIcon},
     {to:'/principal/finance',label:'Finance',icon:PaymentsRoundedIcon},
@@ -81,6 +82,7 @@ const nav:Record<Role,NavItem[]> = {
     {to:'/teacher/timetable',label:'Timetable',icon:CalendarMonthRoundedIcon},
     {to:'/teacher/attendance',label:'Attendance',icon:FactCheckRoundedIcon},
     {to:'/teacher/coursework',label:'Coursework',icon:MenuBookRoundedIcon},
+    {to:'/teacher/manual-tests',label:'Manual Tests',icon:AssessmentRoundedIcon},
     {to:'/teacher/exams/new',label:'Exam Studio',icon:QuizRoundedIcon},
     {to:'/teacher/grading',label:'Grading',icon:AssessmentRoundedIcon},
     {to:'/teacher/submissions',label:'Submissions',icon:FactCheckRoundedIcon},
@@ -94,6 +96,7 @@ const nav:Record<Role,NavItem[]> = {
     {to:'/student/timetable',label:'Timetable',icon:CalendarMonthRoundedIcon},
     {to:'/student/coursework',label:'Coursework',icon:MenuBookRoundedIcon},
     {to:'/student/assignments',label:'Assignments',icon:FactCheckRoundedIcon},
+    {to:'/student/manual-tests',label:'Test Results',icon:AssessmentRoundedIcon},
     {to:'/student/exams',label:'Exams',icon:QuizRoundedIcon},
     {to:'/student/report-card',label:'Report Card',icon:AssessmentRoundedIcon},
     {to:'/student/fees',label:'Fees',icon:PaymentsRoundedIcon},
@@ -142,6 +145,17 @@ export default function AppShell({children}:{children:ReactNode}){
         <button onClick={()=>void doLogout()} className="group mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 px-4 py-2.5 text-sm font-black text-white shadow-[0_10px_28px_rgba(244,63,94,.24)] transition hover:-translate-y-1 hover:shadow-[0_15px_38px_rgba(244,63,94,.34)]"><LogoutRoundedIcon fontSize="small" className="transition group-hover:-translate-x-1"/>Logout</button>
       </div>
     </aside>
-    <section className="min-w-0 pt-16 lg:pt-0">{children}</section>
+    <section className="min-w-0 pt-16 lg:pt-0">
+      <header className="sticky top-0 z-[60] border-b border-white/70 bg-white/75 px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,.08)] backdrop-blur-2xl sm:px-7">
+        <div className="mx-auto flex max-w-[1500px] items-center gap-4">
+          <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 text-white shadow-lg">
+            {user.school?.logoUrl ? <img src={user.school.logoUrl} alt={`${schoolName} logo`} className="h-full w-full object-cover" /> : <SchoolRoundedIcon />}
+          </div>
+          <div className="min-w-0 flex-1"><p className="truncate text-lg font-black text-slate-950">{schoolName}</p><p className="truncate text-xs font-semibold text-slate-500">{user.school?.description || (user.role === 'SUPER_ADMIN' ? 'Secure multi-school administration' : 'Learning, progress and school operations')}</p></div>
+          <div className="hidden rounded-2xl bg-gradient-to-r from-blue-50 to-violet-50 px-4 py-2 text-right sm:block"><p className="text-[10px] font-black uppercase tracking-[.18em] text-violet-500">Current workspace</p><p className="text-sm font-black text-slate-700">{roleTitle[user.role]}</p></div>
+        </div>
+      </header>
+      {children}
+    </section>
   </div>
 }
