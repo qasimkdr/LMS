@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { prisma } from "@nexora/database";
+import { Prisma, prisma } from "@nexora/database";
 import {
   requireAuth,
   requireRoles,
@@ -10,6 +10,97 @@ import {
 
 const router = Router();
 router.use(requireAuth, requireTenant, requireRoles("PRINCIPAL"));
+
+async function studentPerformance(
+  schoolId: string,
+  students: Array<{ id: string; studentProfile?: { id: string } | null }>,
+) {
+  const rows = students.filter((x) => x.studentProfile);
+  if (!rows.length) return new Map<string, any>();
+  const term = (
+    await prisma.$queryRaw<Array<{ id: string; name: string; startsAt: Date; endsAt: Date }>>(
+      Prisma.sql`SELECT id,name,"startsAt","endsAt" FROM "AcademicTerm" WHERE "schoolId"=${schoolId} ORDER BY "isCurrent" DESC,"startsAt" DESC LIMIT 1`,
+    )
+  )[0];
+  const userIds = rows.map((x) => x.id);
+  const profileIds = rows.map((x) => x.studentProfile!.id);
+  const period = term ? { gte: term.startsAt, lte: term.endsAt } : undefined;
+  const [examGroups, submissions, attendanceGroups] = await Promise.all([
+    prisma.examAttempt.groupBy({
+      by: ["studentUserId"],
+      where: {
+        schoolId,
+        studentUserId: { in: userIds },
+        status: "GRADED",
+        ...(period ? { gradedAt: period } : {}),
+      },
+      _avg: { percentage: true },
+      _count: { _all: true },
+    }),
+    prisma.assignmentSubmission.findMany({
+      where: {
+        studentUserId: { in: userIds },
+        status: "GRADED",
+        ...(period ? { gradedAt: period } : {}),
+        assignment: { schoolId },
+      },
+      select: {
+        studentUserId: true,
+        score: true,
+        assignment: { select: { maxMarks: true } },
+      },
+    }),
+    prisma.attendanceRecord.groupBy({
+      by: ["studentProfileId", "status"],
+      where: {
+        studentProfileId: { in: profileIds },
+        attendance: { schoolId, ...(period ? { date: period } : {}) },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+  const exams = new Map(examGroups.map((x) => [x.studentUserId, x]));
+  const assignments = new Map<string, { earned: number; total: number; count: number }>();
+  for (const row of submissions) {
+    const value = assignments.get(row.studentUserId) ?? { earned: 0, total: 0, count: 0 };
+    value.earned += Number(row.score ?? 0);
+    value.total += Number(row.assignment.maxMarks ?? 0);
+    value.count += 1;
+    assignments.set(row.studentUserId, value);
+  }
+  const attendance = new Map<string, { present: number; total: number }>();
+  for (const row of attendanceGroups) {
+    const value = attendance.get(row.studentProfileId) ?? { present: 0, total: 0 };
+    value.total += row._count._all;
+    if (row.status === "PRESENT" || row.status === "LATE") value.present += row._count._all;
+    attendance.set(row.studentProfileId, value);
+  }
+  return new Map(
+    rows.map((student) => {
+      const exam = exams.get(student.id);
+      const work = assignments.get(student.id);
+      const attend = attendance.get(student.studentProfile!.id);
+      const examAverage = Number(exam?._avg.percentage ?? 0);
+      const assignmentAverage = work?.total ? (work.earned / work.total) * 100 : 0;
+      const academicParts = [
+        ...(exam ? [examAverage] : []),
+        ...(work?.total ? [assignmentAverage] : []),
+      ];
+      const academicAverage = academicParts.length
+        ? academicParts.reduce((sum, value) => sum + value, 0) / academicParts.length
+        : 0;
+      return [student.id, {
+        term: term ? { id: term.id, name: term.name } : null,
+        attendanceRate: attend?.total ? Math.round((attend.present / attend.total) * 1000) / 10 : 0,
+        academicAverage: Math.round(academicAverage * 10) / 10,
+        examAverage: Math.round(examAverage * 10) / 10,
+        assignmentAverage: Math.round(assignmentAverage * 10) / 10,
+        examsTaken: exam?._count._all ?? 0,
+        gradedAssignments: work?.count ?? 0,
+      }];
+    }),
+  );
+}
 
 router.get("/overview", async (req, res) => {
   const schoolId = req.auth!.schoolId!;
@@ -130,7 +221,9 @@ router.get("/people", async (req, res) => {
     take: limit + 1,
   });
   const hasMore = rows.length > limit;
-  const items = rows.slice(0, limit);
+  const page = rows.slice(0, limit);
+  const performance = await studentPerformance(schoolId, page);
+  const items = page.map((row) => ({ ...row, performance: performance.get(row.id) ?? null }));
   res.json({ items, nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null });
 });
 
@@ -161,7 +254,8 @@ router.get("/people/:id", async (req, res) => {
     },
   });
   if (!row) return res.status(404).json({ message: "Person not found" });
-  res.json(row);
+  const performance = await studentPerformance(req.auth!.schoolId!, [row]);
+  res.json({ ...row, performance: performance.get(row.id) ?? null });
 });
 
 const profileDataSchema = z.record(z.string(), z.unknown()).optional();

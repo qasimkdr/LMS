@@ -77,6 +77,15 @@ type PersonCard = {
     admissionNo: string;
     class?: { name: string; section?: string | null } | null;
   } | null;
+  performance?: {
+    term?: { id: string; name: string } | null;
+    attendanceRate: number;
+    academicAverage: number;
+    examAverage: number;
+    assignmentAverage: number;
+    examsTaken: number;
+    gradedAssignments: number;
+  } | null;
 };
 
 export default function PrincipalOperations() {
@@ -501,11 +510,22 @@ export default function PrincipalOperations() {
                         color={person.isActive ? "success" : "default"}
                       />
                     </div>
-                    <p className="mt-3 text-xs font-bold text-slate-500">
-                      {person.studentProfile
-                        ? `${person.studentProfile.admissionNo} · ${person.studentProfile.class?.name ?? "No class"}`
-                        : person.phone || person.cnic || "Open full record"}
-                    </p>
+                    {person.studentProfile ? (
+                      <div className="mt-3">
+                        <p className="text-xs font-bold text-slate-500">
+                          {person.studentProfile.admissionNo} · {person.studentProfile.class
+                            ? `${person.studentProfile.class.name}${person.studentProfile.class.section ? ` - ${person.studentProfile.class.section}` : ""}`
+                            : "No class"}
+                        </p>
+                        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                          <div className="rounded-xl bg-blue-50 px-2 py-2"><b className="block text-blue-700">{person.performance?.attendanceRate ?? 0}%</b><span className="text-[10px] text-slate-500">Attendance</span></div>
+                          <div className="rounded-xl bg-violet-50 px-2 py-2"><b className="block text-violet-700">{person.performance?.academicAverage ?? 0}%</b><span className="text-[10px] text-slate-500">Academic</span></div>
+                          <div className="rounded-xl bg-emerald-50 px-2 py-2"><b className="block text-emerald-700">{person.performance?.examsTaken ?? 0}</b><span className="text-[10px] text-slate-500">Exams</span></div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs font-bold text-slate-500">{person.phone || person.cnic || "Open full record"}</p>
+                    )}
                   </button>
                 ))}
               </div>
@@ -900,6 +920,21 @@ export default function PrincipalOperations() {
                         </p>
                       </div>
                     ))}
+                </div>
+              )}
+              {selected.performance && (
+                <div className="mt-5 rounded-[24px] bg-gradient-to-r from-blue-50 via-violet-50 to-emerald-50 p-5">
+                  <p className="text-xs font-black uppercase tracking-wider text-indigo-600">Class performance · {selected.performance.term?.name ?? "All time"}</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {[
+                      ["Attendance", `${selected.performance.attendanceRate}%`],
+                      ["Academic average", `${selected.performance.academicAverage}%`],
+                      ["Exam average", `${selected.performance.examAverage}%`],
+                      ["Assignment average", `${selected.performance.assignmentAverage}%`],
+                      ["Exams taken", selected.performance.examsTaken],
+                      ["Graded assignments", selected.performance.gradedAssignments],
+                    ].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/80 p-3"><p className="text-[10px] font-black uppercase text-slate-400">{label}</p><p className="mt-1 text-xl font-black text-slate-900">{value}</p></div>)}
+                  </div>
                 </div>
               )}
             </DialogContent>

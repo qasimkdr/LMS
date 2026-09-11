@@ -1,20 +1,327 @@
-import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import QuizRoundedIcon from '@mui/icons-material/QuizRounded';
-import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
-import { Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Skeleton } from '@mui/material';
-import { useEffect, useState } from 'react';
-import { api } from '../../lib/api';
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import QuizRoundedIcon from "@mui/icons-material/QuizRounded";
+import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
+import {
+  Alert,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Skeleton,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { api } from "../../lib/api";
 
-type Exam = { id:string; title:string; durationMin:number; totalMarks:number|string; subject:{name:string}; _count:{questions:number}; attempts:Array<{id:string;status:string;score?:number|null;percentage?:number|null;passed?:boolean|null}> };
-type Active = { attempt:{id:string;startedAt:string}; exam:{id:string;title:string;instructions?:string|null;durationMin:number;totalMarks:number|string;questions:Array<{id:string;type:string;prompt:string;marks:number|string;options:Array<{id:string;label:string;value:string}>}>} };
+type Exam = {
+  id: string;
+  title: string;
+  durationMin: number;
+  totalMarks: number | string;
+  showResults: boolean;
+  subject: { name: string };
+  _count: { questions: number };
+  attempts: Array<{
+    id: string;
+    status: string;
+    score?: number | null;
+    percentage?: number | null;
+    passed?: boolean | null;
+  }>;
+};
+type Active = {
+  attempt: { id: string; startedAt: string };
+  savedAnswers: Array<{ questionId: string; answer: unknown }>;
+  exam: {
+    id: string;
+    title: string;
+    instructions?: string | null;
+    durationMin: number;
+    totalMarks: number | string;
+    showResults: boolean;
+    endsAt?: string | null;
+    questions: Array<{
+      id: string;
+      type: string;
+      prompt: string;
+      marks: number | string;
+      options: Array<{ id: string; label: string; value: string }>;
+    }>;
+  };
+};
 
-export default function StudentExamCenter(){
-  const [exams,setExams]=useState<Exam[]>([]); const [loading,setLoading]=useState(true); const [active,setActive]=useState<Active|null>(null); const [answers,setAnswers]=useState<Record<string,unknown>>({}); const [busy,setBusy]=useState(''); const [error,setError]=useState('');
-  const load=async()=>{setLoading(true);try{const {data}=await api.get<Exam[]>('/exam-attempts/available');setExams(data);}catch{setError('Could not load available exams.');}finally{setLoading(false);}}; useEffect(()=>{void load();},[]);
-  const start=async(id:string)=>{setBusy(id);setError('');try{const {data}=await api.post<Active>(`/exam-attempts/${id}/start`);setActive(data);setAnswers({});}catch(e:any){setError(e?.response?.data?.message??'Exam could not be started.');}finally{setBusy('');}};
-  const save=async(questionId:string,answer:unknown)=>{if(!active)return;setAnswers(v=>({...v,[questionId]:answer}));try{await api.patch(`/exam-attempts/${active.attempt.id}/answer`,{questionId,answer});}catch{setError('One answer could not be autosaved.');}};
-  const submit=async()=>{if(!active)return;setBusy('submit');try{await api.post(`/exam-attempts/${active.attempt.id}/submit`);setActive(null);await load();}catch(e:any){setError(e?.response?.data?.message??'Exam could not be submitted.');}finally{setBusy('');}};
-  return <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#edf6ff,#f8fbff_48%,#fff7ed)] px-4 py-7 sm:px-8"><section className="mx-auto max-w-6xl"><header className="mb-7"><span className="text-xs font-black uppercase tracking-[.22em] text-blue-600">Student portal</span><h1 className="mt-2 text-3xl font-black text-slate-950">Exam Center</h1><p className="mt-2 text-sm text-slate-500">Only exams assigned to your current class and within their active time window appear here.</p></header>{error&&<Alert severity="error" className="mb-4" onClose={()=>setError('')}>{error}</Alert>}{loading?<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{Array.from({length:6}).map((_,i)=><Skeleton key={i} variant="rounded" height={185} sx={{borderRadius:6}}/>)}</div>:<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{exams.map(exam=>{const attempt=exam.attempts[0];return <article key={exam.id} className="card-3d glass-panel rounded-[28px] p-5"><div className="flex items-start justify-between"><div className="rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 p-3 text-white"><QuizRoundedIcon/></div>{attempt&&<span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">{attempt.status.replaceAll('_',' ')}</span>}</div><p className="mt-4 text-xs font-black uppercase tracking-[.16em] text-violet-600">{exam.subject.name}</p><h2 className="mt-1 text-xl font-black text-slate-950">{exam.title}</h2><p className="mt-2 text-sm text-slate-500">{exam._count.questions} questions · {exam.durationMin} min · {String(exam.totalMarks)} marks</p>{attempt?.status==='GRADED'?<div className="mt-4 flex items-center gap-2 rounded-2xl bg-emerald-50 p-3 text-sm font-black text-emerald-700"><TaskAltRoundedIcon fontSize="small"/> Result {attempt.percentage??0}%</div>:<Button fullWidth variant="contained" startIcon={busy!==exam.id?<PlayArrowRoundedIcon/>:undefined} disabled={Boolean(attempt)&&attempt.status!=='IN_PROGRESS'||busy===exam.id} onClick={()=>void start(exam.id)} sx={{mt:2,borderRadius:3,fontWeight:900}}>{busy===exam.id?<CircularProgress size={20} color="inherit"/>:attempt?.status==='IN_PROGRESS'?'Continue exam':'Start exam'}</Button>}</article>})}{!exams.length&&<div className="md:col-span-2 xl:col-span-3 rounded-[28px] border border-dashed border-slate-300 bg-white/60 py-20 text-center text-slate-500">No active exams right now.</div>}</div>}</section>
-  <Dialog open={Boolean(active)} fullWidth maxWidth="md" PaperProps={{sx:{borderRadius:5}}}><DialogTitle sx={{fontWeight:900}}>{active?.exam.title}</DialogTitle><DialogContent><p className="mb-5 text-sm text-slate-500">{active?.exam.instructions}</p><div className="space-y-5">{active?.exam.questions.map((q,i)=><div key={q.id} className="rounded-[22px] bg-slate-50 p-4"><div className="flex gap-3"><span className="font-black text-blue-600">{i+1}.</span><div className="flex-1"><p className="font-bold text-slate-900">{q.prompt}</p><p className="mt-1 text-xs text-slate-400">{String(q.marks)} marks</p>{q.options.length?<div className="mt-3 grid gap-2">{q.options.map(o=><button key={o.id} onClick={()=>void save(q.id,o.value)} className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${answers[q.id]===o.value?'border-blue-500 bg-blue-50 text-blue-700':'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>{o.label}) {o.value}</button>)}</div>:<textarea value={String(answers[q.id]??'')} onChange={e=>setAnswers(v=>({...v,[q.id]:e.target.value}))} onBlur={e=>void save(q.id,e.target.value)} rows={4} className="mt-3 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-blue-500" placeholder="Type your answer"/>}</div></div></div>)}</div></DialogContent><DialogActions sx={{p:3}}><Button onClick={()=>setActive(null)} disabled={busy==='submit'}>Close</Button><Button variant="contained" onClick={()=>void submit()} disabled={busy==='submit'} sx={{borderRadius:3,fontWeight:900}}>{busy==='submit'?<CircularProgress size={20} color="inherit"/>:'Submit exam'}</Button></DialogActions></Dialog>
-  </main>;
+export default function StudentExamCenter() {
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState<Active | null>(null);
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [remaining, setRemaining] = useState(0);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get<Exam[]>("/exam-attempts/available");
+      setExams(data);
+    } catch {
+      setError("Could not load available exams.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    void load();
+  }, []);
+  const start = async (id: string) => {
+    setBusy(id);
+    setError("");
+    try {
+      const { data } = await api.post<Active>(`/exam-attempts/${id}/start`);
+      setActive(data);
+      setAnswers(
+        Object.fromEntries(
+          (data.savedAnswers ?? []).map((x) => [x.questionId, x.answer]),
+        ),
+      );
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Exam could not be started.");
+    } finally {
+      setBusy("");
+    }
+  };
+  const save = async (questionId: string, answer: unknown) => {
+    if (!active) return;
+    setAnswers((v) => ({ ...v, [questionId]: answer }));
+    try {
+      await api.patch(`/exam-attempts/${active.attempt.id}/answer`, {
+        questionId,
+        answer,
+      });
+    } catch {
+      setError("One answer could not be autosaved.");
+    }
+  };
+  const submit = async () => {
+    if (!active) return;
+    setBusy("submit");
+    try {
+      await api.post(`/exam-attempts/${active.attempt.id}/submit`);
+      setActive(null);
+      await load();
+    } catch (e: any) {
+      setError(e?.response?.data?.message ?? "Exam could not be submitted.");
+    } finally {
+      setBusy("");
+    }
+  };
+  useEffect(() => {
+    if (!active) return;
+    const tick = () => {
+      const durationEnd =
+        new Date(active.attempt.startedAt).getTime() +
+        active.exam.durationMin * 60_000;
+      const end = active.exam.endsAt
+        ? Math.min(durationEnd, new Date(active.exam.endsAt).getTime())
+        : durationEnd;
+      setRemaining(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [active]);
+  return (
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#edf6ff,#f8fbff_48%,#fff7ed)] px-4 py-7 sm:px-8">
+      <section className="mx-auto max-w-6xl">
+        <header className="mb-7">
+          <span className="text-xs font-black uppercase tracking-[.22em] text-blue-600">
+            Student portal
+          </span>
+          <h1 className="mt-2 text-3xl font-black text-slate-950">
+            Exam Center
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Only exams assigned to your current class and within their active
+            time window appear here.
+          </p>
+        </header>
+        {error && (
+          <Alert severity="error" className="mb-4" onClose={() => setError("")}>
+            {error}
+          </Alert>
+        )}
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                variant="rounded"
+                height={185}
+                sx={{ borderRadius: 6 }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {exams.map((exam) => {
+              const attempt = exam.attempts[0];
+              return (
+                <article
+                  key={exam.id}
+                  className="card-3d glass-panel rounded-[28px] p-5"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 p-3 text-white">
+                      <QuizRoundedIcon />
+                    </div>
+                    {attempt && (
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
+                        {attempt.status.replaceAll("_", " ")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-4 text-xs font-black uppercase tracking-[.16em] text-violet-600">
+                    {exam.subject.name}
+                  </p>
+                  <h2 className="mt-1 text-xl font-black text-slate-950">
+                    {exam.title}
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {exam._count.questions} questions · {exam.durationMin} min ·{" "}
+                    {String(exam.totalMarks)} marks
+                  </p>
+                  {attempt?.status === "GRADED" ? (
+                    <div className="mt-4 flex items-center gap-2 rounded-2xl bg-emerald-50 p-3 text-sm font-black text-emerald-700">
+                      <TaskAltRoundedIcon fontSize="small" />
+                      {exam.showResults
+                        ? `Result ${attempt.percentage ?? 0}%`
+                        : "Completed · result hidden"}
+                    </div>
+                  ) : (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      startIcon={
+                        busy !== exam.id ? <PlayArrowRoundedIcon /> : undefined
+                      }
+                      disabled={
+                        (Boolean(attempt) &&
+                          attempt.status !== "IN_PROGRESS") ||
+                        busy === exam.id
+                      }
+                      onClick={() => void start(exam.id)}
+                      sx={{ mt: 2, borderRadius: 3, fontWeight: 900 }}
+                    >
+                      {busy === exam.id ? (
+                        <CircularProgress size={20} color="inherit" />
+                      ) : attempt?.status === "IN_PROGRESS" ? (
+                        "Continue exam"
+                      ) : (
+                        "Start exam"
+                      )}
+                    </Button>
+                  )}
+                </article>
+              );
+            })}
+            {!exams.length && (
+              <div className="md:col-span-2 xl:col-span-3 rounded-[28px] border border-dashed border-slate-300 bg-white/60 py-20 text-center text-slate-500">
+                No active exams right now.
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+      <Dialog
+        open={Boolean(active)}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 5 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 900 }}>
+          <div className="flex items-center justify-between gap-3">
+            <span>{active?.exam.title}</span>
+            <span
+              className={remaining < 60 ? "text-rose-600" : "text-indigo-600"}
+            >
+              {Math.floor(remaining / 60)}:
+              {String(remaining % 60).padStart(2, "0")}
+            </span>
+          </div>
+        </DialogTitle>
+        <DialogContent>
+          <p className="mb-5 text-sm text-slate-500">
+            {active?.exam.instructions}
+          </p>
+          <div className="space-y-5">
+            {active?.exam.questions.map((q, i) => (
+              <div key={q.id} className="rounded-[22px] bg-slate-50 p-4">
+                <div className="flex gap-3">
+                  <span className="font-black text-blue-600">{i + 1}.</span>
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900">{q.prompt}</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {String(q.marks)} marks
+                    </p>
+                    {q.options.length ? (
+                      <div className="mt-3 grid gap-2">
+                        {q.options.map((o) => (
+                          <button
+                            key={o.id}
+                            onClick={() => {
+                              const current = Array.isArray(answers[q.id])
+                                ? (answers[q.id] as string[])
+                                : [];
+                              const answer =
+                                q.type === "MULTI_SELECT"
+                                  ? current.includes(o.value)
+                                    ? current.filter((x) => x !== o.value)
+                                    : [...current, o.value]
+                                  : o.value;
+                              void save(q.id, answer);
+                            }}
+                            className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${(q.type === "MULTI_SELECT" ? Array.isArray(answers[q.id]) && (answers[q.id] as string[]).includes(o.value) : answers[q.id] === o.value) ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                          >
+                            {o.label}) {o.value}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <textarea
+                        value={String(answers[q.id] ?? "")}
+                        onChange={(e) =>
+                          setAnswers((v) => ({ ...v, [q.id]: e.target.value }))
+                        }
+                        onBlur={(e) => void save(q.id, e.target.value)}
+                        rows={4}
+                        className="mt-3 w-full rounded-2xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-blue-500"
+                        placeholder="Type your answer"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setActive(null)} disabled={busy === "submit"}>
+            Close
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void submit()}
+            disabled={busy === "submit"}
+            sx={{ borderRadius: 3, fontWeight: 900 }}
+          >
+            {busy === "submit" ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "Submit exam"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </main>
+  );
 }
