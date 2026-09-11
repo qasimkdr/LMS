@@ -76,7 +76,8 @@ router.get(
       const teacherAssignments = await prisma.teacherAssignment.findMany({
         where: {
           schoolId,
-          OR: assignments.map((assignment) => ({ classId: assignment.classId, subjectId: assignment.subjectId })),
+          classId: profile.classId,
+          subjectId: { in: [...new Set(assignments.map((assignment) => assignment.subjectId))] },
         },
         include: { teacher: { select: { id: true, firstName: true, lastName: true } } },
       });
