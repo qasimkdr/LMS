@@ -67,6 +67,7 @@ export default function CourseworkHub() {
   const [loading, setLoading] = useState(true),
     [saving, setSaving] = useState(false),
     [error, setError] = useState("");
+  const [studentHasClass, setStudentHasClass] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"assignments" | "materials" | "syllabus">(
     "assignments",
   );
@@ -92,6 +93,9 @@ export default function CourseworkHub() {
         setDirectory(d.data);
         setClassId((x) => x || d.data.classes[0]?.id || "");
         setSubjectId((x) => x || d.data.subjects[0]?.id || "");
+      } else if (user?.role === "STUDENT") {
+        const { data: portal } = await api.get("/portal/student");
+        setStudentHasClass(Boolean(portal.profile?.class));
       }
     } catch {
       setError("Could not load coursework.");
@@ -233,6 +237,11 @@ export default function CourseworkHub() {
         {error && (
           <Alert severity="error" className="mt-4" onClose={() => setError("")}>
             {error}
+          </Alert>
+        )}
+        {studentHasClass === false && (
+          <Alert severity="warning" className="mt-4">
+            Your account is not assigned to a class. Coursework is class-specific; ask the Principal or school staff to assign your class.
           </Alert>
         )}
         <div className="mt-5 grid gap-4 md:grid-cols-3">

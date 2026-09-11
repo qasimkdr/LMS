@@ -59,11 +59,13 @@ export default function StudentExamCenter() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [remaining, setRemaining] = useState(0);
+  const [hasClass, setHasClass] = useState<boolean | null>(null);
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<Exam[]>("/exam-attempts/available");
+      const [{ data }, { data: portal }] = await Promise.all([api.get<Exam[]>("/exam-attempts/available"), api.get("/portal/student")]);
       setExams(data);
+      setHasClass(Boolean(portal.profile?.class));
     } catch {
       setError("Could not load available exams.");
     } finally {
@@ -150,6 +152,7 @@ export default function StudentExamCenter() {
             {error}
           </Alert>
         )}
+        {hasClass === false && <Alert severity="warning" className="mb-4">Your account is not assigned to a class. Class exams will appear after the Principal or school staff assigns your class.</Alert>}
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -226,7 +229,7 @@ export default function StudentExamCenter() {
             })}
             {!exams.length && (
               <div className="md:col-span-2 xl:col-span-3 rounded-[28px] border border-dashed border-slate-300 bg-white/60 py-20 text-center text-slate-500">
-                No active exams right now.
+                {hasClass === false ? "Exams will appear here after your class is assigned." : "No active exams right now."}
               </div>
             )}
           </div>
