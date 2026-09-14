@@ -24,6 +24,36 @@ router.get('/principal', requireRoles('PRINCIPAL'), async (req, res) => {
   res.json({ students, teachers, pendingApprovals, classes, recentApprovals });
 });
 
+
+router.get('/navigation-badges', requireRoles('PRINCIPAL'), async (req, res) => {
+  const schoolId = req.auth!.schoolId!;
+  const [approvals, notifications, leaveRows, feeRows] = await Promise.all([
+    prisma.approvalRequest.count({
+      where: { schoolId, status: { in: ['PENDING', 'RESUBMITTED'] } },
+    }),
+    prisma.notification.count({
+      where: { schoolId, userId: req.auth!.userId, readAt: null },
+    }),
+    prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::bigint AS count
+      FROM "LeaveRequest"
+      WHERE "schoolId"=${schoolId} AND status='PENDING'
+    `),
+    prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::bigint AS count
+      FROM "FeeRecoveryBatch"
+      WHERE "schoolId"=${schoolId} AND status='SUBMITTED'
+    `),
+  ]);
+
+  res.json({
+    approvals,
+    notifications,
+    leave: Number(leaveRows[0]?.count ?? 0),
+    feeHandovers: Number(feeRows[0]?.count ?? 0),
+  });
+});
+
 router.get('/staff', requireRoles('STAFF'), async (req, res) => {
   const schoolId = req.auth!.schoolId!;
   const staffId = req.auth!.userId;

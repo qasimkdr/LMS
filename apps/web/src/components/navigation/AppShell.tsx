@@ -27,6 +27,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import {
+  Badge,
   Button,
   IconButton,
   List,
@@ -39,8 +40,16 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthProvider";
+import { api } from "../../lib/api";
 
 type NavItem = { to: string; label: string; icon: any };
+
+type NavigationBadges = {
+  approvals: number;
+  notifications: number;
+  leave: number;
+  feeHandovers: number;
+};
 
 type Role =
   "SUPER_ADMIN" | "PRINCIPAL" | "STAFF" | "TEACHER" | "STUDENT" | "PARENT";
@@ -297,7 +306,26 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [badges, setBadges] = useState<NavigationBadges | null>(null);
   useEffect(() => setOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (user?.role !== "PRINCIPAL") {
+      setBadges(null);
+      return;
+    }
+    let active = true;
+    const loadBadges = () =>
+      api
+        .get<NavigationBadges>("/dashboard/navigation-badges")
+        .then(({ data }) => active && setBadges(data))
+        .catch(() => undefined);
+    void loadBadges();
+    const timer = window.setInterval(loadBadges, 45_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [user?.role, location.pathname]);
   const items = useMemo(() => (user ? nav[user.role] : []), [user]);
   if (!user) return <>{children}</>;
   const schoolName = user.school?.name ?? "Nexora LMS";
@@ -380,6 +408,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 ? location.pathname === to
                 : location.pathname === to ||
                   location.pathname.startsWith(`${to}/`);
+              const pendingCount =
+                to === "/principal/approvals"
+                  ? badges?.approvals
+                  : to === "/principal/leave"
+                    ? badges?.leave
+                    : to === "/principal/fees"
+                      ? badges?.feeHandovers
+                      : to === "/notifications"
+                        ? badges?.notifications
+                        : 0;
               return (
                 <ListItemButton
                   key={`${to}-${label}`}
@@ -403,7 +441,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>
-                    <Icon sx={{ fontSize: 21 }} />
+                    <Badge
+                      color="error"
+                      variant="dot"
+                      invisible={!pendingCount}
+                      overlap="circular"
+                    >
+                      <Icon sx={{ fontSize: 21 }} />
+                    </Badge>
                   </ListItemIcon>
                   <ListItemText
                     primary={label}
