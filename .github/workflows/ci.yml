@@ -54,10 +54,25 @@ jobs:
         run: |
           psql -h localhost -U postgres -d nexora -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN"
           psql -h localhost -U postgres -d nexora -v ON_ERROR_STOP=1 -c "CREATE ROLE authenticated NOLOGIN"
-      - name: Apply database-only constraints and grants
+      - name: Apply idempotent operational SQL
+        shell: bash
         run: |
-          npx prisma db execute --schema packages/database/prisma/schema.prisma --file packages/database/prisma/migrations/20260907210000_fee_constraints_forward_fix/migration.sql
-          npx prisma db execute --schema packages/database/prisma/schema.prisma --file packages/database/prisma/migrations/20260909113500_lock_down_backend_tables/migration.sql
+          set -euo pipefail
+          for migration in \
+            packages/database/prisma/migrations/20260907183000_campus_management/migration.sql \
+            packages/database/prisma/migrations/20260907194500_fee_recovery_batches/migration.sql \
+            packages/database/prisma/migrations/20260907195500_fee_invoices/migration.sql \
+            packages/database/prisma/migrations/20260907203000_refresh_sessions/migration.sql \
+            packages/database/prisma/migrations/20260907_academic_terms/migration.sql \
+            packages/database/prisma/migrations/20260907_fee_installments_adjustments/migration.sql \
+            packages/database/prisma/migrations/20260907_school_calendar/migration.sql \
+            packages/database/prisma/migrations/20260907_storage_objects/migration.sql \
+            packages/database/prisma/migrations/20260909113000_people_profiles/migration.sql \
+            packages/database/prisma/migrations/20260907210000_fee_constraints_forward_fix/migration.sql \
+            packages/database/prisma/migrations/20260909113500_lock_down_backend_tables/migration.sql
+          do
+            npx prisma db execute --schema packages/database/prisma/schema.prisma --file "$migration"
+          done
       - name: Generate Prisma client
         run: npm run db:generate
       - name: Build database package
