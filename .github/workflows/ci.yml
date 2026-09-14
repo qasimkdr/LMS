@@ -54,14 +54,10 @@ jobs:
         run: |
           psql -h localhost -U postgres -d nexora -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN"
           psql -h localhost -U postgres -d nexora -v ON_ERROR_STOP=1 -c "CREATE ROLE authenticated NOLOGIN"
-      - name: Replay operational SQL migrations
-        shell: bash
+      - name: Apply database-only constraints and grants
         run: |
-          set -euo pipefail
-          while IFS= read -r migration; do
-            echo "Applying ${migration}"
-            npx prisma db execute --schema packages/database/prisma/schema.prisma --file "${migration}"
-          done < <(find packages/database/prisma/migrations -mindepth 2 -maxdepth 2 -name migration.sql | sort)
+          npx prisma db execute --schema packages/database/prisma/schema.prisma --file packages/database/prisma/migrations/20260907210000_fee_constraints_forward_fix/migration.sql
+          npx prisma db execute --schema packages/database/prisma/schema.prisma --file packages/database/prisma/migrations/20260909113500_lock_down_backend_tables/migration.sql
       - name: Generate Prisma client
         run: npm run db:generate
       - name: Build database package
