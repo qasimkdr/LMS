@@ -128,7 +128,8 @@ async function main() {
     assert.match(setCookie, /nexora_refresh=/);
     assert.match(setCookie, /HttpOnly/i);
     assert.match(setCookie, /Secure/i, 'Production refresh cookie must be Secure');
-    assert.match(setCookie, /SameSite=Lax/i);
+    assert.match(setCookie, /SameSite=None/i, 'Cross-origin production cookie must use SameSite=None');
+    assert.match(setCookie, /Partitioned/i, 'Cross-origin production cookie must use CHIPS partitioning');
     assert.match(setCookie, /Path=\/api\/auth/i);
 
     const blockedLogin = await fetch(`${BASE}/auth/login`, {
