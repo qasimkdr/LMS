@@ -290,7 +290,10 @@ const commonPersonFields = {
   whatsappNo: z.string().max(40).optional(),
   address: z.string().max(500).optional(),
   dateOfBirth: z.coerce.date().optional(),
-  gender: z.string().max(40).optional(),
+  gender: z.preprocess(
+    (value) => typeof value === "string" ? value.toUpperCase() : value,
+    z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
+  ),
   profileData: profileDataSchema,
 };
 const personSchema = z.object({
@@ -313,16 +316,15 @@ router.post("/users", async (req, res) => {
     return res
       .status(400)
       .json({ message: "Invalid user data", issues: parsed.error.flatten() });
-  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+  const { password, profileData, ...personData } = parsed.data;
+  const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
     data: {
       schoolId,
-      role: parsed.data.role,
-      firstName: parsed.data.firstName,
-      lastName: parsed.data.lastName,
-      email: parsed.data.email.toLowerCase(),
-      username: parsed.data.username,
+      ...personData,
+      email: personData.email.toLowerCase(),
       passwordHash,
+      profileData: profileData as any,
     },
   });
   await prisma.auditLog.create({
@@ -562,7 +564,7 @@ const studentSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(8),
   admissionNo: z.string().min(1),
-  classId: z.string().uuid().optional(),
+  classId: z.string().uuid(),
   section: z.string().optional(),
   guardianPhone: z.string().optional(),
   ...commonPersonFields,
@@ -584,6 +586,12 @@ router.post("/students", async (req, res) => {
     profileData,
     ...userData
   } = parsed.data;
+  const selectedClass = await prisma.class.findFirst({
+    where: { id: classId, schoolId },
+    select: { id: true, section: true },
+  });
+  if (!selectedClass)
+    return res.status(400).json({ message: "Select a valid class from this school" });
   const passwordHash = await bcrypt.hash(password, 12);
   const student = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
@@ -602,7 +610,7 @@ router.post("/students", async (req, res) => {
         userId: user.id,
         admissionNo,
         classId,
-        section,
+        section: selectedClass.section ?? section,
         guardianPhone,
       },
     });
@@ -644,13 +652,11 @@ router.patch("/students/:id", async (req, res) => {
     include: { user: true },
   });
   if (!before) return res.status(404).json({ message: "Student not found" });
-  if (
-    p.data.classId &&
-    !(await prisma.class.findFirst({ where: { id: p.data.classId, schoolId } }))
-  )
-    return res
-      .status(400)
-      .json({ message: "Class does not belong to this school" });
+  const selectedClass = p.data.classId
+    ? await prisma.class.findFirst({ where: { id: p.data.classId, schoolId }, select: { section: true } })
+    : null;
+  if (p.data.classId && !selectedClass)
+    return res.status(400).json({ message: "Class does not belong to this school" });
   const {
     firstName,
     lastName,
@@ -665,6 +671,7 @@ router.patch("/students/:id", async (req, res) => {
     dateOfBirth,
     gender,
     profileData,
+    section: requestedSection,
     ...profile
   } = p.data;
   const row = await prisma.$transaction(async (tx) => {
@@ -703,7 +710,14 @@ router.patch("/students/:id", async (req, res) => {
       });
     const updated = await tx.studentProfile.update({
       where: { id },
-      data: profile,
+      data: {
+        ...profile,
+        ...(p.data.classId !== undefined
+          ? { section: selectedClass?.section ?? null }
+          : requestedSection !== undefined
+            ? { section: requestedSection }
+            : {}),
+      },
     });
     await tx.auditLog.create({
       data: {

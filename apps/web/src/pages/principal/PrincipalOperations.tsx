@@ -16,6 +16,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  MenuItem,
   Skeleton,
   TextField,
 } from "@mui/material";
@@ -178,6 +179,7 @@ export default function PrincipalOperations() {
       admissionNo: selected.studentProfile?.admissionNo ?? "",
       classId: selected.studentProfile?.classId ?? selected.studentProfile?.class?.id ?? "",
       section: selected.studentProfile?.section ?? "",
+      gender: typeof selected.gender === "string" ? selected.gender.toUpperCase() : "",
       guardianPhone: selected.studentProfile?.guardianPhone ?? "",
       profileData: selected.profileData ?? {},
     });
@@ -703,21 +705,21 @@ export default function PrincipalOperations() {
                 />
                 <TextField
                   select
-                  SelectProps={{ native: true }}
-                  label="Class"
+                  label="Class & section"
                   value={form.classId ?? ""}
-                  onChange={(e) =>
-                    setForm({ ...form, classId: e.target.value || undefined })
-                  }
+                  onChange={(e) => { const selectedClass = data?.classes.find((c) => c.id === e.target.value); setForm({ ...form, classId: e.target.value || undefined, section: selectedClass?.section ?? "" }); }}
+                  helperText={data?.classes.length ? "Classes created by the Principal appear here." : "Create a class before admitting a student."}
                 >
-                  <option value="">Select class</option>
+                  <MenuItem value="">Select class</MenuItem>
                   {data?.classes.map((c) => (
-                    <option key={c.id} value={c.id}>
+                    <MenuItem key={c.id} value={c.id}>
                       {c.name}
                       {c.section ? ` - ${c.section}` : ""}
-                    </option>
+                      {c.academicYear ? ` · ${c.academicYear}` : ""}
+                    </MenuItem>
                   ))}
                 </TextField>
+                <TextField label="Section" value={form.section || "Assigned from selected class"} disabled />
                 <F
                   label="Guardian phone"
                   v={form.guardianPhone}
@@ -784,15 +786,51 @@ export default function PrincipalOperations() {
                   }
                 />
                 <F
-                  label="Nationality / religion / blood group"
-                  v={form.profileData?.identityDetails}
+                  label="Nationality"
+                  v={form.profileData?.nationality}
                   s={(v) =>
                     setForm({
                       ...form,
-                      profileData: { ...form.profileData, identityDetails: v },
+                      profileData: { ...form.profileData, nationality: v },
                     })
                   }
                 />
+                <F
+                  label="Religion"
+                  v={form.profileData?.religion}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, religion: v },
+                    })
+                  }
+                />
+                <F
+                  label="Sect"
+                  placeholder="Sunni, Shia"
+                  v={form.profileData?.sect}
+                  s={(v) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, sect: v },
+                    })
+                  }
+                />
+                <TextField
+                  select
+                  label="Blood group"
+                  value={form.profileData?.bloodGroup ?? ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      profileData: { ...form.profileData, bloodGroup: e.target.value },
+                    })
+                  }
+                  fullWidth
+                >
+                  <MenuItem value="">Select blood group</MenuItem>
+                  {BLOOD_GROUPS.map((group) => <MenuItem key={group} value={group}>{group}</MenuItem>)}
+                </TextField>
                 <F
                   label="Medical conditions, allergies and accessibility needs"
                   v={form.profileData?.medicalNotes}
@@ -814,7 +852,7 @@ export default function PrincipalOperations() {
           <Button
             variant="contained"
             onClick={() => void submit()}
-            disabled={saving}
+            disabled={saving || (modal === "student" && (!form.classId || !data?.classes.length))}
             sx={{ borderRadius: 3, fontWeight: 900 }}
           >
             {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
@@ -1002,22 +1040,27 @@ function F({
   v,
   s,
   type = "text",
+  placeholder,
 }: {
   label: string;
   v?: string;
   s: (v: string) => void;
   type?: string;
+  placeholder?: string;
 }) {
   return (
     <TextField
       label={label}
       value={v ?? ""}
       type={type}
+      placeholder={placeholder}
       onChange={(e) => s(e.target.value)}
       fullWidth
     />
   );
 }
+
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 function PersonFields({
   form,
   setForm,
@@ -1065,16 +1108,10 @@ function PersonFields({
         v={form.cnic}
         s={(v) => setForm({ ...form, cnic: v })}
       />
-      <F
-        label="Date of birth (YYYY-MM-DD)"
-        v={form.dateOfBirth}
-        s={(v) => setForm({ ...form, dateOfBirth: v })}
-      />
-      <F
-        label="Gender"
-        v={form.gender}
-        s={(v) => setForm({ ...form, gender: v })}
-      />
+      <TextField type="date" label="Date of birth" value={form.dateOfBirth ?? ""} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} InputLabelProps={{ shrink: true }} />
+      <TextField select label="Gender" value={form.gender ?? ""} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+        <MenuItem value="">Select gender</MenuItem><MenuItem value="MALE">Male</MenuItem><MenuItem value="FEMALE">Female</MenuItem><MenuItem value="OTHER">Other</MenuItem>
+      </TextField>
       <F
         label="Phone number"
         v={form.phone}
@@ -1185,7 +1222,6 @@ function PersonEditFields({ form, setForm, classes }: { form: any; setForm: (x: 
         ["motherDetails", "Mother details"],
         ["emergencyContact", "Emergency contact"],
         ["previousSchool", "Previous school and leaving reason"],
-        ["identityDetails", "Nationality / religion / blood group"],
         ["medicalNotes", "Medical and accessibility notes"],
       ]
     : [
@@ -1204,8 +1240,10 @@ function PersonEditFields({ form, setForm, classes }: { form: any; setForm: (x: 
       <F label="Email" v={form.email} s={(v) => set("email", v)} />
       {form.role !== "STUDENT" && <F label="Username" v={form.username} s={(v) => set("username", v)} />}
       <F label="CNIC / B-Form" v={form.cnic} s={(v) => set("cnic", v)} />
-      <F label="Date of birth (YYYY-MM-DD)" v={form.dateOfBirth} s={(v) => set("dateOfBirth", v)} />
-      <F label="Gender" v={form.gender} s={(v) => set("gender", v)} />
+      <TextField type="date" label="Date of birth" value={form.dateOfBirth ?? ""} onChange={(e) => set("dateOfBirth", e.target.value)} InputLabelProps={{ shrink: true }} />
+      <TextField select label="Gender" value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value)}>
+        <MenuItem value="">Select gender</MenuItem><MenuItem value="MALE">Male</MenuItem><MenuItem value="FEMALE">Female</MenuItem><MenuItem value="OTHER">Other</MenuItem>
+      </TextField>
       <F label="Phone number" v={form.phone} s={(v) => set("phone", v)} />
       <F label="Second phone number" v={form.alternatePhone} s={(v) => set("alternatePhone", v)} />
       <F label="WhatsApp number" v={form.whatsappNo} s={(v) => set("whatsappNo", v)} />
@@ -1213,12 +1251,19 @@ function PersonEditFields({ form, setForm, classes }: { form: any; setForm: (x: 
       {form.role === "STUDENT" && (
         <>
           <F label="Admission no" v={form.admissionNo} s={(v) => set("admissionNo", v)} />
-          <TextField select SelectProps={{ native: true }} label="Class" value={form.classId ?? ""} onChange={(e) => set("classId", e.target.value)}>
-            <option value="">No class</option>
-            {classes.map((c) => <option key={c.id} value={c.id}>{c.name}{c.section ? ` - ${c.section}` : ""}</option>)}
+          <TextField select label="Class & section" value={form.classId ?? ""} onChange={(e) => { const selectedClass = classes.find((c) => c.id === e.target.value); setForm({ ...form, classId: e.target.value, section: selectedClass?.section ?? "" }); }}>
+            <MenuItem value="">No class</MenuItem>
+            {classes.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}{c.section ? ` - ${c.section}` : ""}{c.academicYear ? ` · ${c.academicYear}` : ""}</MenuItem>)}
           </TextField>
-          <F label="Section" v={form.section} s={(v) => set("section", v)} />
+          <TextField label="Section" value={form.section || "Assigned from selected class"} disabled />
           <F label="Guardian phone" v={form.guardianPhone} s={(v) => set("guardianPhone", v)} />
+          <F label="Nationality" v={form.profileData?.nationality} s={(v) => setProfile("nationality", v)} />
+          <F label="Religion" v={form.profileData?.religion} s={(v) => setProfile("religion", v)} />
+          <F label="Sect" placeholder="Sunni, Shia" v={form.profileData?.sect} s={(v) => setProfile("sect", v)} />
+          <TextField select label="Blood group" value={form.profileData?.bloodGroup ?? ""} onChange={(e) => setProfile("bloodGroup", e.target.value)}>
+            <MenuItem value="">Select blood group</MenuItem>
+            {BLOOD_GROUPS.map((group) => <MenuItem key={group} value={group}>{group}</MenuItem>)}
+          </TextField>
         </>
       )}
       {profileFields.map(([key, label]) => (
