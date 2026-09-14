@@ -26,9 +26,18 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import { Button, IconButton, Tooltip, Typography } from "@mui/material";
+import {
+  Button,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthProvider";
 
 type NavItem = { to: string; label: string; icon: any };
@@ -299,12 +308,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
     navigate("/login", { replace: true });
   };
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_10%_10%,#e8f1ff_0,#f8fbff_33%,#fff7ed_72%,#f8f5ff_100%)] text-slate-900 lg:grid lg:grid-cols-[290px_minmax(0,1fr)]">
+    <div className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[290px_minmax(0,1fr)]">
       <Tooltip title="Open navigation">
         <IconButton
           aria-label="Open navigation"
           onClick={() => setOpen(true)}
-          className="fixed! left-4 top-4 z-[70] h-12! w-12! bg-gradient-to-br! from-blue-600! via-violet-600! to-fuchsia-500! text-white! shadow-[0_16px_40px_rgba(79,70,229,.35)]! lg:hidden!"
+          className="fixed! left-4 top-4 z-[70] h-12! w-12! bg-blue-600! text-white! shadow-[0_14px_34px_rgba(37,99,235,.28)]! lg:hidden!"
         >
           <MenuRoundedIcon />
         </IconButton>
@@ -320,11 +329,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
         className={`fixed inset-y-0 left-0 z-[90] flex w-[290px] flex-col overflow-hidden border-r border-white/70 bg-white/80 p-4 shadow-[24px_0_80px_rgba(30,41,59,.15)] backdrop-blur-2xl transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="pointer-events-none absolute -left-24 -top-20 h-56 w-56 rounded-full bg-blue-400/25 blur-3xl" />
-        <div className="pointer-events-none absolute -right-24 top-40 h-56 w-56 rounded-full bg-fuchsia-400/20 blur-3xl" />
-        <div className="relative rounded-[26px] bg-gradient-to-br from-blue-600 via-violet-600 to-fuchsia-500 p-[1px] shadow-[0_20px_55px_rgba(79,70,229,.30)]">
-          <div className="rounded-[25px] bg-slate-950/92 p-4 text-white">
+        <div className="pointer-events-none absolute -right-24 top-40 h-56 w-56 rounded-full bg-emerald-300/15 blur-3xl" />
+        <div className="relative rounded-[26px] border border-slate-200 bg-white p-[1px] shadow-[0_18px_45px_rgba(51,65,85,.12)]">
+          <div className="rounded-[24px] bg-slate-50 p-4 text-slate-900">
             <div className="flex items-start justify-between">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 via-blue-500 to-violet-500 shadow-lg">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-600 text-white shadow-lg">
                 <SchoolRoundedIcon />
               </div>
               <IconButton
@@ -338,7 +347,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <Typography
               component="p"
               variant="overline"
-              className="mt-4! text-cyan-300!"
+              className="mt-4! text-blue-600!"
             >
               Nexora LMS
             </Typography>
@@ -346,50 +355,75 @@ export default function AppShell({ children }: { children: ReactNode }) {
               component="h2"
               variant="h6"
               noWrap
-              className="mt-1! text-white!"
+              className="mt-1! text-slate-900!"
             >
               {schoolName}
             </Typography>
-            <div className="mt-2 flex items-center gap-2 text-xs font-bold text-white/60">
+            <div className="mt-2 flex items-center gap-2 text-xs font-bold text-slate-500">
               <AutoAwesomeRoundedIcon sx={{ fontSize: 15 }} />
               <span>{roleTitle[user.role]}</span>
             </div>
           </div>
         </div>
-        <nav className="relative mt-4 flex-1 space-y-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
-          {items.map(({ to, label, icon: Icon }, index) => (
-            <NavLink
-              key={`${to}-${label}`}
-              to={to}
-              end={
-                to === "/" ||
-                to === "/principal" ||
-                to === "/staff" ||
-                to === "/teacher" ||
-                to === "/student" ||
-                to === "/parent" ||
-                to === "/super-admin"
-              }
-              className={({ isActive }) =>
-                `group relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-3 text-sm font-extrabold transition-all duration-300 ${isActive ? "translate-x-1 bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-500 text-white shadow-[0_12px_32px_rgba(79,70,229,.28)]" : "text-slate-600 hover:translate-x-1 hover:-translate-y-[1px] hover:bg-white hover:text-slate-950 hover:shadow-[0_12px_35px_rgba(15,23,42,.10)]"}`
-              }
-              style={{ animationDelay: `${index * 18}ms` }}
-            >
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-              <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100/80 text-slate-600 transition duration-300 group-hover:rotate-3 group-hover:scale-110 group-[.active]:text-white">
-                <Icon sx={{ fontSize: 20 }} />
-              </span>
-              <span className="relative min-w-0 flex-1 truncate">{label}</span>
-              <ChevronRightRoundedIcon
-                className="relative opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100"
-                sx={{ fontSize: 18 }}
-              />
-            </NavLink>
-          ))}
+        <nav className="relative mt-4 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+          <List disablePadding className="space-y-1">
+            {items.map(({ to, label, icon: Icon }) => {
+              const rootRoute = [
+                "/principal",
+                "/staff",
+                "/teacher",
+                "/student",
+                "/parent",
+                "/super-admin",
+              ].includes(to);
+              const active = rootRoute
+                ? location.pathname === to
+                : location.pathname === to ||
+                  location.pathname.startsWith(`${to}/`);
+              return (
+                <ListItemButton
+                  key={`${to}-${label}`}
+                  selected={active}
+                  onClick={() => navigate(to)}
+                  sx={{
+                    borderRadius: 3,
+                    minHeight: 48,
+                    color: "#64748b",
+                    "&:hover": {
+                      bgcolor: "#eff6ff",
+                      color: "#1d4ed8",
+                      transform: "translateX(4px)",
+                    },
+                    "&.Mui-selected": {
+                      bgcolor: "#ecfdf5",
+                      color: "#047857",
+                      boxShadow: "inset 3px 0 #10b981",
+                      "&:hover": { bgcolor: "#d1fae5" },
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 40, color: "inherit" }}>
+                    <Icon sx={{ fontSize: 21 }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={label}
+                    primaryTypographyProps={{
+                      fontSize: 14,
+                      fontWeight: 850,
+                      noWrap: true,
+                    }}
+                  />
+                  <ChevronRightRoundedIcon
+                    sx={{ fontSize: 18, opacity: active ? 1 : 0.3 }}
+                  />
+                </ListItemButton>
+              );
+            })}
+          </List>
         </nav>
         <div className="relative mt-3 rounded-[24px] border border-white bg-white/80 p-3 shadow-[0_14px_40px_rgba(15,23,42,.08)]">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 via-cyan-500 to-blue-600 font-black text-white shadow-lg">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 font-black text-white shadow-lg">
               {initials}
             </div>
             <div className="min-w-0">
@@ -420,7 +454,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <section className="min-w-0 pt-16 lg:pt-0">
         <header className="sticky top-0 z-[60] border-b border-white/70 bg-white/75 px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,.08)] backdrop-blur-2xl sm:px-7">
           <div className="mx-auto flex max-w-[1500px] items-center gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 text-white shadow-lg">
+            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-blue-600 text-white shadow-lg">
               {user.school?.logoUrl ? (
                 <img
                   src={user.school.logoUrl}
@@ -448,11 +482,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
                     : "Learning, progress and school operations")}
               </Typography>
             </div>
-            <div className="hidden rounded-2xl bg-gradient-to-r from-blue-50 to-violet-50 px-4 py-2 text-right sm:block">
+            <div className="hidden rounded-2xl bg-blue-50 px-4 py-2 text-right sm:block">
               <Typography
                 variant="overline"
                 component="p"
-                className="text-violet-500!"
+                className="text-blue-600!"
               >
                 Current workspace
               </Typography>

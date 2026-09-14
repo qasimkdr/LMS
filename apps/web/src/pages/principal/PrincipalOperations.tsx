@@ -106,6 +106,8 @@ export default function PrincipalOperations() {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [visibleClasses, setVisibleClasses] = useState(6);
+  const [visibleSubjects, setVisibleSubjects] = useState(6);
   const [selected, setSelected] = useState<any>(null);
   const [editPerson, setEditPerson] = useState<any>(null);
   const load = async () => {
@@ -149,18 +151,6 @@ export default function PrincipalOperations() {
     const timer = window.setTimeout(() => void loadPeople(true), 250);
     return () => window.clearTimeout(timer);
   }, [query, roleFilter, statusFilter]);
-  useEffect(() => {
-    const sentinel = document.getElementById("people-load-more");
-    if (!sentinel || !peopleCursor) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) void loadPeople(false);
-      },
-      { rootMargin: "240px" },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [peopleCursor, peopleLoading]);
   const openPerson = async (id: string) => {
     try {
       const { data } = await api.get(`/school-operations/people/${id}`);
@@ -177,9 +167,15 @@ export default function PrincipalOperations() {
         ? new Date(selected.dateOfBirth).toISOString().slice(0, 10)
         : "",
       admissionNo: selected.studentProfile?.admissionNo ?? "",
-      classId: selected.studentProfile?.classId ?? selected.studentProfile?.class?.id ?? "",
+      classId:
+        selected.studentProfile?.classId ??
+        selected.studentProfile?.class?.id ??
+        "",
       section: selected.studentProfile?.section ?? "",
-      gender: typeof selected.gender === "string" ? selected.gender.toUpperCase() : "",
+      gender:
+        typeof selected.gender === "string"
+          ? selected.gender.toUpperCase()
+          : "",
       guardianPhone: selected.studentProfile?.guardianPhone ?? "",
       profileData: selected.profileData ?? {},
     });
@@ -197,7 +193,9 @@ export default function PrincipalOperations() {
         firstName: editPerson.firstName,
         lastName: editPerson.lastName,
         email: editPerson.email,
-        ...(isStudent ? {} : { username: editPerson.username, role: editPerson.role }),
+        ...(isStudent
+          ? {}
+          : { username: editPerson.username, role: editPerson.role }),
         cnic: editPerson.cnic || undefined,
         phone: editPerson.phone || undefined,
         alternatePhone: editPerson.alternatePhone || undefined,
@@ -230,11 +228,17 @@ export default function PrincipalOperations() {
   };
   const deletePerson = async () => {
     if (!selected) return;
-    if (!window.confirm(`Permanently delete ${selected.firstName} ${selected.lastName}? Accounts with school history will be protected.`)) return;
+    if (
+      !window.confirm(
+        `Permanently delete ${selected.firstName} ${selected.lastName}? Accounts with school history will be protected.`,
+      )
+    )
+      return;
     try {
-      const path = selected.role === "STUDENT"
-        ? `/school-operations/students/${selected.studentProfile.id}`
-        : `/school-operations/users/${selected.id}`;
+      const path =
+        selected.role === "STUDENT"
+          ? `/school-operations/students/${selected.studentProfile.id}`
+          : `/school-operations/users/${selected.id}`;
       await api.delete(path);
       setSelected(null);
       await load();
@@ -432,8 +436,8 @@ export default function PrincipalOperations() {
                     People directory
                   </h2>
                   <p className="text-sm text-slate-500">
-                    Cards load in small pages as you scroll. Select a card for
-                    the full record.
+                    The first page loads automatically. Select Show more only
+                    when you want another page of records.
                   </p>
                 </div>
                 <div className="grid w-full gap-2 md:grid-cols-3 xl:w-auto">
@@ -517,18 +521,42 @@ export default function PrincipalOperations() {
                     {person.studentProfile ? (
                       <div className="mt-3">
                         <p className="text-xs font-bold text-slate-500">
-                          {person.studentProfile.admissionNo} · {person.studentProfile.class
+                          {person.studentProfile.admissionNo} ·{" "}
+                          {person.studentProfile.class
                             ? `${person.studentProfile.class.name}${person.studentProfile.class.section ? ` - ${person.studentProfile.class.section}` : ""}`
                             : "No class"}
                         </p>
                         <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                          <div className="rounded-xl bg-blue-50 px-2 py-2"><b className="block text-blue-700">{person.performance?.attendanceRate ?? 0}%</b><span className="text-[10px] text-slate-500">Attendance</span></div>
-                          <div className="rounded-xl bg-violet-50 px-2 py-2"><b className="block text-violet-700">{person.performance?.academicAverage ?? 0}%</b><span className="text-[10px] text-slate-500">Academic</span></div>
-                          <div className="rounded-xl bg-emerald-50 px-2 py-2"><b className="block text-emerald-700">{person.performance?.examsTaken ?? 0}</b><span className="text-[10px] text-slate-500">Exams</span></div>
+                          <div className="rounded-xl bg-blue-50 px-2 py-2">
+                            <b className="block text-blue-700">
+                              {person.performance?.attendanceRate ?? 0}%
+                            </b>
+                            <span className="text-[10px] text-slate-500">
+                              Attendance
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-violet-50 px-2 py-2">
+                            <b className="block text-violet-700">
+                              {person.performance?.academicAverage ?? 0}%
+                            </b>
+                            <span className="text-[10px] text-slate-500">
+                              Academic
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-emerald-50 px-2 py-2">
+                            <b className="block text-emerald-700">
+                              {person.performance?.examsTaken ?? 0}
+                            </b>
+                            <span className="text-[10px] text-slate-500">
+                              Exams
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      <p className="mt-3 text-xs font-bold text-slate-500">{person.phone || person.cnic || "Open full record"}</p>
+                      <p className="mt-3 text-xs font-bold text-slate-500">
+                        {person.phone || person.cnic || "Open full record"}
+                      </p>
                     )}
                   </button>
                 ))}
@@ -538,8 +566,24 @@ export default function PrincipalOperations() {
                   No matching people.
                 </div>
               )}
-              <div id="people-load-more" className="py-4 text-center">
-                {peopleLoading && <CircularProgress size={24} />}
+              <div className="flex justify-center py-5">
+                {peopleCursor && (
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => void loadPeople(false)}
+                    disabled={peopleLoading}
+                    startIcon={
+                      peopleLoading ? (
+                        <CircularProgress size={19} color="inherit" />
+                      ) : (
+                        <GroupsRoundedIcon />
+                      )
+                    }
+                  >
+                    {peopleLoading ? "Loading records…" : "Show more"}
+                  </Button>
+                )}
                 {!peopleCursor && people.length > 0 && (
                   <span className="text-xs font-bold text-slate-400">
                     All matching records loaded
@@ -553,7 +597,7 @@ export default function PrincipalOperations() {
               </h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
-                  {data?.classes.map((c) => (
+                  {data?.classes.slice(0, visibleClasses).map((c) => (
                     <div
                       key={c.id}
                       className="mb-2 rounded-2xl bg-blue-50 p-3 text-sm font-black text-blue-800"
@@ -591,9 +635,20 @@ export default function PrincipalOperations() {
                       </div>
                     </div>
                   ))}
+                  {(data?.classes.length ?? 0) > visibleClasses && (
+                    <div className="mt-3 flex justify-center">
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => setVisibleClasses((count) => count + 6)}
+                      >
+                        Show more classes
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div>
-                  {data?.subjects.map((s) => (
+                  {data?.subjects.slice(0, visibleSubjects).map((s) => (
                     <div
                       key={s.id}
                       className="mb-2 rounded-2xl bg-violet-50 p-3 text-sm font-black text-violet-800"
@@ -631,6 +686,17 @@ export default function PrincipalOperations() {
                       </div>
                     </div>
                   ))}
+                  {(data?.subjects.length ?? 0) > visibleSubjects && (
+                    <div className="mt-3 flex justify-center">
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => setVisibleSubjects((count) => count + 6)}
+                      >
+                        Show more subjects
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -707,8 +773,21 @@ export default function PrincipalOperations() {
                   select
                   label="Class & section"
                   value={form.classId ?? ""}
-                  onChange={(e) => { const selectedClass = data?.classes.find((c) => c.id === e.target.value); setForm({ ...form, classId: e.target.value || undefined, section: selectedClass?.section ?? "" }); }}
-                  helperText={data?.classes.length ? "Classes created by the Principal appear here." : "Create a class before admitting a student."}
+                  onChange={(e) => {
+                    const selectedClass = data?.classes.find(
+                      (c) => c.id === e.target.value,
+                    );
+                    setForm({
+                      ...form,
+                      classId: e.target.value || undefined,
+                      section: selectedClass?.section ?? "",
+                    });
+                  }}
+                  helperText={
+                    data?.classes.length
+                      ? "Classes created by the Principal appear here."
+                      : "Create a class before admitting a student."
+                  }
                 >
                   <MenuItem value="">Select class</MenuItem>
                   {data?.classes.map((c) => (
@@ -719,7 +798,11 @@ export default function PrincipalOperations() {
                     </MenuItem>
                   ))}
                 </TextField>
-                <TextField label="Section" value={form.section || "Assigned from selected class"} disabled />
+                <TextField
+                  label="Section"
+                  value={form.section || "Assigned from selected class"}
+                  disabled
+                />
                 <F
                   label="Guardian phone"
                   v={form.guardianPhone}
@@ -823,13 +906,20 @@ export default function PrincipalOperations() {
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      profileData: { ...form.profileData, bloodGroup: e.target.value },
+                      profileData: {
+                        ...form.profileData,
+                        bloodGroup: e.target.value,
+                      },
                     })
                   }
                   fullWidth
                 >
                   <MenuItem value="">Select blood group</MenuItem>
-                  {BLOOD_GROUPS.map((group) => <MenuItem key={group} value={group}>{group}</MenuItem>)}
+                  {BLOOD_GROUPS.map((group) => (
+                    <MenuItem key={group} value={group}>
+                      {group}
+                    </MenuItem>
+                  ))}
                 </TextField>
                 <F
                   label="Medical conditions, allergies and accessibility needs"
@@ -852,7 +942,10 @@ export default function PrincipalOperations() {
           <Button
             variant="contained"
             onClick={() => void submit()}
-            disabled={saving || (modal === "student" && (!form.classId || !data?.classes.length))}
+            disabled={
+              saving ||
+              (modal === "student" && (!form.classId || !data?.classes.length))
+            }
             sx={{ borderRadius: 3, fontWeight: 900 }}
           >
             {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
@@ -964,18 +1057,42 @@ export default function PrincipalOperations() {
               )}
               {selected.performance && (
                 <div className="mt-5 rounded-[24px] bg-gradient-to-r from-blue-50 via-violet-50 to-emerald-50 p-5">
-                  <p className="text-xs font-black uppercase tracking-wider text-indigo-600">Class performance · {selected.performance.term?.name ?? "All time"}</p>
+                  <p className="text-xs font-black uppercase tracking-wider text-indigo-600">
+                    Class performance ·{" "}
+                    {selected.performance.term?.name ?? "All time"}
+                  </p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     {[
                       ["Attendance", `${selected.performance.attendanceRate}%`],
-                      ["Academic average", `${selected.performance.academicAverage}%`],
+                      [
+                        "Academic average",
+                        `${selected.performance.academicAverage}%`,
+                      ],
                       ["Exam average", `${selected.performance.examAverage}%`],
-                      ["Assignment average", `${selected.performance.assignmentAverage}%`],
-                      ["Manual test average", `${selected.performance.manualTestAverage}%`],
+                      [
+                        "Assignment average",
+                        `${selected.performance.assignmentAverage}%`,
+                      ],
+                      [
+                        "Manual test average",
+                        `${selected.performance.manualTestAverage}%`,
+                      ],
                       ["Exams taken", selected.performance.examsTaken],
-                      ["Graded assignments", selected.performance.gradedAssignments],
+                      [
+                        "Graded assignments",
+                        selected.performance.gradedAssignments,
+                      ],
                       ["Manual tests", selected.performance.manualTestsTaken],
-                    ].map(([label, value]) => <div key={label} className="rounded-2xl bg-white/80 p-3"><p className="text-[10px] font-black uppercase text-slate-400">{label}</p><p className="mt-1 text-xl font-black text-slate-900">{value}</p></div>)}
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-2xl bg-white/80 p-3">
+                        <p className="text-[10px] font-black uppercase text-slate-400">
+                          {label}
+                        </p>
+                        <p className="mt-1 text-xl font-black text-slate-900">
+                          {value}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -1021,14 +1138,28 @@ export default function PrincipalOperations() {
         <DialogContent>
           {editPerson && (
             <div className="grid gap-4 pt-2 sm:grid-cols-2">
-              <PersonEditFields form={editPerson} setForm={setEditPerson} classes={data?.classes ?? []} />
+              <PersonEditFields
+                form={editPerson}
+                setForm={setEditPerson}
+                classes={data?.classes ?? []}
+              />
             </div>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setEditPerson(null)} disabled={saving}>Cancel</Button>
-          <Button variant="contained" onClick={() => void savePersonEdit()} disabled={saving}>
-            {saving ? <CircularProgress size={20} color="inherit" /> : "Save changes"}
+          <Button onClick={() => setEditPerson(null)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => void savePersonEdit()}
+            disabled={saving}
+          >
+            {saving ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "Save changes"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1108,9 +1239,23 @@ function PersonFields({
         v={form.cnic}
         s={(v) => setForm({ ...form, cnic: v })}
       />
-      <TextField type="date" label="Date of birth" value={form.dateOfBirth ?? ""} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} InputLabelProps={{ shrink: true }} />
-      <TextField select label="Gender" value={form.gender ?? ""} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-        <MenuItem value="">Select gender</MenuItem><MenuItem value="MALE">Male</MenuItem><MenuItem value="FEMALE">Female</MenuItem><MenuItem value="OTHER">Other</MenuItem>
+      <TextField
+        type="date"
+        label="Date of birth"
+        value={form.dateOfBirth ?? ""}
+        onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })}
+        InputLabelProps={{ shrink: true }}
+      />
+      <TextField
+        select
+        label="Gender"
+        value={form.gender ?? ""}
+        onChange={(e) => setForm({ ...form, gender: e.target.value })}
+      >
+        <MenuItem value="">Select gender</MenuItem>
+        <MenuItem value="MALE">Male</MenuItem>
+        <MenuItem value="FEMALE">Female</MenuItem>
+        <MenuItem value="OTHER">Other</MenuItem>
       </TextField>
       <F
         label="Phone number"
@@ -1210,64 +1355,166 @@ function PersonFields({
   );
 }
 
-function PersonEditFields({ form, setForm, classes }: { form: any; setForm: (x: any) => void; classes: Overview["classes"] }) {
-  const set = (key: string, value: string) => setForm({ ...form, [key]: value });
+function PersonEditFields({
+  form,
+  setForm,
+  classes,
+}: {
+  form: any;
+  setForm: (x: any) => void;
+  classes: Overview["classes"];
+}) {
+  const set = (key: string, value: string) =>
+    setForm({ ...form, [key]: value });
   const setProfile = (key: string, value: string) =>
     setForm({ ...form, profileData: { ...form.profileData, [key]: value } });
-  const profileFields = form.role === "STUDENT"
-    ? [
-        ["guardianName", "Guardian name"],
-        ["guardianCnic", "Guardian CNIC"],
-        ["guardianDetails", "Guardian relation and occupation"],
-        ["motherDetails", "Mother details"],
-        ["emergencyContact", "Emergency contact"],
-        ["previousSchool", "Previous school and leaving reason"],
-        ["medicalNotes", "Medical and accessibility notes"],
-      ]
-    : [
-        ["education", "Highest qualification and specialization"],
-        ["educationHistory", "Education history"],
-        ["experience", "Employment history and experience"],
-        ["certifications", "Training, certifications and skills"],
-        ["emergencyContact", "Emergency contact"],
-        ["references", "References"],
-        ["employmentPreferences", "Position, availability and salary expectation"],
-      ];
+  const profileFields =
+    form.role === "STUDENT"
+      ? [
+          ["guardianName", "Guardian name"],
+          ["guardianCnic", "Guardian CNIC"],
+          ["guardianDetails", "Guardian relation and occupation"],
+          ["motherDetails", "Mother details"],
+          ["emergencyContact", "Emergency contact"],
+          ["previousSchool", "Previous school and leaving reason"],
+          ["medicalNotes", "Medical and accessibility notes"],
+        ]
+      : [
+          ["education", "Highest qualification and specialization"],
+          ["educationHistory", "Education history"],
+          ["experience", "Employment history and experience"],
+          ["certifications", "Training, certifications and skills"],
+          ["emergencyContact", "Emergency contact"],
+          ["references", "References"],
+          [
+            "employmentPreferences",
+            "Position, availability and salary expectation",
+          ],
+        ];
   return (
     <>
       <F label="First name" v={form.firstName} s={(v) => set("firstName", v)} />
       <F label="Last name" v={form.lastName} s={(v) => set("lastName", v)} />
       <F label="Email" v={form.email} s={(v) => set("email", v)} />
-      {form.role !== "STUDENT" && <F label="Username" v={form.username} s={(v) => set("username", v)} />}
+      {form.role !== "STUDENT" && (
+        <F label="Username" v={form.username} s={(v) => set("username", v)} />
+      )}
       <F label="CNIC / B-Form" v={form.cnic} s={(v) => set("cnic", v)} />
-      <TextField type="date" label="Date of birth" value={form.dateOfBirth ?? ""} onChange={(e) => set("dateOfBirth", e.target.value)} InputLabelProps={{ shrink: true }} />
-      <TextField select label="Gender" value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value)}>
-        <MenuItem value="">Select gender</MenuItem><MenuItem value="MALE">Male</MenuItem><MenuItem value="FEMALE">Female</MenuItem><MenuItem value="OTHER">Other</MenuItem>
+      <TextField
+        type="date"
+        label="Date of birth"
+        value={form.dateOfBirth ?? ""}
+        onChange={(e) => set("dateOfBirth", e.target.value)}
+        InputLabelProps={{ shrink: true }}
+      />
+      <TextField
+        select
+        label="Gender"
+        value={form.gender ?? ""}
+        onChange={(e) => set("gender", e.target.value)}
+      >
+        <MenuItem value="">Select gender</MenuItem>
+        <MenuItem value="MALE">Male</MenuItem>
+        <MenuItem value="FEMALE">Female</MenuItem>
+        <MenuItem value="OTHER">Other</MenuItem>
       </TextField>
       <F label="Phone number" v={form.phone} s={(v) => set("phone", v)} />
-      <F label="Second phone number" v={form.alternatePhone} s={(v) => set("alternatePhone", v)} />
-      <F label="WhatsApp number" v={form.whatsappNo} s={(v) => set("whatsappNo", v)} />
-      <div className="sm:col-span-2"><F label="Residential address" v={form.address} s={(v) => set("address", v)} /></div>
+      <F
+        label="Second phone number"
+        v={form.alternatePhone}
+        s={(v) => set("alternatePhone", v)}
+      />
+      <F
+        label="WhatsApp number"
+        v={form.whatsappNo}
+        s={(v) => set("whatsappNo", v)}
+      />
+      <div className="sm:col-span-2">
+        <F
+          label="Residential address"
+          v={form.address}
+          s={(v) => set("address", v)}
+        />
+      </div>
       {form.role === "STUDENT" && (
         <>
-          <F label="Admission no" v={form.admissionNo} s={(v) => set("admissionNo", v)} />
-          <TextField select label="Class & section" value={form.classId ?? ""} onChange={(e) => { const selectedClass = classes.find((c) => c.id === e.target.value); setForm({ ...form, classId: e.target.value, section: selectedClass?.section ?? "" }); }}>
+          <F
+            label="Admission no"
+            v={form.admissionNo}
+            s={(v) => set("admissionNo", v)}
+          />
+          <TextField
+            select
+            label="Class & section"
+            value={form.classId ?? ""}
+            onChange={(e) => {
+              const selectedClass = classes.find(
+                (c) => c.id === e.target.value,
+              );
+              setForm({
+                ...form,
+                classId: e.target.value,
+                section: selectedClass?.section ?? "",
+              });
+            }}
+          >
             <MenuItem value="">No class</MenuItem>
-            {classes.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}{c.section ? ` - ${c.section}` : ""}{c.academicYear ? ` · ${c.academicYear}` : ""}</MenuItem>)}
+            {classes.map((c) => (
+              <MenuItem key={c.id} value={c.id}>
+                {c.name}
+                {c.section ? ` - ${c.section}` : ""}
+                {c.academicYear ? ` · ${c.academicYear}` : ""}
+              </MenuItem>
+            ))}
           </TextField>
-          <TextField label="Section" value={form.section || "Assigned from selected class"} disabled />
-          <F label="Guardian phone" v={form.guardianPhone} s={(v) => set("guardianPhone", v)} />
-          <F label="Nationality" v={form.profileData?.nationality} s={(v) => setProfile("nationality", v)} />
-          <F label="Religion" v={form.profileData?.religion} s={(v) => setProfile("religion", v)} />
-          <F label="Sect" placeholder="Sunni, Shia" v={form.profileData?.sect} s={(v) => setProfile("sect", v)} />
-          <TextField select label="Blood group" value={form.profileData?.bloodGroup ?? ""} onChange={(e) => setProfile("bloodGroup", e.target.value)}>
+          <TextField
+            label="Section"
+            value={form.section || "Assigned from selected class"}
+            disabled
+          />
+          <F
+            label="Guardian phone"
+            v={form.guardianPhone}
+            s={(v) => set("guardianPhone", v)}
+          />
+          <F
+            label="Nationality"
+            v={form.profileData?.nationality}
+            s={(v) => setProfile("nationality", v)}
+          />
+          <F
+            label="Religion"
+            v={form.profileData?.religion}
+            s={(v) => setProfile("religion", v)}
+          />
+          <F
+            label="Sect"
+            placeholder="Sunni, Shia"
+            v={form.profileData?.sect}
+            s={(v) => setProfile("sect", v)}
+          />
+          <TextField
+            select
+            label="Blood group"
+            value={form.profileData?.bloodGroup ?? ""}
+            onChange={(e) => setProfile("bloodGroup", e.target.value)}
+          >
             <MenuItem value="">Select blood group</MenuItem>
-            {BLOOD_GROUPS.map((group) => <MenuItem key={group} value={group}>{group}</MenuItem>)}
+            {BLOOD_GROUPS.map((group) => (
+              <MenuItem key={group} value={group}>
+                {group}
+              </MenuItem>
+            ))}
           </TextField>
         </>
       )}
       {profileFields.map(([key, label]) => (
-        <F key={key} label={label} v={form.profileData?.[key]} s={(v) => setProfile(key, v)} />
+        <F
+          key={key}
+          label={label}
+          v={form.profileData?.[key]}
+          s={(v) => setProfile(key, v)}
+        />
       ))}
     </>
   );

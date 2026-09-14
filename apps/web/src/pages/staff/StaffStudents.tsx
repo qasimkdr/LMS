@@ -1,4 +1,5 @@
 import EditRounded from "@mui/icons-material/EditRounded";
+import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import SearchRounded from "@mui/icons-material/SearchRounded";
 import {
   Alert,
@@ -12,7 +13,7 @@ import {
   Skeleton,
   TextField,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -26,33 +27,41 @@ const blankProfile = {
 export default function StaffStudents() {
   const [data, setData] = useState<any>({ students: [], classes: [] });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const load = async () => {
-    setLoading(true);
+  const load = async (reset = true) => {
+    reset ? setLoading(true) : setLoadingMore(true);
+    setError("");
     try {
-      setData((await api.get("/staff-students")).data);
+      const response = await api.get("/staff-students", {
+        params: {
+          q: query.trim() || undefined,
+          cursor: reset ? undefined : cursor || undefined,
+          limit: 12,
+        },
+      });
+      setData((current: any) => ({
+        classes: response.data.classes,
+        students: reset
+          ? response.data.students
+          : [...current.students, ...response.data.students],
+      }));
+      setCursor(response.data.nextCursor ?? null);
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Could not load students.");
     } finally {
-      setLoading(false);
+      reset ? setLoading(false) : setLoadingMore(false);
     }
   };
   useEffect(() => {
-    void load();
-  }, []);
-  const rows = useMemo(
-    () =>
-      data.students.filter((s: any) =>
-        `${s.user.firstName} ${s.user.lastName} ${s.admissionNo} ${s.class?.name ?? ""}`
-          .toLowerCase()
-          .includes(query.toLowerCase()),
-      ),
-    [data.students, query],
-  );
+    const timer = window.setTimeout(() => void load(true), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
   const edit = (s: any) =>
     setEditing({
       id: s.id,
@@ -144,7 +153,7 @@ export default function StaffStudents() {
           </div>
         ) : (
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {rows.map((s: any) => (
+            {data.students.map((s: any) => (
               <article
                 key={s.id}
                 className="rounded-[24px] bg-white p-5 shadow-lg"
@@ -166,6 +175,31 @@ export default function StaffStudents() {
                 </Button>
               </article>
             ))}
+            {data.students.length === 0 && (
+              <Alert severity="info" className="md:col-span-2 xl:col-span-3">
+                No matching students found.
+              </Alert>
+            )}
+          </div>
+        )}
+        {!loading && cursor && (
+          <div className="mt-7 flex justify-center">
+            <Button
+              variant="contained"
+              color="secondary"
+              size="large"
+              startIcon={
+                loadingMore ? (
+                  <CircularProgress size={19} color="inherit" />
+                ) : (
+                  <ExpandMoreRounded />
+                )
+              }
+              disabled={loadingMore}
+              onClick={() => void load(false)}
+            >
+              {loadingMore ? "Loading" : "Show more"}
+            </Button>
           </div>
         )}
       </section>

@@ -30,10 +30,56 @@ const updateSchema = z.object({
 
 router.get("/", async (req, res) => {
   const schoolId = req.auth!.schoolId!;
+  const parsed = z
+    .object({
+      q: z.string().trim().max(100).optional(),
+      cursor: z.string().uuid().optional(),
+      limit: z.coerce.number().int().min(1).max(24).default(12),
+    })
+    .safeParse(req.query);
+  if (!parsed.success)
+    return res.status(400).json({ message: "Invalid student search" });
+  const { q, cursor, limit } = parsed.data;
   const [students, classes] = await Promise.all([
     prisma.studentProfile.findMany({
-      where: { schoolId },
-      orderBy: { user: { firstName: "asc" } },
+      where: {
+        schoolId,
+        ...(q
+          ? {
+              OR: [
+                { admissionNo: { contains: q, mode: "insensitive" as const } },
+                {
+                  user: {
+                    firstName: { contains: q, mode: "insensitive" as const },
+                  },
+                },
+                {
+                  user: {
+                    lastName: { contains: q, mode: "insensitive" as const },
+                  },
+                },
+                {
+                  user: {
+                    email: { contains: q, mode: "insensitive" as const },
+                  },
+                },
+                {
+                  class: {
+                    name: { contains: q, mode: "insensitive" as const },
+                  },
+                },
+                {
+                  class: {
+                    section: { contains: q, mode: "insensitive" as const },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: { id: "asc" },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         user: true,
         class: {
@@ -46,18 +92,22 @@ router.get("/", async (req, res) => {
       orderBy: [{ name: "asc" }, { section: "asc" }],
     }),
   ]);
-  res.json({ students, classes });
+  const hasMore = students.length > limit;
+  const items = hasMore ? students.slice(0, limit) : students;
+  res.json({
+    students: items,
+    classes,
+    nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+  });
 });
 
 router.patch("/:id", async (req, res) => {
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success)
-    return res
-      .status(400)
-      .json({
-        message: "Invalid student update",
-        issues: parsed.error.flatten(),
-      });
+    return res.status(400).json({
+      message: "Invalid student update",
+      issues: parsed.error.flatten(),
+    });
   const schoolId = req.auth!.schoolId!;
   const student = await prisma.studentProfile.findFirst({
     where: { id: req.params.id as string, schoolId },
@@ -82,7 +132,9 @@ router.patch("/:id", async (req, res) => {
     },
   });
   if (duplicate)
-    return res.status(409).json({ message: "Email or admission number is already in use" });
+    return res
+      .status(409)
+      .json({ message: "Email or admission number is already in use" });
   const policy = await prisma.approvalPolicy.findUnique({
     where: { schoolId_actionKey: { schoolId, actionKey: "EDIT_STUDENT" } },
   });
@@ -101,21 +153,41 @@ router.patch("/:id", async (req, res) => {
     },
   });
   if (existing && existing.status !== "REVISION_REQUIRED")
-    return res
-      .status(409)
-      .json({
-        message:
-          "An update for this student is already awaiting Principal review",
-      });
+    return res.status(409).json({
+      message:
+        "An update for this student is already awaiting Principal review",
+    });
   const request = await prisma.$transaction(async (tx) => {
     if (existing?.status === "REVISION_REQUIRED") {
       const revision = existing.revision + 1;
       const revised = await tx.approvalRequest.update({
         where: { id: existing.id },
-        data: { proposedData: proposedData as any, revision, status: "RESUBMITTED", submittedAt: new Date(), principalRemark: null },
+        data: {
+          proposedData: proposedData as any,
+          revision,
+          status: "RESUBMITTED",
+          submittedAt: new Date(),
+          principalRemark: null,
+        },
       });
-      await tx.approvalVersion.create({ data: { approvalRequestId: existing.id, revision, proposedData: proposedData as any, note } });
-      await tx.auditLog.create({ data: { schoolId, actorId: req.auth!.userId, action: "STUDENT_UPDATE_RESUBMITTED", entityType: "ApprovalRequest", entityId: existing.id, afterData: proposedData as any } });
+      await tx.approvalVersion.create({
+        data: {
+          approvalRequestId: existing.id,
+          revision,
+          proposedData: proposedData as any,
+          note,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          actorId: req.auth!.userId,
+          action: "STUDENT_UPDATE_RESUBMITTED",
+          entityType: "ApprovalRequest",
+          entityId: existing.id,
+          afterData: proposedData as any,
+        },
+      });
       return revised;
     }
     const created = await tx.approvalRequest.create({
