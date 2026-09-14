@@ -52,18 +52,8 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: |
-          psql -h localhost -U postgres -d nexora -v ON_ERROR_STOP=1 <<'SQL'
-          DO $
-          BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-              CREATE ROLE anon NOLOGIN;
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-              CREATE ROLE authenticated NOLOGIN;
-            END IF;
-          END
-          $;
-          SQL
+          psql -h localhost -U postgres -d nexora -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN"
+          psql -h localhost -U postgres -d nexora -v ON_ERROR_STOP=1 -c "CREATE ROLE authenticated NOLOGIN"
       - name: Replay operational SQL migrations
         shell: bash
         run: |
