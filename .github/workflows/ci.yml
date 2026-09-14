@@ -59,6 +59,8 @@ jobs:
         run: |
           set -euo pipefail
           for migration in \
+            packages/database/prisma/migrations/20260907110000_subscription_plans/migration.sql \
+            packages/database/prisma/migrations/20260907131000_report_card_publications/migration.sql \
             packages/database/prisma/migrations/20260907183000_support_tickets/migration.sql \
             packages/database/prisma/migrations/20260907183000_campus_management/migration.sql \
             packages/database/prisma/migrations/20260907194500_fee_recovery_batches/migration.sql \
