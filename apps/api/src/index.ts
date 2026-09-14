@@ -16,6 +16,7 @@ import examRoutes from './routes/exams.js';
 import examImportRoutes from './routes/examImport.js';
 import dashboardRoutes from './routes/dashboard.js';
 import schoolOperationsRoutes from './routes/schoolOperations.js';
+import staffStudentsRoutes from './routes/staffStudents.js';
 import attendanceRoutes from './routes/attendance.js';
 import policyRoutes from './routes/policies.js';
 import teacherAssignmentRoutes from './routes/teacherAssignments.js';
@@ -48,13 +49,30 @@ const port = Number(process.env.PORT ?? 4000);
 
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL?.split(',') ?? ['http://localhost:5173'], credentials: true }));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL?.split(',') ?? ['http://localhost:5173'],
+    credentials: true,
+  }),
+);
 app.use(cookieParser());
 app.use('/api/health', healthRoutes);
 
-const generalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 900, scope: 'api' });
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 80, scope: 'auth' });
-const sensitiveLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 180, scope: 'sensitive' });
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 900,
+  scope: 'api',
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 80,
+  scope: 'auth',
+});
+const sensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 180,
+  scope: 'sensitive',
+});
 app.use('/api', generalLimiter);
 app.use('/api/backups', express.json({ limit: '20mb' }), sensitiveLimiter, backupRoutes);
 app.use(express.json({ limit: '2mb' }));
@@ -68,6 +86,7 @@ app.use('/api/exams', requireAuth, requireTenant, requireModule('EXAMS'), examRo
 app.use('/api/exam-import', sensitiveLimiter, requireAuth, requireTenant, requireModule('EXAMS'), examImportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/school-operations', schoolOperationsRoutes);
+app.use('/api/staff-students', staffStudentsRoutes);
 app.use('/api/attendance', requireAuth, requireTenant, requireModule('ATTENDANCE'), attendanceRoutes);
 app.use('/api/policies', policyRoutes);
 app.use('/api/teacher-assignments', teacherAssignmentRoutes);

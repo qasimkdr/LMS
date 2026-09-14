@@ -37,11 +37,21 @@ api.interceptors.request.use((config) => {
 const shouldToast = (config: any) => {
   const method = String(config?.method ?? "get").toLowerCase();
   const url = String(config?.url ?? "");
-  return ["post", "put", "patch", "delete"].includes(method) &&
-    !url.includes("/auth/") && !url.includes("/storage/") &&
-    !/\/exam-attempts\/[^/]+\/answers/.test(url) && !config?._retry;
+  return (
+    ["post", "put", "patch", "delete"].includes(method) &&
+    !url.includes("/auth/") &&
+    !url.includes("/storage/") &&
+    !/\/exam-attempts\/[^/]+\/answers/.test(url) &&
+    !config?._retry
+  );
 };
-const successTitle = (config: any) => {
+const successTitle = (config: any, response?: any) => {
+  if (
+    response?.status === 202 ||
+    response?.data?.approvalRequired ||
+    response?.data?.mode === "APPROVAL"
+  )
+    return "Sent for approval";
   const method = String(config?.method ?? "").toLowerCase();
   if (method === "delete") return "Deleted successfully";
   if (method === "patch" || method === "put") return "Saved successfully";
@@ -50,7 +60,12 @@ const successTitle = (config: any) => {
 
 api.interceptors.response.use(
   (response) => {
-    if (shouldToast(response.config)) emitToast({ kind: "success", title: successTitle(response.config), message: response.data?.message });
+    if (shouldToast(response.config))
+      emitToast({
+        kind: "success",
+        title: successTitle(response.config, response),
+        message: response.data?.message,
+      });
     return response;
   },
   async (error) => {
@@ -60,7 +75,12 @@ api.interceptors.response.use(
       original?._retry ||
       original?.url?.includes("/auth/refresh")
     ) {
-      if (shouldToast(original)) emitToast({ kind: "error", title: "Action failed", message: error.response?.data?.message ?? "Please try again." });
+      if (shouldToast(original))
+        emitToast({
+          kind: "error",
+          title: "Action failed",
+          message: error.response?.data?.message ?? "Please try again.",
+        });
       return Promise.reject(error);
     }
     original._retry = true;
@@ -80,7 +100,12 @@ api.interceptors.response.use(
 
     const token = await refreshPromise;
     if (!token) {
-      if (shouldToast(original)) emitToast({ kind: "error", title: "Action failed", message: error.response?.data?.message ?? "Please sign in again." });
+      if (shouldToast(original))
+        emitToast({
+          kind: "error",
+          title: "Action failed",
+          message: error.response?.data?.message ?? "Please sign in again.",
+        });
       return Promise.reject(error);
     }
     original.headers.Authorization = `Bearer ${token}`;

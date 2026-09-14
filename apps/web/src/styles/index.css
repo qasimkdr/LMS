@@ -12,6 +12,33 @@
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; }
 button, input, textarea, select { font: inherit; }
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid rgba(37,99,235,.35); outline-offset: 3px; }
+button:not(.MuiButtonBase-root) {
+  min-height: 42px;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+button:not(.MuiButtonBase-root):hover { transform: translateY(-2px); }
+button:not(.MuiButtonBase-root):active { transform: translateY(0) scale(.98); }
+button:disabled { cursor: not-allowed; }
+
+main article,
+main .glass-panel {
+  transition: transform .24s cubic-bezier(.2,.8,.2,1), box-shadow .24s ease, border-color .24s ease;
+}
+main article:hover,
+main .glass-panel:hover {
+  transform: translateY(-3px);
+  border-color: rgba(96,165,250,.28);
+  box-shadow: 0 24px 65px rgba(51,65,85,.14);
+}
+
+.page-transition { animation: page-enter .34s cubic-bezier(.2,.8,.2,1) both; }
+.toast-material { animation: toast-depth .36s cubic-bezier(.2,.9,.25,1.2) both; transform-origin: top right; }
+.MuiButton-root .MuiCircularProgress-root { color: currentColor; }
+.MuiButton-root svg { transition: transform .18s ease; }
+.MuiButton-root:hover svg { transform: scale(1.08); }
 
 .nexora-grid {
   background-image: radial-gradient(circle at 1px 1px, rgba(74, 108, 247, .12) 1px, transparent 0);
@@ -48,3 +75,11 @@ button, input, textarea, select { font: inherit; }
   to { opacity: 0; transform: translate3d(48px,-12px,-100px) rotateY(16deg) scale(.88); }
 }
 @keyframes toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes page-enter {
+  from { opacity: 0; transform: translate3d(0,10px,-20px) scale(.995); }
+  to { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+}
+@keyframes toast-depth {
+  from { opacity: 0; transform: translate3d(35px,-12px,-80px) rotateY(-10deg) scale(.9); }
+  to { opacity: 1; transform: translate3d(0,0,0) rotateY(0) scale(1); }
+}
