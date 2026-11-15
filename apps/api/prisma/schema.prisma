@@ -931,3 +931,159 @@ model OnlinePayment {
   @@index([schoolId, createdAt])
   @@index([familyId])
 }
+
+// ---------------------------------------------------------------------------
+// Step 6: tests, exams, results and report cards
+// ---------------------------------------------------------------------------
+
+enum AssessmentKind {
+  /// One subject, one section, made by a teacher (weekly, monthly, surprise test…).
+  TEST
+  /// Several subjects for a whole class with a date sheet (mid-term, final…).
+  EXAM
+}
+
+/// Weekly test, Monthly test, Mid-term, Annual… Schools and teachers can add their own names.
+model AssessmentType {
+  id          String         @id @default(cuid())
+  schoolId    String
+  name        String         @db.VarChar(60)
+  kind        AssessmentKind
+  sortOrder   Int            @default(0)
+  isActive    Boolean        @default(true)
+  createdById String?
+  createdAt   DateTime       @default(now())
+  assessments Assessment[]
+
+  @@index([schoolId])
+}
+
+/// Grade bands, pass mark and publishing rules for a school.
+model ExamSettings {
+  schoolId          String   @id
+  /// [{ grade: "A+", min: 90, remark: "Outstanding" }, …] highest first.
+  gradeBands        Json
+  passPercent       Decimal  @default(33) @db.Decimal(5, 2)
+  /// Class tests need the principal's approval before students and parents see them.
+  testsNeedApproval Boolean  @default(true)
+  showPositions     Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
+}
+
+model Assessment {
+  id            String            @id @default(cuid())
+  schoolId      String
+  kind          AssessmentKind
+  typeId        String
+  type          AssessmentType    @relation(fields: [typeId], references: [id])
+  title         String            @db.VarChar(120)
+  /// Same value for every class of one school-wide exam.
+  groupKey      String?           @db.VarChar(40)
+  sessionId     String?
+  classId       String
+  /// Tests are for one section; exams cover every section of the class.
+  sectionId     String?
+  topic         String?           @db.VarChar(300)
+  /// Exams: students and parents can see the date sheet.
+  announced     Boolean           @default(false)
+  /// DRAFT until results are published.
+  status        String            @default("DRAFT") @db.VarChar(12)
+  publishedAt   DateTime?
+  publishedById String?
+  createdById   String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  papers        AssessmentPaper[]
+  results       StudentResult[]
+  remarks       ResultRemark[]
+
+  @@index([schoolId, kind, status])
+  @@index([classId])
+  @@index([groupKey])
+}
+
+/// One subject of an assessment (a test has exactly one).
+model AssessmentPaper {
+  id           String      @id @default(cuid())
+  assessmentId String
+  assessment   Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  subjectId    String
+  date         DateTime?   @db.Date
+  startTime    String?     @db.VarChar(5)
+  totalMarks   Decimal     @db.Decimal(7, 2)
+  passMarks    Decimal     @db.Decimal(7, 2)
+  sortOrder    Int         @default(0)
+  marks        Mark[]
+  sheets       MarkSheet[]
+
+  @@unique([assessmentId, subjectId])
+}
+
+/// Marks of one paper for one section, and where they are in the approval process.
+model MarkSheet {
+  id            String          @id @default(cuid())
+  paperId       String
+  paper         AssessmentPaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  sectionId     String
+  /// DRAFT → SUBMITTED → (RETURNED → SUBMITTED) → APPROVED
+  status        String          @default("DRAFT") @db.VarChar(12)
+  submittedById String?
+  submittedAt   DateTime?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  returnNote    String?         @db.VarChar(500)
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([paperId, sectionId])
+}
+
+model Mark {
+  id          String          @id @default(cuid())
+  paperId     String
+  paper       AssessmentPaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  studentId   String
+  marks       Decimal?        @db.Decimal(7, 2)
+  isAbsent    Boolean         @default(false)
+  remark      String?         @db.VarChar(200)
+  updatedById String?
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([paperId, studentId])
+  @@index([studentId])
+}
+
+/// Calculated when results are published (and again after any correction).
+model StudentResult {
+  id              String     @id @default(cuid())
+  schoolId        String
+  assessmentId    String
+  assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId       String
+  sectionId       String?
+  obtained        Decimal    @db.Decimal(9, 2)
+  total           Decimal    @db.Decimal(9, 2)
+  percent         Decimal    @db.Decimal(5, 2)
+  grade           String     @db.VarChar(5)
+  passed          Boolean
+  positionClass   Int?
+  positionSection Int?
+  absentPapers    Int        @default(0)
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
+  @@index([schoolId])
+}
+
+/// Report card remarks for a student in one exam.
+model ResultRemark {
+  id              String     @id @default(cuid())
+  assessmentId    String
+  assessment      Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  studentId       String
+  teacherRemark   String?    @db.VarChar(500)
+  principalRemark String?    @db.VarChar(500)
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([assessmentId, studentId])
+}

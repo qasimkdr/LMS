@@ -8,6 +8,9 @@ export const app = createApp();
 
 export async function resetDb() {
   await prisma.auditLog.deleteMany();
+  await prisma.assessment.deleteMany();
+  await prisma.assessmentType.deleteMany();
+  await prisma.examSettings.deleteMany();
   await prisma.onlinePayment.deleteMany();
   await prisma.paymentGatewaySettings.deleteMany();
   await prisma.feePaymentAllocation.deleteMany();
@@ -98,7 +101,7 @@ export const planInput = (over: Record<string, unknown> = {}) => ({
   maxCampuses: 1,
   storageLimitMb: 10,
   maxFileSizeMb: 1,
-  modules: ['attendance', 'fees', 'timetable', 'whatsapp', 'online_fee_payment'],
+  modules: ['attendance', 'fees', 'timetable', 'whatsapp', 'online_fee_payment', 'exams'],
   ...over,
 });
 

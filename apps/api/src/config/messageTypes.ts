@@ -78,7 +78,20 @@ export const MESSAGE_TYPES: Record<string, MessageTypeDef> = {
     params: ['Amount', 'Student name(s)', 'Date', 'Receipt number', 'Balance', 'School name'],
     available: true,
   },
-  RESULT: { label: 'Test results and report cards', description: 'Step 6', rules: ['auto', 'manual', 'off'], defaultRule: 'manual', suggestedTemplate: { name: 'result_card', language: 'en', category: 'UTILITY', text: '' }, params: [], available: false },
+  RESULT: {
+    label: 'Test and exam results',
+    description: 'When results are published. Manual: sent when someone presses "Send to parents".',
+    rules: ['auto', 'manual', 'off'],
+    defaultRule: 'manual',
+    suggestedTemplate: {
+      name: 'result_notice',
+      language: 'en',
+      category: 'UTILITY',
+      text: 'Dear Parent, the result of {{1}} for {{2}} is out: {{3}}. You can see the full result in the school app. Thank you, {{4}}.',
+    },
+    params: ['Test or exam name', 'Student name', 'Marks, % and grade', 'School name'],
+    available: true,
+  },
   MONTHLY_REPORT: { label: 'Monthly progress report', description: 'Step 8', rules: ['manual', 'off'], defaultRule: 'manual', suggestedTemplate: { name: 'monthly_report', language: 'en', category: 'UTILITY', text: '' }, params: [], available: false },
   REMARK: { label: 'Teacher remarks', description: 'Step 8', rules: ['manual', 'off'], defaultRule: 'manual', suggestedTemplate: { name: 'student_remark', language: 'en', category: 'UTILITY', text: '' }, params: [], available: false },
 };
