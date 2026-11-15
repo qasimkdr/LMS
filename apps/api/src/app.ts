@@ -14,6 +14,8 @@ import studentRoutes from './routes/students';
 import staffRoutes, { usersRouter } from './routes/staff';
 import importRoutes from './routes/imports';
 import { myRouter, recycleRouter, searchRouter } from './routes/people';
+import timetableRoutes from './routes/timetable';
+import { requireModule } from './middleware/modules';
 
 export function createApp() {
   const app = express();
@@ -42,6 +44,7 @@ export function createApp() {
   app.use('/api/search', ...school, searchRouter);
   app.use('/api/recycle-bin', ...school, recycleRouter);
   app.use('/api/my', ...school, myRouter);
+  app.use('/api/timetable', ...school, requireModule('timetable'), timetableRoutes);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);

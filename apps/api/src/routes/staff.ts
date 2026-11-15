@@ -260,6 +260,7 @@ router.patch(
       if (data.role === 'STAFF' && before.role === 'TEACHER') {
         await tx.section.updateMany({ where: { classTeacherId: before.id }, data: { classTeacherId: null } });
         await tx.teachingAssignment.deleteMany({ where: { teacherId: before.id } });
+        await tx.timetableEntry.updateMany({ where: { teacherId: before.id }, data: { teacherId: null } });
       }
     });
     if (data.photoFileId !== undefined && before.photoFileId && before.photoFileId !== data.photoFileId) await deleteSchoolFile(schoolId, before.photoFileId);
@@ -279,6 +280,7 @@ router.delete(
       prisma.refreshSession.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } }),
       prisma.section.updateMany({ where: { classTeacherId: user.id }, data: { classTeacherId: null } }),
       prisma.teachingAssignment.deleteMany({ where: { teacherId: user.id } }),
+      prisma.timetableEntry.updateMany({ where: { teacherId: user.id }, data: { teacherId: null } }),
     ]);
     await audit(req, { action: 'staff.delete', entityType: 'User', entityId: user.id, before: { fullName: user.fullName, username: user.username }, reason: body.reason });
     res.json({ ok: true, restorableDays: RESTORE_DAYS });

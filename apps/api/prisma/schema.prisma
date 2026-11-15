@@ -152,6 +152,7 @@ model User {
   family           Family?
   classTeacherOf   Section[]
   teachingSubjects TeachingAssignment[]
+  TimetableEntry   TimetableEntry[]
 
   @@index([schoolId, role])
 }
@@ -321,6 +322,7 @@ model Section {
   deletedAt      DateTime?
   students       Student[]
   assignments    TeachingAssignment[]
+  timetable      TimetableEntry[]
 
   @@index([schoolId])
   @@index([classId])
@@ -335,6 +337,7 @@ model Subject {
   deletedAt   DateTime?
   classes     ClassSubject[]
   assignments TeachingAssignment[]
+  timetable   TimetableEntry[]
 
   @@index([schoolId])
 }
@@ -505,4 +508,58 @@ model StudentDocument {
   createdAt DateTime @default(now())
 
   @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Step 3: bell schedules and timetables
+// ---------------------------------------------------------------------------
+
+/// A set of period timings, used on the weekdays listed in `days` (1 = Monday … 7 = Sunday).
+/// Example: "Regular" for Mon–Thu and Sat, "Friday" for Fri.
+model BellSchedule {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String   @db.VarChar(60)
+  days      Json
+  createdAt DateTime @default(now())
+  periods   Period[]
+
+  @@index([schoolId])
+}
+
+model Period {
+  id         String           @id @default(cuid())
+  scheduleId String
+  schedule   BellSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  name       String           @db.VarChar(40)
+  /// "HH:MM", 24-hour.
+  startTime  String           @db.VarChar(5)
+  endTime    String           @db.VarChar(5)
+  isBreak    Boolean          @default(false)
+  sortOrder  Int
+  entries    TimetableEntry[]
+
+  @@index([scheduleId])
+}
+
+/// One cell of a class timetable: a section, a weekday and a period.
+model TimetableEntry {
+  id        String   @id @default(cuid())
+  schoolId  String
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  day       Int
+  periodId  String
+  period    Period   @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  teacherId String?
+  teacher   User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  room      String?  @db.VarChar(40)
+  /// Free text for slots without a subject, e.g. "Assembly", "Library".
+  note      String?  @db.VarChar(60)
+  updatedAt DateTime @updatedAt
+
+  @@unique([sectionId, day, periodId])
+  @@index([schoolId, teacherId, day, periodId])
 }

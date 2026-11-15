@@ -236,6 +236,7 @@ router.delete(
     await prisma.$transaction([
       prisma.classLevel.update({ where: { id: cls.id }, data: { deletedAt: new Date() } }),
       prisma.section.updateMany({ where: { classId: cls.id }, data: { deletedAt: new Date() } }),
+      prisma.timetableEntry.deleteMany({ where: { section: { classId: cls.id } } }),
     ]);
     await audit(req, { action: 'class.delete', entityType: 'ClassLevel', entityId: cls.id, before: cls });
     res.json({ ok: true });
@@ -259,6 +260,7 @@ router.put(
       prisma.classSubject.createMany({ data: body.subjects.map((s) => ({ classId: cls.id, ...s })), skipDuplicates: true }),
       // Remove teacher assignments for subjects no longer taught in this class.
       prisma.teachingAssignment.deleteMany({ where: { section: { classId: cls.id }, subjectId: { notIn: ids } } }),
+      prisma.timetableEntry.deleteMany({ where: { section: { classId: cls.id }, subjectId: { notIn: ids } } }),
     ]);
     await audit(req, { action: 'class.subjects', entityType: 'ClassLevel', entityId: cls.id, after: body.subjects });
     res.json({ ok: true });
@@ -326,6 +328,7 @@ router.delete(
     await prisma.$transaction([
       prisma.section.update({ where: { id: section.id }, data: { deletedAt: new Date() } }),
       prisma.teachingAssignment.deleteMany({ where: { sectionId: section.id } }),
+      prisma.timetableEntry.deleteMany({ where: { sectionId: section.id } }),
     ]);
     await audit(req, { action: 'section.delete', entityType: 'Section', entityId: section.id, before: section });
     res.json({ ok: true });
@@ -377,6 +380,7 @@ router.delete(
       prisma.subject.update({ where: { id: subject.id }, data: { deletedAt: new Date() } }),
       prisma.classSubject.deleteMany({ where: { subjectId: subject.id } }),
       prisma.teachingAssignment.deleteMany({ where: { subjectId: subject.id } }),
+      prisma.timetableEntry.deleteMany({ where: { subjectId: subject.id } }),
     ]);
     await audit(req, { action: 'subject.delete', entityType: 'Subject', entityId: subject.id, before: subject });
     res.json({ ok: true });
