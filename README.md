@@ -69,6 +69,15 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Results:** result sheet with subject averages and highest marks; report card remarks by the class teacher and principal; printable A4 report cards with photo, marks, grades, position, attendance and signatures; results sent to parents on WhatsApp and in the app.
 - **Families:** results of every test and exam, the date sheet of upcoming exams, a monthly test average, and the report card.
 
+## What works now (step 7: online exams)
+
+- **Paper builder:** teachers make online exams for the classes/subjects they teach: MCQ, multiple-answer MCQ, true/false, fill in the blanks (several accepted answers per blank), matching, short and long answers (with optional model answer), pictures in questions, sections with "attempt any N", marks per question, preview as the student sees it, duplicate.
+- **Question bank:** every question written in a paper is saved to the school's bank by subject, class and chapter; teachers search and reuse questions and manage their own.
+- **Scheduling:** open/close time window and time allowed per student, shuffled question and option order per student, optional negative marking for MCQ/true-false, pass marks, and whether to show correct answers with the result. The school can require principal approval before a paper goes live (Exam settings). Students and parents get an in-app notice.
+- **Taking the exam:** one question at a time with a question navigator and "mark for review", countdown from the server's deadline, autosave every change (keeps working through short internet drops), copy/paste blocked, leaving the screen is counted and shown to the teacher, photo upload of handwritten long answers, automatic submission when time ends. The teacher can let a student restart (e.g. power cut) with a reason.
+- **Checking:** objective questions are marked automatically (partial marks for blanks and matching); the teacher marks short/long answers per student or one question for the whole class, can override any mark, and adds remarks per question and overall.
+- **Results:** the teacher sends the checked results to the principal, who publishes or sends back with a note. Publishing creates a normal "Online test" result (positions, monthly averages, report to parents) and can also copy the marks, scaled, into a term-exam paper. Students see their score, each answer with marks, remarks and (if allowed) the correct answers.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

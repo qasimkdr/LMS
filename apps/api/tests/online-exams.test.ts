@@ -129,6 +129,10 @@ describe('online exams', () => {
     // Duplicate.
     const dup = await t1.post(`/api/online-exams/${id}/duplicate`);
     expect((await t1.get(`/api/online-exams/${dup.body.id}`)).body.paper.totalMarks).toBe(7);
+    // A partial update keeps the other settings (no defaults filled in).
+    await t1.patch(`/api/online-exams/${id}`, { shuffleQuestions: false, showAnswers: false, durationMinutes: 45 });
+    await t1.patch(`/api/online-exams/${id}`, { title: 'Grammar quiz 2' });
+    expect((await t1.get(`/api/online-exams/${id}`)).body.paper).toMatchObject({ title: 'Grammar quiz 2', shuffleQuestions: false, showAnswers: false, durationMinutes: 45, negativeMarking: 0.25 });
   });
 
   it('full flow: schedule, students take it with autosave, marking, principal approval, publish', async () => {

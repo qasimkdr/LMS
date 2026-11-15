@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { OnlineAttempt, OnlinePaper, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
-import { optStr, parse } from '../lib/validate';
+import { optStr, parse, patchOf } from '../lib/validate';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { can } from '../lib/http';
 import { round2 } from '../lib/money';
@@ -271,7 +271,7 @@ router.patch(
   ah(async (req, res) => {
     const p = await loadOwnPaper(req, req.params.id);
     if (await prisma.onlineAttempt.count({ where: { paperId: p.id } })) throw badRequest('Students have already started. Settings can no longer change.');
-    const body = parse(paperSettings.partial(), req.body);
+    const body = parse(patchOf(paperSettings), req.body);
     await checkPaperRefs(req, { subjectId: body.subjectId ?? p.subjectId, classId: body.classId ?? p.classId, sectionIds: body.sectionIds ?? (p.sectionIds as string[]) });
     await prisma.onlinePaper.update({ where: { id: p.id }, data: body });
     res.json({ ok: true });

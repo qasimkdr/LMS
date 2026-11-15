@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
-import { optStr, parse } from '../lib/validate';
+import { optStr, parse, patchOf } from '../lib/validate';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { can } from '../lib/http';
 import { round2 } from '../lib/money';
@@ -85,7 +85,7 @@ router.patch(
     assertManager(req);
     const t = await prisma.assessmentType.findFirst({ where: { id: req.params.id, schoolId: tenantId(req) } });
     if (!t) throw notFound('Type not found');
-    const body = parse(z.object({ name: z.string().trim().min(2).max(60), isActive: z.boolean() }).partial(), req.body);
+    const body = parse(patchOf(z.object({ name: z.string().trim().min(2).max(60), isActive: z.boolean() })), req.body);
     res.json({ type: await prisma.assessmentType.update({ where: { id: t.id }, data: body }) });
   }),
 );
@@ -404,7 +404,7 @@ router.patch(
   ah(async (req, res) => {
     const a = await loadAssessment(req, req.params.id);
     if (!(isManager(req) || (a.kind === 'TEST' && a.createdById === req.user!.id && a.status === 'DRAFT'))) throw forbidden();
-    const body = parse(z.object({ title: z.string().trim().min(2).max(120), topic: optStr(300), announced: z.boolean() }).partial(), req.body);
+    const body = parse(patchOf(z.object({ title: z.string().trim().min(2).max(120), topic: optStr(300), announced: z.boolean() })), req.body);
     await prisma.assessment.update({ where: { id: a.id }, data: body });
     if (body.announced && a.kind === 'EXAM') {
       // Tell families the date sheet is out.

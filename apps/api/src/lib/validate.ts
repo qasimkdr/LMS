@@ -30,3 +30,12 @@ export const optEmail = z
   .refine((v) => v === '' || z.string().email().safeParse(v).success, 'Invalid email')
   .transform((v) => (v === '' ? null : v))
   .nullish();
+
+/**
+ * For PATCH bodies: every field optional and *without* defaults. (Zod 4's `.partial()` still fills in
+ * `.default()` values, which would silently reset fields the client did not send.)
+ */
+export function patchOf<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
+  const shape = Object.fromEntries(Object.entries(schema.shape).map(([k, v]) => [k, (v instanceof z.ZodDefault ? (v.unwrap() as z.ZodTypeAny) : (v as z.ZodTypeAny)).optional()]));
+  return z.object(shape) as unknown as ReturnType<z.ZodObject<T>['partial']>;
+}

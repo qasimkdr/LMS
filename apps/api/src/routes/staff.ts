@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
-import { optEmail, optStr, parse } from '../lib/validate';
+import { optEmail, optStr, parse, patchOf } from '../lib/validate';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { assertCan, assertPrincipal, can } from '../lib/http';
 import { generateTempPassword, hashPassword, prepareSecrets, type LoginSecret } from '../lib/password';
@@ -229,7 +229,7 @@ router.patch(
     const schoolId = tenantId(req);
     const before = await loadStaff(req, req.params.id);
     const beforeProfile = await prisma.staffProfile.findUnique({ where: { userId: before.id } });
-    const body = parse(staffSchema.omit({ username: true }).partial().extend({ profile: profileSchema.partial().optional(), reason: optStr(500) }), req.body);
+    const body = parse(patchOf(staffSchema.omit({ username: true })).extend({ profile: patchOf(profileSchema).optional(), reason: optStr(500) }), req.body);
     const { reason, profile, permissions, ...data } = body;
     if (req.user!.role !== 'PRINCIPAL' && (permissions || profile?.salary !== undefined || data.role)) {
       throw forbidden('Only the principal can change roles, permissions or salary');

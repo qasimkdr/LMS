@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
-import { optStr, parse } from '../lib/validate';
+import { optStr, parse, patchOf } from '../lib/validate';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { assertCan, can } from '../lib/http';
 import { toNum } from '../lib/money';
@@ -197,7 +197,7 @@ router.patch(
     assertCan(req, 'students.manage');
     const schoolId = tenantId(req);
     const before = await loadStudent(req, req.params.id);
-    const body = parse(studentFieldsSchema.partial().extend({ reason: optStr(500) }), req.body);
+    const body = parse(patchOf(studentFieldsSchema).extend({ reason: optStr(500) }), req.body);
     const { reason, ...data } = body;
     if (data.sectionId && !data.classId) data.classId = before.classId;
     if (data.classId && data.classId !== before.classId && data.sectionId === undefined) data.sectionId = null;

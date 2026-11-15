@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Prisma, SchoolStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
-import { optEmail, optStr, parse } from '../lib/validate';
+import { optEmail, optStr, parse, patchOf } from '../lib/validate';
 import { badRequest, conflict, notFound } from '../lib/errors';
 import { generateTempPassword, hashPassword } from '../lib/password';
 import { round2, toNum } from '../lib/money';
@@ -164,7 +164,7 @@ router.post(
 router.patch(
   '/plans/:id',
   ah(async (req, res) => {
-    const body = parse(planBody.partial(), req.body);
+    const body = parse(patchOf(planBody), req.body);
     const before = await prisma.plan.findUnique({ where: { id: req.params.id } });
     if (!before) throw notFound('Plan not found');
     const plan = await prisma.plan.update({
@@ -382,7 +382,7 @@ router.patch(
   '/schools/:id',
   ah(async (req, res) => {
     const before = await loadSchool(req.params.id);
-    const body = parse(z.object(schoolFields).partial(), req.body);
+    const body = parse(patchOf(z.object(schoolFields)), req.body);
     if (body.planId) {
       const plan = await prisma.plan.findUnique({ where: { id: body.planId } });
       if (!plan) throw badRequest('Plan not found');

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
-import { optStr, parse } from '../lib/validate';
+import { optStr, parse, patchOf } from '../lib/validate';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors';
 import { assertPrincipal } from '../lib/http';
 import { tenantId } from '../middleware/auth';
@@ -137,7 +137,7 @@ router.patch(
     const schoolId = tenantId(req);
     const before = await prisma.academicSession.findFirst({ where: { id: req.params.id, schoolId } });
     if (!before) throw notFound('Session not found');
-    const body = parse(z.object({ name: z.string().trim().min(2).max(40), startDate: isoDate, endDate: isoDate, isCurrent: z.boolean() }).partial(), req.body);
+    const body = parse(patchOf(z.object({ name: z.string().trim().min(2).max(40), startDate: isoDate, endDate: isoDate, isCurrent: z.boolean() })), req.body);
     const session = await prisma.$transaction(async (tx) => {
       if (body.isCurrent) await tx.academicSession.updateMany({ where: { schoolId }, data: { isCurrent: false } });
       return tx.academicSession.update({ where: { id: before.id }, data: body });
@@ -217,7 +217,7 @@ router.patch(
     const schoolId = tenantId(req);
     const before = await prisma.classLevel.findFirst({ where: { id: req.params.id, schoolId, deletedAt: null } });
     if (!before) throw notFound('Class not found');
-    const body = parse(classBody.omit({ sections: true }).partial(), req.body);
+    const body = parse(patchOf(classBody.omit({ sections: true })), req.body);
     const cls = await prisma.classLevel.update({ where: { id: before.id }, data: body });
     await audit(req, { action: 'class.update', entityType: 'ClassLevel', entityId: cls.id, before, after: body });
     res.json({ class: cls });
@@ -308,7 +308,7 @@ router.patch(
     const schoolId = tenantId(req);
     const before = await prisma.section.findFirst({ where: { id: req.params.id, schoolId, deletedAt: null } });
     if (!before) throw notFound('Section not found');
-    const body = parse(sectionBody.partial(), req.body);
+    const body = parse(patchOf(sectionBody), req.body);
     await checkSectionRefs(schoolId, body);
     const section = await prisma.section.update({ where: { id: before.id }, data: body });
     await audit(req, { action: 'section.update', entityType: 'Section', entityId: section.id, before, after: body });
@@ -362,7 +362,7 @@ router.patch(
     const schoolId = tenantId(req);
     const before = await prisma.subject.findFirst({ where: { id: req.params.id, schoolId, deletedAt: null } });
     if (!before) throw notFound('Subject not found');
-    const body = parse(subjectBody.partial(), req.body);
+    const body = parse(patchOf(subjectBody), req.body);
     const subject = await prisma.subject.update({ where: { id: before.id }, data: body });
     await audit(req, { action: 'subject.update', entityType: 'Subject', entityId: subject.id, before, after: body });
     res.json({ subject });
@@ -414,7 +414,7 @@ router.patch(
     const schoolId = tenantId(req);
     const before = await prisma.campus.findFirst({ where: { id: req.params.id, schoolId } });
     if (!before) throw notFound('Campus not found');
-    const body = parse(campusBody.partial(), req.body);
+    const body = parse(patchOf(campusBody), req.body);
     const campus = await prisma.campus.update({ where: { id: before.id }, data: body });
     await audit(req, { action: 'campus.update', entityType: 'Campus', entityId: campus.id, before, after: body });
     res.json({ campus });

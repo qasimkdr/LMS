@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
-import { optStr, parse } from '../lib/validate';
+import { optStr, parse, patchOf } from '../lib/validate';
 import { badRequest, forbidden, notFound } from '../lib/errors';
 import { assertPrincipal, can } from '../lib/http';
 import { round2 } from '../lib/money';
@@ -109,7 +109,7 @@ router.patch(
     need(req, 'fees.manage');
     const before = await prisma.feeHead.findFirst({ where: { id: req.params.id, schoolId: tenantId(req) } });
     if (!before) throw notFound('Fee head not found');
-    const body = parse(headBody.partial(), req.body);
+    const body = parse(patchOf(headBody), req.body);
     const head = await prisma.feeHead.update({ where: { id: before.id }, data: { ...body, months: body.months ?? undefined } });
     await audit(req, { action: 'fees.head_update', entityType: 'FeeHead', entityId: head.id, before, after: body });
     res.json({ head });
@@ -144,7 +144,7 @@ router.put(
     need(req, 'fees.manage');
     const schoolId = tenantId(req);
     const body = parse(
-      z.object({
+      patchOf(z.object({
         dueDay: z.coerce.number().int().min(1).max(28),
         lateFeeType: z.enum(['NONE', 'FIXED', 'PER_DAY']),
         lateFeeAmount: money,
@@ -153,7 +153,7 @@ router.put(
         bankDetails: z.object({ bankName: optStr(80), accountTitle: optStr(120), accountNumber: optStr(40), iban: optStr(40), branch: optStr(120) }).nullish(),
         voucherNote: optStr(500),
         receiptPrefix: z.string().trim().regex(/^[A-Z0-9]{1,10}$/i, 'Letters and numbers only').transform((v) => v.toUpperCase()),
-      }).partial(),
+      })),
       req.body,
     );
     const before = await getFeeSettings(schoolId);
