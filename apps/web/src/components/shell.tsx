@@ -37,6 +37,7 @@ function navFor(me: Me): NavItem[] {
     if (p) items.push({ href: '/school/setup', label: 'Classes & subjects', icon: '▦' }, { href: '/school/assignments', label: 'Teacher assignments', icon: '⇄' });
     if (mods.includes('timetable')) items.push({ href: '/school/timetable', label: 'Timetable', icon: '◷' });
     if (mods.includes('attendance') && (has('attendance.manage') || has('students.view'))) items.push({ href: '/school/attendance', label: 'Attendance', icon: '✓' });
+    if (mods.includes('exams') && (has('exams.manage') || has('students.view'))) items.push({ href: '/school/exams', label: 'Exams & results', icon: '✎' });
     if (mods.includes('fees') && (has('fees.collect') || has('fees.manage') || has('fees.reports'))) items.push({ href: '/school/fees', label: 'Fees', icon: '₨' });
     if (has('messages.send')) items.push({ href: '/school/messages', label: 'Messages', icon: '✉' });
     if (p && mods.includes('whatsapp')) items.push({ href: '/school/whatsapp', label: 'WhatsApp settings', icon: '☏' });
@@ -48,6 +49,7 @@ function navFor(me: Me): NavItem[] {
   const items: NavItem[] = [{ href: '/home', label: 'Home', icon: '◧' }];
   if (mods.includes('timetable')) items.push({ href: '/home/timetable', label: r === 'TEACHER' ? 'My timetable' : 'Timetable', icon: '◷' });
   if (mods.includes('attendance')) items.push({ href: '/home/attendance', label: 'Attendance', icon: '✓' });
+  if (mods.includes('exams')) items.push(r === 'TEACHER' ? { href: '/home/marks', label: 'Tests & marks', icon: '✎' } : { href: '/home/results', label: 'Results', icon: '✎' });
   if (mods.includes('fees') && (r === 'PARENT' || r === 'STUDENT')) items.push({ href: '/home/fees', label: 'Fees', icon: '₨' });
   items.push({ href: '/notifications', label: 'Notifications', icon: '◉' });
   return items;

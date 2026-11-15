@@ -15,7 +15,6 @@ interface Checklist {
 
 const upcoming = [
   ['Timetable and teacher schedules', 'Step 3'],
-  ['Tests, exams and report cards', 'Step 6'],
   ['Online exams', 'Step 7'],
   ['Remarks, monthly reports, rankings and honors', 'Step 8'],
 ];

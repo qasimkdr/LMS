@@ -36,9 +36,9 @@ interface Overview {
 }
 
 const soon: Record<string, string[]> = {
-  TEACHER: ['Marks entry', 'Online exams', 'Homework', 'Class chat'],
-  STUDENT: ['Homework', 'Online exams', 'Results', 'Class chat'],
-  PARENT: ['Results and report cards', 'Messages to teachers', 'Announcements'],
+  TEACHER: ['Online exams', 'Homework', 'Class chat'],
+  STUDENT: ['Homework', 'Online exams', 'Class chat'],
+  PARENT: ['Messages to teachers', 'Announcements'],
 };
 
 function ChildCard({ c }: { c: Child }) {

@@ -60,6 +60,15 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Reports:** collection today / this month / last month / last 6 and 12 months / same month last year with a 13-month chart, by method and collector; paid / partly / unpaid / no voucher for any month; defaulters ranked by months unpaid and amount, with one-click WhatsApp reminders (selected, a class, or all); recovery % by month and by class; day sheet.
 - **Online payment:** each school connects its own JazzCash merchant account (password and integrity salt stored encrypted). Parents pay their dues from the app; the result is accepted only with a valid signature and matching amount, and the receipt is created once. A built-in test gateway (`PAYMENTS_TEST_GATEWAY=true`) is for development only.
 
+## What works now (step 6: tests, exams and results)
+
+- **Test and exam types:** ready-made Weekly / Monthly / Class / Surprise test and First term / Mid-term / Second term / Send-up / Final (Annual); the principal can add or hide types, and teachers can type their own test name (e.g. "Quiz", "Unit test"), which is saved for next time.
+- **Class tests:** teachers create a test for a subject they teach (class teachers: any subject of their class), enter marks quickly (Enter moves down, absent tick, remark), and submit. By default the principal approves before families see it; the school can let teachers publish tests directly.
+- **Term exams:** the principal creates an exam for one or many classes; papers are made from each class's subjects with a date sheet (date, time, total and pass marks), which can be shared with students and parents. Each subject teacher enters marks for their own section; the principal approves or sends back with a note.
+- **Publishing:** totals, percentage, grade (school's own grade bands), pass/fail (overall % and every paper), positions in class and in section (ties share a position). Only the principal can change published marks, with a reason; positions recalculate and parents can be told.
+- **Results:** result sheet with subject averages and highest marks; report card remarks by the class teacher and principal; printable A4 report cards with photo, marks, grades, position, attendance and signatures; results sent to parents on WhatsApp and in the app.
+- **Families:** results of every test and exam, the date sheet of upcoming exams, a monthly test average, and the report card.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.
