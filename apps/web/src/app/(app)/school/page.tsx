@@ -15,7 +15,6 @@ interface Checklist {
 
 const upcoming = [
   ['Timetable and teacher schedules', 'Step 3'],
-  ['Fees, vouchers, collection and hand-over', 'Step 5'],
   ['Tests, exams and report cards', 'Step 6'],
   ['Online exams', 'Step 7'],
   ['Remarks, monthly reports, rankings and honors', 'Step 8'],
@@ -27,6 +26,9 @@ export default function SchoolDashboard() {
   const { data, error, loading } = useData<{ usage: Usage }>('/school/overview');
   const { data: checklist } = useData<Checklist>(isPrincipal ? '/setup/checklist' : null);
   const hasAttendance = (me?.school?.plan.modules ?? []).includes('attendance');
+  const feeReports = (me?.school?.plan.modules ?? []).includes('fees') && (isPrincipal || Boolean(me?.user.permissions.includes('fees.reports')));
+  const { data: fees } = useData<{ collection: { today: number; thisMonth: number }; outstanding: number; pendingHandovers: number; currentMonth: { recovery: number | null } }>(feeReports ? '/fees/reports/summary' : null);
+  const cur = me?.school?.currency ?? 'PKR';
   const { data: attendance } = useData<{ percent: number | null; totals: Record<string, number>; notMarked: number }>(hasAttendance ? '/attendance/today' : null);
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -56,6 +58,28 @@ export default function SchoolDashboard() {
                     Late <strong>{attendance.totals.LATE ?? 0}</strong>
                   </span>
                   <span className={attendance.notMarked ? 'text-amber-700' : 'text-emerald-700'}>{attendance.notMarked ? `${attendance.notMarked} class(es) not marked` : 'All classes marked'}</span>
+                </div>
+              </div>
+            </Link>
+          )}
+          {fees && (
+            <Link href="/school/fees" className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-brand-500">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Fees</div>
+                  <div className="mt-1 text-2xl font-semibold">
+                    {cur} {Math.round(fees.collection.today).toLocaleString('en-US')} <span className="text-sm font-normal text-gray-500">today</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <span>
+                    This month <strong>{cur} {Math.round(fees.collection.thisMonth).toLocaleString('en-US')}</strong>
+                  </span>
+                  <span>
+                    Outstanding <strong className="text-red-600">{cur} {Math.round(fees.outstanding).toLocaleString('en-US')}</strong>
+                  </span>
+                  {fees.currentMonth.recovery !== null && <span>Recovery <strong>{fees.currentMonth.recovery}%</strong></span>}
+                  {fees.pendingHandovers > 0 && <span className="font-medium text-amber-700">{fees.pendingHandovers} hand-over(s) to approve</span>}
                 </div>
               </div>
             </Link>

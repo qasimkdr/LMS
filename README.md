@@ -50,6 +50,16 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Notifications:** bell with unread count for every school user.
 - Set `WHATSAPP_DRY_RUN=true` in development to record messages as sent without calling Meta.
 
+## What works now (step 5: fees)
+
+- **Fee setup:** fee heads (every month / only some months like annual charges / one-off only), which heads student discounts apply to, a class × head amount grid with "copy above", due day, late fee (none / fixed / per day with a cap), bank details and note printed on vouchers, receipt prefix, automatic voucher creation on the 1st.
+- **Discounts:** per student, percentage and/or fixed amount per month (sibling, staff child, scholarship…).
+- **Vouchers:** generate a month for the whole school or chosen classes (skips students who already have one or joined later), one-off charges (admission, trip, books), cancel, principal adjustments/waivers. Printable vouchers with bank / school / parent copies, per student or **one family voucher** for all siblings, showing previous dues and the amount after the due date.
+- **Collection:** find a family by student, father, phone or family no., tick vouchers, take cash/bank/cheque, full or partial. Oldest vouchers are paid first; extra money is kept as advance and used automatically on the next vouchers. Late fee added once when paying after the due date; only the principal can waive it or back-date a payment. Printable receipt, sent to parents on WhatsApp and in the app.
+- **Hand-over:** each collector sees the money with them (by method) and hands it to the principal with the amount they're giving; the principal sees expected vs handed over, approves or rejects with a reason, and sees who still holds money. Staff can only *ask* to cancel a receipt; the principal decides. Cancelling restores the voucher balance.
+- **Reports:** collection today / this month / last month / last 6 and 12 months / same month last year with a 13-month chart, by method and collector; paid / partly / unpaid / no voucher for any month; defaulters ranked by months unpaid and amount, with one-click WhatsApp reminders (selected, a class, or all); recovery % by month and by class; day sheet.
+- **Online payment:** each school connects its own JazzCash merchant account (password and integrity salt stored encrypted). Parents pay their dues from the app; the result is accepted only with a valid signature and matching amount, and the receipt is created once. A built-in test gateway (`PAYMENTS_TEST_GATEWAY=true`) is for development only.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

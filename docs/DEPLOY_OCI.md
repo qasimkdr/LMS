@@ -71,6 +71,7 @@ OCI_ACCESS_KEY_ID=<customer secret key id>
 OCI_SECRET_ACCESS_KEY=<customer secret key>
 WHATSAPP_GRAPH_VERSION=v23.0   # check Meta's current Graph API version
 WHATSAPP_DRY_RUN=false
+PAYMENTS_TEST_GATEWAY=false   # never true in production
 SUPER_ADMIN_USERNAME=<you>
 SUPER_ADMIN_PASSWORD=<strong password>
 ```
