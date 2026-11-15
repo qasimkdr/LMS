@@ -17,6 +17,7 @@ interface NavItem {
 
 function navFor(me: Me): NavItem[] {
   const r = me.user.role;
+  const mods = me.school?.plan.modules ?? [];
   if (r === 'SUPER_ADMIN') {
     return [
       { href: '/admin', label: 'Dashboard', icon: '◧' },
@@ -33,12 +34,15 @@ function navFor(me: Me): NavItem[] {
     if (has('students.view')) items.push({ href: '/school/students', label: 'Students', icon: '☺' });
     if (has('staff.view')) items.push({ href: '/school/staff', label: 'Staff & teachers', icon: '♟' });
     if (p) items.push({ href: '/school/setup', label: 'Classes & subjects', icon: '▦' }, { href: '/school/assignments', label: 'Teacher assignments', icon: '⇄' });
+    if (mods.includes('timetable')) items.push({ href: '/school/timetable', label: 'Timetable', icon: '◷' });
     if (has('files.manage')) items.push({ href: '/school/files', label: 'Files', icon: '▤' });
     items.push({ href: '/school/usage', label: 'Plan & usage', icon: '◔' });
     if (p) items.push({ href: '/school/settings', label: 'School profile', icon: '⚙' }, { href: '/school/recycle-bin', label: 'Recycle bin', icon: '♻' });
     return items;
   }
-  return [{ href: '/home', label: 'Home', icon: '◧' }];
+  const items: NavItem[] = [{ href: '/home', label: 'Home', icon: '◧' }];
+  if (mods.includes('timetable')) items.push({ href: '/home/timetable', label: r === 'TEACHER' ? 'My timetable' : 'Timetable', icon: '◷' });
+  return items;
 }
 
 /** Which area each role may open. */

@@ -32,6 +32,14 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Recycle bin:** deleted students and staff can be restored for 30 days. All edits are audited with old and new values.
 - **Teachers** see their classes and students; **parents** see all their children; **students** see their profile.
 
+## What works now (step 3: timetable)
+
+- **Period timings:** working days, periods and breaks, with different timings for some days (e.g. shorter Friday). A typical setup is pre-filled.
+- **Class timetables:** click a cell to choose subject, teacher (the assigned subject teacher is picked automatically), room and note. A teacher can never be in two classes at once (busy teachers are shown and blocked); room double-booking gives a warning. Copy a timetable from another section, clear, print. Periods-a-week per subject.
+- **Teacher timetables** are built automatically from the class timetables, with weekly load per teacher.
+- **Teachers** see today's periods (current and next highlighted) and their week; **students and parents** see each child's timetable, day by day on phones.
+- Timetable is a plan module: schools without it on their plan don't see it.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

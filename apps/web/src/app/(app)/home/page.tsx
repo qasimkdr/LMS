@@ -5,6 +5,8 @@ import { useAuth } from '@/components/auth';
 import { useData } from '@/components/useData';
 import { Avatar } from '@/components/Avatar';
 import { Card, Empty, ErrorBox, Loading, PageHeader } from '@/components/ui';
+import { TodayList } from '@/components/TimetableGrid';
+import type { MyTimetable } from './timetable/page';
 import { age, roleLabel } from '@/lib/format';
 import { className } from '@/lib/types';
 
@@ -34,8 +36,8 @@ interface Overview {
 }
 
 const soon: Record<string, string[]> = {
-  TEACHER: ['Timetable', 'Attendance', 'Marks entry', 'Online exams', 'Homework', 'Class chat'],
-  STUDENT: ['Timetable', 'Homework', 'Online exams', 'Results', 'Attendance', 'Class chat'],
+  TEACHER: ['Attendance', 'Marks entry', 'Online exams', 'Homework', 'Class chat'],
+  STUDENT: ['Homework', 'Online exams', 'Results', 'Attendance', 'Class chat'],
   PARENT: ['Attendance', 'Fee vouchers and online payment', 'Results and report cards', 'Messages to teachers', 'Announcements'],
 };
 
@@ -59,7 +61,21 @@ function ChildCard({ c }: { c: Child }) {
 export default function HomePage() {
   const { me } = useAuth();
   const { data, error, loading } = useData<Overview>('/my/overview');
+  const hasTT = (me?.school?.plan.modules ?? []).includes('timetable');
+  const { data: tt } = useData<MyTimetable>(hasTT ? '/timetable/my' : null);
   if (!me) return null;
+  const todayCard = (title: string, node: React.ReactNode) => (
+    <Card
+      title={title}
+      actions={
+        <Link href="/home/timetable" className="text-sm font-medium text-brand-700 hover:underline">
+          Full week →
+        </Link>
+      }
+    >
+      {node}
+    </Card>
+  );
   return (
     <>
       <PageHeader title={`Welcome, ${me.user.fullName}`} subtitle={`${roleLabel[me.user.role]} · ${me.school?.name ?? ''}`} />
@@ -68,6 +84,11 @@ export default function HomePage() {
         <Loading />
       ) : data ? (
         <div className="space-y-6">
+          {data.role === 'TEACHER' && tt?.week && todayCard('Today', <TodayList week={tt.week} mode="teacher" now={tt.now} />)}
+          {data.role !== 'TEACHER' &&
+            tt?.children?.map((c) => (
+              <div key={c.student.id}>{todayCard(`Today${tt.children!.length > 1 ? ` · ${c.student.fullName}` : ''}`, c.hasSection ? <TodayList week={c.week} mode="class" now={tt.now} /> : <p className="text-sm text-gray-500">No section assigned yet.</p>)}</div>
+            ))}
           {data.role === 'TEACHER' && (
             <>
               <Card title="My classes">

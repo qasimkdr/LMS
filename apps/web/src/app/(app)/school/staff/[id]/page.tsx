@@ -161,6 +161,9 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
           >
             <div className="text-xs font-semibold uppercase text-gray-500">Class teacher of</div>
             <div className="mt-1 text-sm">{s.classTeacherOf.length ? s.classTeacherOf.map((x: Staff) => className(x.class, x)).join(', ') : 'None'}</div>
+            <Link href={`/school/timetable?tab=teachers&teacher=${s.id}`} className="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">
+              View weekly timetable →
+            </Link>
             <div className="mt-4 text-xs font-semibold uppercase text-gray-500">Teaches</div>
             <ul className="mt-1 space-y-1 text-sm">
               {s.teachingSubjects.length ? s.teachingSubjects.map((t: Staff) => <li key={t.id}>{t.subject.name} — {className(t.section.class, t.section)}</li>) : <li>None yet</li>}

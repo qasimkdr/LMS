@@ -141,3 +141,28 @@ export interface StudentListItem {
 
 export const className = (c: { name: string; stream?: string | null } | null | undefined, s?: { name: string } | null) =>
   c ? `${c.name}${c.stream ? ` ${c.stream}` : ''}${s ? ` – ${s.name}` : ''}` : '—';
+
+// ---------- Step 3: timetable ----------
+
+export interface TTEntry {
+  id: string;
+  subject: { id: string; name: string } | null;
+  teacher: { id: string; fullName: string } | null;
+  section: { id: string; name: string; class: { id: string; name: string; stream: string | null } };
+  room: string | null;
+  note: string | null;
+}
+export interface TTPeriod {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  isBreak: boolean;
+  entries: TTEntry[];
+}
+export interface TTDay {
+  day: number;
+  dayName: string;
+  scheduleName: string | null;
+  periods: TTPeriod[];
+}
