@@ -32,7 +32,7 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 
 ### 0.3 Your revenue model (Super Admin billing)
 - [P1] Monthly subscription per school.
-- [P1] Plans and pricing: flat monthly fee, or per-student pricing, or tiers (Basic / Standard / Premium) that switch modules on/off.
+- [P1] Plans (e.g. Basic / Standard / Premium): fixed monthly price that includes up to N active students, **plus a per-student price for each active student above N**. Monthly invoice calculates this automatically from the student count.
 - [P1] Each plan sets limits (see 0.4); Super Admin can create, edit and price plans and give a school custom limits.
 - [P1] Invoice to each school every month, record payments received, payment history.
 - [P1] Grace period, then automatic read-only mode, then suspension if unpaid; one-click reactivation.
@@ -405,8 +405,12 @@ Applies to class tests, term exams and online exams. [P1]
 - Profit and loss summary per month; comparison with previous periods.
 - Expense approvals by principal.
 
-### 9.6 Online fee payment [P3]
-- Parents pay through bank/JazzCash/Easypaisa/card; auto-reconcile with vouchers.
+### 9.6 Online fee payment [P1]
+- Each school connects **its own merchant account** in Settings → Payments (same idea as WhatsApp); money goes straight to the school. On/off switch per payment method.
+- Parents pay a voucher (or family voucher) from the parent portal; partial payment allowed if the school enables it.
+- Payment confirmed automatically by the provider's callback: voucher marked paid, receipt generated and sent to the parent.
+- Online payments appear in collection reports separately from cash collected by staff (they do not go through staff hand-over, but the principal sees and reconciles them).
+- Failed / pending payment tracking and retry.
 
 ---
 
@@ -644,4 +648,12 @@ All chat is inside the app (real-time), not on WhatsApp. Chat attachments count 
 - Plans limit storage, students, staff and modules; schools see their usage.
 - Add-on modules are out of scope.
 
-**Still open** (see the latest conversation)
+- Pricing: fixed plan price per month **plus** a per-student charge for active students above the plan's included limit.
+- Classes: Playgroup to Intermediate (Class 11–12 with subject groups such as Pre-Medical, Pre-Engineering, ICS, I.Com, FA); schools can rename/add classes.
+- Online fee payment by parents is in the **first release** (moved from P3 to P1, see 9.6).
+- No OCI account yet: build and test locally first, then write OCI deployment steps.
+
+**Still open**
+- Sample report card to match (optional; a clean default layout will be used otherwise).
+- Product name and domain.
+- Online payment providers to support first (JazzCash, Easypaisa, bank / card gateway); each school uses its own merchant account, like WhatsApp.
