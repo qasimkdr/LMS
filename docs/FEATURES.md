@@ -1,9 +1,11 @@
 # School Management System (SMS + LMS): Feature Plan
 
-Status: **planning, revision 2**. All features below are approved for building except the add-on modules (section 16), which are out of scope.
+Status: **planning, revision 3**. All features below are approved for building except the add-on modules (section 16), which are out of scope.
 Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second release, **[P3]** later.
 
 **Revision 2 changes:** add-ons removed; detailed admission form and profile photo (4.1, 4.2); teacher's own schedule (5.1, 7.4 moved to P1); full online exam paper builder, review and publishing (8.3); one approval and publishing workflow for all results (8.4); principal can edit everything (1.2); new sections 18 to 25 for features that were missing.
+
+**Revision 3 changes:** each school connects and pays for its own WhatsApp number (10.1); plans with storage and usage limits and a usage meter (0.3, 0.4); class chat with 30-day auto-delete (22.1); parent messages to their child's teachers and complaints to the principal (22.2, 22.3); decisions recorded (section 27).
 
 ---
 
@@ -14,12 +16,12 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 |---|---|
 | Frontend | Next.js (App Router) + TypeScript, Tailwind CSS, responsive and installable as a PWA (works on phones) |
 | Backend | Node.js + Express + TypeScript, REST API, JWT access tokens + refresh tokens in httpOnly cookies |
-| Database | MySQL 8 on Oracle Cloud (OCI MySQL HeatWave, or MySQL on an OCI compute VM) |
+| Database | MySQL 8 on Oracle Cloud Infrastructure (OCI) |
 | ORM / migrations | Prisma or Drizzle (MySQL), versioned migrations |
 | File storage | OCI Object Storage (gallery photos, documents, syllabus PDFs, receipts, report-card PDFs) |
 | Hosting | OCI compute (Next.js + API behind Nginx, PM2 or Docker), SSL via Let's Encrypt |
 | Background jobs | Queue (BullMQ + Redis) for WhatsApp/SMS sends, PDF generation, monthly reports, reminders |
-| Messaging | WhatsApp Business Cloud API (Meta), plus SMS gateway as fallback, plus email |
+| Messaging | WhatsApp Business Cloud API (Meta) using **each school's own number and Meta account**, plus email; real-time in-app chat over WebSockets (Socket.IO) |
 | PDFs | Server-side PDF generation (report cards, fee vouchers, receipts, certificates, ID cards) |
 
 ### 0.2 Multi-tenancy (one system, many schools)
@@ -31,12 +33,32 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 ### 0.3 Your revenue model (Super Admin billing)
 - [P1] Monthly subscription per school.
 - [P1] Plans and pricing: flat monthly fee, or per-student pricing, or tiers (Basic / Standard / Premium) that switch modules on/off.
-- [P1] Student and staff limits per plan.
+- [P1] Each plan sets limits (see 0.4); Super Admin can create, edit and price plans and give a school custom limits.
 - [P1] Invoice to each school every month, record payments received, payment history.
 - [P1] Grace period, then automatic read-only mode, then suspension if unpaid; one-click reactivation.
 - [P2] Free trial period for new schools.
-- [P2] WhatsApp/SMS credit packs (messages cost money; bill schools for usage or include a quota per plan).
+- WhatsApp is **not** billed by you: each school connects its own WhatsApp Business number and pays Meta directly (see 10.1). You only sell the software.
 - [P3] Online payment of subscription (bank transfer proof upload, JazzCash/Easypaisa/Stripe, etc.).
+
+### 0.4 Plan limits and usage tracking
+**Limits a plan can set** [P1]
+- Total storage (e.g. 5 GB / 20 GB / 50 GB), covering all uploads: syllabus files, study material, documents, student photos and documents, gallery, chat attachments, homework submissions, online exam answer photos.
+- Maximum size of a single file (e.g. 10 MB).
+- Number of active students, number of staff/teacher accounts.
+- Number of campuses.
+- Gallery albums / photos [P2], online exams per month [P2].
+- Modules included (e.g. online exams, class chat, payroll on higher plans only).
+
+**Usage meter for the school** [P1]
+- Settings → "Plan and usage" page for the principal: plan name, renewal date, and progress bars like **"Storage: 3.2 GB of 5 GB used (64%)"**, "Students: 412 of 500".
+- Storage breakdown by type: syllabus, study material, gallery, documents, photos, chat, exams; and by uploader [P2].
+- Largest files list so the principal can delete old files to free space.
+- Warnings at 80% and 95% (dashboard banner + notification to principal); at 100% new uploads are blocked with a clear message ("Storage full, upgrade plan or delete files"), while everything else keeps working.
+- Upgrade request button that notifies Super Admin.
+- Files deleted from chat (30-day cleanup) and recycle bin (after 30 days) are subtracted from usage automatically.
+
+**Usage for Super Admin** [P1]
+- Table of all schools with storage used vs limit, students vs limit, schools near their limits (upsell list).
 
 ---
 
@@ -391,9 +413,13 @@ Applies to class tests, term exams and online exams. [P1]
 ## 10. Parent communication (WhatsApp, SMS, app)
 
 ### 10.1 Channels
-- [P1] WhatsApp Business Cloud API (official). Message templates must be approved by Meta first; each school can use a shared platform number or connect its own number [P2].
+- [P1] **Each school uses its own WhatsApp number.** In Settings → WhatsApp, the principal connects the school's WhatsApp Business account (Meta WhatsApp Cloud API: phone number ID, business account ID, access token). The school pays Meta directly for messages; the platform charges nothing for messaging.
+- [P1] Step-by-step setup guide inside settings, a "Send test message" button, and connection status (connected / token expired / not set up).
+- [P1] Message templates (required by Meta for messages a parent did not start) are listed in settings with their approval status; the system provides ready-made template texts the school submits to Meta.
+- [P1] **On/off switch for every automatic message type**: absent alert, late alert, fee voucher, fee reminder, payment receipt, test result, report card, monthly report, remarks, announcements, homework digest, gate pass, honors, exam reminders. Each can also be set to "manual only" (sent only when someone clicks Send).
+- [P1] Master switch to turn WhatsApp off completely; if WhatsApp is off or not set up, everything still goes to the in-app notification center.
+- [P1] Access token stored encrypted; only the principal can view/change WhatsApp settings.
 - [P1] In-app notifications (parent/student/teacher portal).
-- [P2] SMS fallback when WhatsApp is not available on a number.
 - [P2] Email.
 
 ### 10.2 What can be sent
@@ -413,7 +439,7 @@ Applies to class tests, term exams and online exams. [P1]
 - [P1] Delivery log per message: sent / delivered / read / failed, with retry.
 - [P1] Every report about a student can be sent "on click" from the student profile.
 - [P2] Message templates library editable by principal.
-- [P2] Monthly usage counter vs plan quota.
+- [P1] Monthly WhatsApp count per school (messages sent / failed by type), so the school can estimate its Meta bill.
 
 ---
 
@@ -536,12 +562,41 @@ Not being built: transport, library, inventory, hostel, surveys/polls, native mo
 - [P2] Result re-check request by parents, tracked until the teacher/principal responds.
 - [P2] Supplementary / re-exam for failed students.
 
-## 22. Parent and teacher interaction
-- [P1] Parent–teacher messaging inside the app (text and images), visible to principal; teachers can turn off messages outside school hours.
+## 22. Chat, messaging and complaints
+All chat is inside the app (real-time), not on WhatsApp. Chat attachments count towards the school's storage limit.
+
+### 22.1 Class chat (per class section)
+- [P1] Every class section has one group chat automatically; all students of that section are members, plus the class teacher and subject teachers of that section.
+- [P1] Text, emojis, images and files (size limits from plan); reply to a message.
+- [P1] **Messages and attachments are deleted automatically after 30 days** (a daily job removes anything older than 30 days; a notice at the top of the chat says so).
+- [P1] Teachers are moderators: delete any message, mute a student for a time, turn the chat to "teachers only can send" (announcement mode) or close it outside school hours.
+- [P1] Principal can see every class chat and delete messages; principal can turn class chat on/off for the whole school or a section.
+- [P1] Students can report a message to the teacher; reported messages are kept as evidence until the teacher/principal reviews them (even past 30 days).
+- [P1] Students moved to another section are removed from the old chat and added to the new one; students who leave are removed.
+- [P2] Bad-word filter (configurable word list).
+- [P2] Parents do not join class chats (students and teachers only).
+
+### 22.2 Parent ↔ teacher messaging
+- [P1] Parent opens "Message a teacher", chooses the child (if siblings), and sees **only that child's teachers** (class teacher and subject teachers, with subject name); picks one and writes a message.
+- [P1] Message types: general message, query, or **complaint**; text, images, files.
+- [P1] One-to-one conversation thread per parent–teacher; read ticks; teacher replies in the app.
+- [P1] Teacher can turn off messages outside set hours (auto-reply "I will reply during school hours").
+- [P1] Principal can view all parent–teacher conversations (for safety and quality).
+- [P1] Teacher can forward a conversation to the principal if it needs action.
+- [P1] These conversations are **not** auto-deleted (kept as school record), principal can delete.
+
+### 22.3 Complaints to the principal
+- [P1] Parent can send a complaint **directly to the principal** (about a teacher, staff, another student, fees, facilities, transport, anything), with category, description and attachments; option to keep it private from teachers.
+- [P1] Each complaint gets a ticket number and status: **New → In progress → Resolved / Closed**; principal can reply, assign it to a staff member/teacher, add internal notes.
+- [P1] Parent sees the status and replies; gets notified on each update.
+- [P1] Complaints raised to a teacher (22.2) can be escalated to the principal by the parent if not resolved.
+- [P1] Principal dashboard: open complaints count, oldest unresolved, complaints by category and by month.
+- [P2] Students can also send a complaint to the principal (e.g. bullying), with option to stay anonymous to teachers.
+
+### 22.4 Other parent interaction
 - [P1] Circulars with **read receipts**: see which parents have opened an announcement.
 - [P2] Digital consent forms (e.g. trip permission): parent taps Agree / Disagree.
 - [P2] Parent–teacher meeting scheduling: teacher opens slots, parents book a time.
-- [P2] Complaints and feedback from parents to principal with status (open, in progress, resolved).
 
 ## 23. Student safety and daily life
 - [P1] Early leave / gate pass: student leaves early, recorded with who picked them up; parent gets a WhatsApp.
@@ -568,26 +623,25 @@ Not being built: transport, library, inventory, hostel, surveys/polls, native mo
 
 ## 26. Suggested build order
 
-1. **Foundation:** monorepo, Next.js + Express + MySQL setup, auth, roles/permissions, multi-tenancy, audit log, Super Admin creates schools and principals, subscription plans.
+1. **Foundation:** monorepo, Next.js + Express + MySQL setup, auth, roles/permissions, multi-tenancy, audit log, Super Admin creates schools and principals, subscription plans with limits, file storage with usage tracking.
 2. **School setup + people:** setup wizard, sessions, classes, sections, subjects, period timings, full enrollment form with profile photo and documents, parent logins, staff/teachers, bulk import, global search.
 3. **Timetable + teacher schedule** ("My Classes").
-4. **Attendance** + absent WhatsApp alerts (sets up the WhatsApp pipeline early).
+4. **Attendance** + school WhatsApp settings (own number, on/off switches) + absent alerts.
 5. **Fees:** structure, monthly generation, family vouchers, collection, receipts, hand-over and principal approval, defaulters, comparisons.
 6. **Tests and exams:** marks entry, approval and publishing workflow, results, report cards, date sheets, WhatsApp sending.
 7. **Online exams:** question bank, paper builder (all question types), scheduling, student attempt with auto-save, checking and remarks, principal approval and publishing.
 8. **Remarks, monthly parent report, rankings, honors, honor board.**
 9. **LMS:** syllabus + progress, study material, homework.
-10. **Communication:** parent–teacher messaging, circulars with read receipts, gate pass; gallery, dashboards polish, reports export.
+10. **Communication:** class chat with 30-day cleanup, parent–teacher messaging, complaints to principal, circulars with read receipts, gate pass; gallery, dashboards polish, reports export.
 11. **Admissions pipeline and session closing / withdrawal.**
 12. **P2 items:** payroll, expenses, certificates, ID cards, live classes, etc.
 
-## 27. Open questions to settle before coding
+## 27. Decisions and open questions
 
-1. **Database:** MySQL on Oracle Cloud (OCI), or the Oracle Database product itself? This plan assumes **MySQL on OCI**.
-2. **WhatsApp:** one platform-wide WhatsApp number for all schools, or each school connects its own number? Who pays per-message costs?
-3. **Pricing model:** flat monthly per school, or per student?
-4. **Grading system and report card layout:** do you have a sample report card from a school you want to match?
-5. **Classes range:** Playgroup to Matric only, or also Intermediate / O & A levels?
-6. **Language:** English only at launch, or Urdu too?
-7. **Online fee payment:** needed at launch or later?
-8. **Product name and domain.**
+**Decided**
+- Hosting and database: Oracle Cloud (OCI), MySQL 8.
+- WhatsApp: each school connects its own number and pays Meta itself; every message type can be turned on/off in settings.
+- Plans limit storage, students, staff and modules; schools see their usage.
+- Add-on modules are out of scope.
+
+**Still open** (see the latest conversation)
