@@ -563,3 +563,148 @@ model TimetableEntry {
   @@unique([sectionId, day, periodId])
   @@index([schoolId, teacherId, day, periodId])
 }
+
+// ---------------------------------------------------------------------------
+// Step 4: attendance, messaging (WhatsApp + in-app notifications)
+// ---------------------------------------------------------------------------
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  LEAVE
+  HALF_DAY
+}
+
+/// One section's attendance for one day (exists once it has been marked).
+model AttendanceSession {
+  id          String   @id @default(cuid())
+  schoolId    String
+  sectionId   String
+  date        DateTime @db.Date
+  markedById  String
+  markedAt    DateTime @default(now())
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([sectionId, date])
+  @@index([schoolId, date])
+}
+
+model AttendanceRecord {
+  id          String           @id @default(cuid())
+  schoolId    String
+  studentId   String
+  sectionId   String
+  date        DateTime         @db.Date
+  status      AttendanceStatus
+  remark      String?          @db.VarChar(200)
+  /// Set when the absent/late alert for this day was queued, so parents are told only once.
+  alertSentAt DateTime?
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([studentId, date])
+  @@index([schoolId, date])
+  @@index([sectionId, date])
+}
+
+/// Each school's own WhatsApp Business connection and message rules.
+model MessagingSettings {
+  schoolId          String    @id
+  whatsappEnabled   Boolean   @default(false)
+  phoneNumberId     String?   @db.VarChar(40)
+  businessAccountId String?   @db.VarChar(40)
+  /// AES-256-GCM encrypted.
+  accessTokenEnc    String?   @db.Text
+  appSecretEnc      String?   @db.Text
+  /// Token Meta sends when verifying the webhook URL.
+  verifyToken       String    @db.VarChar(64)
+  displayPhone      String?   @db.VarChar(40)
+  verifiedName      String?   @db.VarChar(160)
+  status            String    @default("NOT_SET") @db.VarChar(20)
+  lastError         String?   @db.VarChar(500)
+  lastCheckedAt     DateTime?
+  /// Calling code added to local numbers (03001234567 -> 923001234567).
+  countryCode       String    @default("92") @db.VarChar(4)
+  /// { [messageType]: "auto" | "manual" | "off" }
+  rules             Json?
+  /// { [messageType]: { name, language } } approved template names in Meta.
+  templates         Json?
+  updatedAt         DateTime  @updatedAt
+}
+
+enum MessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+}
+
+/// A send to many people at once (manual message, a day's absent alerts).
+model MessageBatch {
+  id          String    @id @default(cuid())
+  schoolId    String
+  type        String    @db.VarChar(30)
+  title       String    @db.VarChar(160)
+  body        String    @db.Text
+  /// What the sender chose, e.g. { kind: "classes", ids: [...] }
+  audience    Json
+  channels    Json
+  total       Int       @default(0)
+  createdById String
+  scheduledAt DateTime?
+  createdAt   DateTime  @default(now())
+  messages    Message[]
+
+  @@index([schoolId, createdAt])
+}
+
+/// One WhatsApp message to one phone number (the outbox and the delivery log).
+model Message {
+  id                String        @id @default(cuid())
+  schoolId          String
+  batchId           String?
+  batch             MessageBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  type              String        @db.VarChar(30)
+  toPhone           String        @db.VarChar(20)
+  toName            String?       @db.VarChar(160)
+  studentId         String?
+  templateName      String?       @db.VarChar(120)
+  templateLanguage  String?       @db.VarChar(10)
+  params            Json?
+  /// The text as the parent will read it (for the log).
+  body              String        @db.Text
+  status            MessageStatus @default(QUEUED)
+  error             String?       @db.VarChar(500)
+  attempts          Int           @default(0)
+  nextAttemptAt     DateTime      @default(now())
+  providerMessageId String?       @unique @db.VarChar(120)
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([schoolId, createdAt])
+  @@index([batchId])
+}
+
+/// In-app notification (bell icon). Always sent, even when WhatsApp is off.
+model Notification {
+  id        String    @id @default(cuid())
+  schoolId  String
+  userId    String
+  type      String    @db.VarChar(30)
+  title     String    @db.VarChar(160)
+  body      String    @db.Text
+  link      String?   @db.VarChar(300)
+  batchId   String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([schoolId, createdAt])
+}

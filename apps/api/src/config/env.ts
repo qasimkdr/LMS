@@ -14,6 +14,13 @@ const schema = z.object({
     .optional()
     .transform((v) => v === 'true'),
   STORAGE_DRIVER: z.enum(['local', 'oci']).default('local'),
+  /** Meta Graph API version used for WhatsApp Cloud API calls. */
+  WHATSAPP_GRAPH_VERSION: z.string().default('v23.0'),
+  /** true = do not call Meta; mark messages as sent (development and demos). */
+  WHATSAPP_DRY_RUN: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
   LOCAL_STORAGE_DIR: z.string().default('./storage'),
   OCI_S3_ENDPOINT: z.string().optional(),
   OCI_REGION: z.string().optional(),

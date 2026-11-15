@@ -17,6 +17,7 @@ export default defineConfig({
       STORAGE_DRIVER: 'local',
       LOCAL_STORAGE_DIR: './storage-test',
       APP_URL: 'http://localhost:3000',
+      WHATSAPP_DRY_RUN: 'false',
     },
   },
 });

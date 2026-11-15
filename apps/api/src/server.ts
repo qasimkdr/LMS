@@ -1,6 +1,7 @@
 import { env } from './config/env';
 import { createApp } from './app';
 import { applyOverduePolicy } from './services/billing';
+import { processOutbox } from './services/messaging';
 
 const app = createApp();
 app.listen(env.PORT, () => console.log(`API listening on http://localhost:${env.PORT}`));
@@ -9,3 +10,17 @@ app.listen(env.PORT, () => console.log(`API listening on http://localhost:${env.
 setInterval(() => {
   applyOverduePolicy().catch((e) => console.error('overdue job failed', e));
 }, 60 * 60 * 1000).unref();
+
+// Every few seconds: send queued WhatsApp messages.
+let sending = false;
+setInterval(async () => {
+  if (sending) return;
+  sending = true;
+  try {
+    while ((await processOutbox()) > 0);
+  } catch (e) {
+    console.error('outbox failed', e);
+  } finally {
+    sending = false;
+  }
+}, 4000).unref();

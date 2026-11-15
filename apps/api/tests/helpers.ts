@@ -8,6 +8,12 @@ export const app = createApp();
 
 export async function resetDb() {
   await prisma.auditLog.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.messageBatch.deleteMany();
+  await prisma.messagingSettings.deleteMany();
+  await prisma.attendanceRecord.deleteMany();
+  await prisma.attendanceSession.deleteMany();
   await prisma.timetableEntry.deleteMany();
   await prisma.period.deleteMany();
   await prisma.bellSchedule.deleteMany();
@@ -82,7 +88,7 @@ export const planInput = (over: Record<string, unknown> = {}) => ({
   maxCampuses: 1,
   storageLimitMb: 10,
   maxFileSizeMb: 1,
-  modules: ['attendance', 'fees', 'timetable'],
+  modules: ['attendance', 'fees', 'timetable', 'whatsapp'],
   ...over,
 });
 

@@ -16,12 +16,16 @@ import importRoutes from './routes/imports';
 import { myRouter, recycleRouter, searchRouter } from './routes/people';
 import timetableRoutes from './routes/timetable';
 import { requireModule } from './middleware/modules';
+import messagingRoutes, { notificationsRouter, webhookRouter } from './routes/messaging';
+import attendanceRoutes from './routes/attendance';
 
 export function createApp() {
   const app = express();
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(helmet());
+  // Meta calls this without our cookies or CSRF header; it needs the raw body to check the signature.
+  app.use('/api/webhooks', webhookRouter);
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
@@ -45,6 +49,9 @@ export function createApp() {
   app.use('/api/recycle-bin', ...school, recycleRouter);
   app.use('/api/my', ...school, myRouter);
   app.use('/api/timetable', ...school, requireModule('timetable'), timetableRoutes);
+  app.use('/api/attendance', ...school, requireModule('attendance'), attendanceRoutes);
+  app.use('/api/messaging', ...school, messagingRoutes);
+  app.use('/api/notifications', ...school, notificationsRouter);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);
