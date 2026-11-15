@@ -4,3 +4,7 @@ dist/
 .env
 .env.*
 !.env.example
+storage/
+coverage/
+*.tsbuildinfo
+next-env.d.ts

@@ -1,0 +1,228 @@
+// Step 1 (foundation): plans, schools, users, sessions, audit log, files, school invoices.
+// Every school-owned table carries schoolId. Queries must always filter by the caller's schoolId.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  PRINCIPAL
+  STAFF
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum SchoolStatus {
+  TRIAL
+  ACTIVE
+  READ_ONLY
+  SUSPENDED
+}
+
+enum FileCategory {
+  LOGO
+  PROFILE_PHOTO
+  STUDENT_DOCUMENT
+  STAFF_DOCUMENT
+  SYLLABUS
+  STUDY_MATERIAL
+  SCHOOL_DOCUMENT
+  GALLERY
+  CHAT
+  HOMEWORK
+  EXAM
+  OTHER
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  VOID
+}
+
+model Plan {
+  id               String   @id @default(cuid())
+  name             String   @unique @db.VarChar(80)
+  description      String?  @db.VarChar(500)
+  monthlyPrice     Decimal  @db.Decimal(12, 2)
+  /// Active students covered by monthlyPrice.
+  includedStudents Int
+  /// Charged for each active student above includedStudents.
+  perStudentPrice  Decimal  @db.Decimal(12, 2)
+  /// Hard cap on active students; null = no cap.
+  maxStudents      Int?
+  /// Hard cap on staff + teacher accounts; null = no cap.
+  maxStaff         Int?
+  maxCampuses      Int      @default(1)
+  storageLimitMb   Int
+  maxFileSizeMb    Int
+  /// Module keys enabled on this plan (see src/config/modules.ts).
+  modules          Json
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  schools          School[]
+}
+
+model School {
+  id                   String       @id @default(cuid())
+  name                 String       @db.VarChar(160)
+  /// Short unique code, e.g. "city-grammar".
+  code                 String       @unique @db.VarChar(60)
+  address              String?      @db.VarChar(300)
+  city                 String?      @db.VarChar(80)
+  phone                String?      @db.VarChar(40)
+  email                String?      @db.VarChar(160)
+  logoFileId           String?
+  status               SchoolStatus @default(TRIAL)
+  trialEndsAt          DateTime?
+  planId               String
+  plan                 Plan         @relation(fields: [planId], references: [id])
+  /// Per-school overrides of plan limits (null = use plan).
+  customStorageLimitMb Int?
+  customMaxStudents    Int?
+  customMaxStaff       Int?
+  timezone             String       @default("Asia/Karachi") @db.VarChar(60)
+  currency             String       @default("PKR") @db.VarChar(8)
+  /// Day of month the subscription invoice is due.
+  billingDay           Int          @default(10)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  deletedAt            DateTime?
+
+  campuses Campus[]
+  users    User[]
+  files    StoredFile[]
+  invoices SchoolInvoice[]
+  audits   AuditLog[]
+
+  @@index([status])
+}
+
+model Campus {
+  id        String   @id @default(cuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
+  name      String   @db.VarChar(120)
+  address   String?  @db.VarChar(300)
+  isMain    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([schoolId])
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  /// Null only for SUPER_ADMIN.
+  schoolId           String?
+  school             School?   @relation(fields: [schoolId], references: [id])
+  role               Role
+  /// Login name, unique across the platform.
+  username           String    @unique @db.VarChar(80)
+  email              String?   @unique @db.VarChar(160)
+  phone              String?   @db.VarChar(40)
+  fullName           String    @db.VarChar(160)
+  passwordHash       String    @db.VarChar(100)
+  mustChangePassword Boolean   @default(true)
+  isActive           Boolean   @default(true)
+  /// Permission keys for STAFF (see src/config/permissions.ts). Principal has all.
+  permissions        Json?
+  photoFileId        String?
+  lastLoginAt        DateTime?
+  /// Bumped to invalidate every access token of this user (logout everywhere, password reset).
+  tokenVersion       Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  sessions RefreshSession[]
+
+  @@index([schoolId, role])
+}
+
+model RefreshSession {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique @db.VarChar(64)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  /// Set when this token was rotated; reuse of a rotated token revokes the whole family.
+  replacedBy String?
+  userAgent  String?   @db.VarChar(300)
+  ip         String?   @db.VarChar(64)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  schoolId   String?
+  school     School?  @relation(fields: [schoolId], references: [id])
+  actorId    String?
+  actorRole  Role?
+  action     String   @db.VarChar(80)
+  entityType String   @db.VarChar(60)
+  entityId   String?  @db.VarChar(40)
+  before     Json?
+  after      Json?
+  reason     String?  @db.VarChar(500)
+  ip         String?  @db.VarChar(64)
+  createdAt  DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model StoredFile {
+  id           String       @id @default(cuid())
+  schoolId     String
+  school       School       @relation(fields: [schoolId], references: [id])
+  uploadedById String
+  category     FileCategory
+  storageKey   String       @unique @db.VarChar(300)
+  originalName String       @db.VarChar(255)
+  mimeType     String       @db.VarChar(120)
+  sizeBytes    Int
+  createdAt    DateTime     @default(now())
+  /// Soft-deleted files no longer count towards storage usage.
+  deletedAt    DateTime?
+
+  @@index([schoolId, deletedAt])
+  @@index([schoolId, category])
+}
+
+model SchoolInvoice {
+  id               String        @id @default(cuid())
+  schoolId         String
+  school           School        @relation(fields: [schoolId], references: [id])
+  /// Billing month, "YYYY-MM".
+  period           String        @db.VarChar(7)
+  planName         String        @db.VarChar(80)
+  basePrice        Decimal       @db.Decimal(12, 2)
+  includedStudents Int
+  activeStudents   Int
+  extraStudents    Int
+  perStudentPrice  Decimal       @db.Decimal(12, 2)
+  amount           Decimal       @db.Decimal(12, 2)
+  status           InvoiceStatus @default(UNPAID)
+  dueDate          DateTime
+  paidAmount       Decimal?      @db.Decimal(12, 2)
+  paidAt           DateTime?
+  paymentMethod    String?       @db.VarChar(40)
+  paymentRef       String?       @db.VarChar(120)
+  notes            String?       @db.VarChar(500)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([schoolId, period])
+  @@index([status, dueDate])
+}
