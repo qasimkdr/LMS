@@ -8,6 +8,18 @@ export const app = createApp();
 
 export async function resetDb() {
   await prisma.auditLog.deleteMany();
+  await prisma.studentDocument.deleteMany();
+  await prisma.student.deleteMany();
+  await prisma.guardian.deleteMany();
+  await prisma.family.deleteMany();
+  await prisma.teachingAssignment.deleteMany();
+  await prisma.classSubject.deleteMany();
+  await prisma.section.deleteMany();
+  await prisma.subject.deleteMany();
+  await prisma.classLevel.deleteMany();
+  await prisma.academicSession.deleteMany();
+  await prisma.staffProfile.deleteMany();
+  await prisma.schoolCounter.deleteMany();
   await prisma.refreshSession.deleteMany();
   await prisma.storedFile.deleteMany();
   await prisma.schoolInvoice.deleteMany();
@@ -26,6 +38,7 @@ export function client() {
     get: (url: string) => agent.get(url),
     post: (url: string, body?: object) => agent.post(url).set(h).send(body ?? {}),
     patch: (url: string, body?: object) => agent.patch(url).set(h).send(body ?? {}),
+    put: (url: string, body?: object) => agent.put(url).set(h).send(body ?? {}),
     del: (url: string, body?: object) => agent.delete(url).set(h).send(body ?? {}),
     upload: (url: string, fields: Record<string, string>, file: { name: string; content: Buffer; type: string }) => {
       let r = agent.post(url).set(h);

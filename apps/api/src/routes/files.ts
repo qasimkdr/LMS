@@ -23,8 +23,11 @@ const canManageFiles = (req: Request) => {
 router.post(
   '/',
   ah(async (req, res) => {
-    if (!canManageFiles(req)) throw forbidden();
     const school = req.user!.school!;
+    const u = req.user!;
+    // Profile photos and student documents can be added by staff who manage students/staff.
+    const peopleUpload = u.role === 'STAFF' && (u.permissions.includes('students.manage') || u.permissions.includes('staff.manage'));
+    if (!canManageFiles(req) && !peopleUpload) throw forbidden();
     const limit = effectiveLimits(school).maxFileBytes;
     await new Promise<void>((resolve, reject) =>
       multer({ storage: multer.memoryStorage(), limits: { fileSize: limit, files: 1 } }).single('file')(req, {} as never, (err) =>
@@ -33,6 +36,7 @@ router.post(
     );
     if (!req.file) throw badRequest('No file uploaded (field name must be "file")');
     const { category } = parse(z.object({ category: z.nativeEnum(FileCategory).default('OTHER') }), req.body);
+    if (!canManageFiles(req) && !['PROFILE_PHOTO', 'STUDENT_DOCUMENT', 'STAFF_DOCUMENT'].includes(category)) throw forbidden();
     const saved = await saveSchoolFile({ school, uploadedById: req.user!.id, category, file: req.file });
     await audit(req, { action: 'file.upload', entityType: 'StoredFile', entityId: saved.id, after: { name: saved.originalName, size: saved.sizeBytes, category } });
     res.status(201).json({ file: saved });
@@ -72,6 +76,10 @@ router.get(
   ah(async (req, res) => {
     const file = await prisma.storedFile.findFirst({ where: { id: req.params.id, schoolId: tenantId(req), deletedAt: null } });
     if (!file) throw notFound('File not found');
+    const u = req.user!;
+    const sensitive: Record<string, string> = { STUDENT_DOCUMENT: 'students.view', STAFF_DOCUMENT: 'staff.view' };
+    const perm = sensitive[file.category];
+    if (perm && !(u.role === 'PRINCIPAL' || (u.role === 'STAFF' && u.permissions.includes(perm)))) throw notFound('File not found');
     const stream = await storage.get(file.storageKey);
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Length', String(file.sizeBytes));

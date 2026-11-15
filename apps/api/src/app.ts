@@ -9,6 +9,11 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import schoolRoutes from './routes/school';
 import fileRoutes from './routes/files';
+import setupRoutes from './routes/setup';
+import studentRoutes from './routes/students';
+import staffRoutes, { usersRouter } from './routes/staff';
+import importRoutes from './routes/imports';
+import { myRouter, recycleRouter, searchRouter } from './routes/people';
 
 export function createApp() {
   const app = express();
@@ -27,7 +32,16 @@ export function createApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api/admin', authenticate, accountGate, requireRole('SUPER_ADMIN'), adminRoutes);
   app.use('/api/school', authenticate, accountGate, schoolGate, schoolRoutes);
-  app.use('/api/files', authenticate, accountGate, schoolGate, fileRoutes);
+  const school = [authenticate, accountGate, schoolGate];
+  app.use('/api/files', ...school, fileRoutes);
+  app.use('/api/setup', ...school, setupRoutes);
+  app.use('/api/students', ...school, studentRoutes);
+  app.use('/api/staff', ...school, staffRoutes);
+  app.use('/api/users', ...school, usersRouter);
+  app.use('/api/import', ...school, importRoutes);
+  app.use('/api/search', ...school, searchRouter);
+  app.use('/api/recycle-bin', ...school, recycleRouter);
+  app.use('/api/my', ...school, myRouter);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);

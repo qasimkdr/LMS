@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { ah } from '../lib/asyncHandler';
@@ -16,7 +15,7 @@ import { effectiveSchoolStatus } from '../services/schoolStatus';
 const router = Router();
 
 // Compared against when the user does not exist, so response time does not reveal valid usernames.
-const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 11);
+const dummyHash = hashPassword('not-a-real-password');
 
 router.post(
   '/login',
@@ -30,7 +29,7 @@ router.post(
       where: { OR: [{ username: body.identifier }, { email: body.identifier }], deletedAt: null },
       include: { school: true },
     });
-    const ok = await verifyPassword(body.password, user?.passwordHash ?? DUMMY_HASH);
+    const ok = await verifyPassword(body.password, user?.passwordHash ?? (await dummyHash));
     if (!user || !ok) throw unauthorized('Wrong username or password');
     if (!user.isActive) throw unauthorized('This account is deactivated. Contact your school.');
     if (user.school?.deletedAt) throw unauthorized('This school account no longer exists');

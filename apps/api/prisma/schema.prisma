@@ -97,6 +97,9 @@ model School {
   updatedAt            DateTime     @updatedAt
   deletedAt            DateTime?
 
+  /// School settings, e.g. { requiredStudentFields: string[] }.
+  settings Json?
+
   campuses Campus[]
   users    User[]
   files    StoredFile[]
@@ -107,13 +110,14 @@ model School {
 }
 
 model Campus {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id])
-  name      String   @db.VarChar(120)
-  address   String?  @db.VarChar(300)
-  isMain    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  school    School    @relation(fields: [schoolId], references: [id])
+  name      String    @db.VarChar(120)
+  address   String?   @db.VarChar(300)
+  isMain    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  sections  Section[]
 
   @@index([schoolId])
 }
@@ -142,7 +146,12 @@ model User {
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
 
-  sessions RefreshSession[]
+  sessions         RefreshSession[]
+  staffProfile     StaffProfile?
+  student          Student?
+  family           Family?
+  classTeacherOf   Section[]
+  teachingSubjects TeachingAssignment[]
 
   @@index([schoolId, role])
 }
@@ -225,4 +234,275 @@ model SchoolInvoice {
 
   @@unique([schoolId, period])
   @@index([status, dueDate])
+}
+
+// ---------------------------------------------------------------------------
+// Step 2: school setup and people
+// ---------------------------------------------------------------------------
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum StudentStatus {
+  ACTIVE
+  LEFT
+  STRUCK_OFF
+  GRADUATED
+  TRANSFERRED
+}
+
+enum AdmissionType {
+  NEW
+  TRANSFER
+  READMISSION
+}
+
+enum GuardianRelation {
+  FATHER
+  MOTHER
+  GUARDIAN
+}
+
+/// Per-school running numbers (admission numbers, family numbers, employee numbers).
+model SchoolCounter {
+  schoolId String
+  key      String @db.VarChar(40)
+  value    Int    @default(0)
+
+  @@id([schoolId, key])
+}
+
+model AcademicSession {
+  id        String    @id @default(cuid())
+  schoolId  String
+  name      String    @db.VarChar(40)
+  startDate DateTime  @db.Date
+  endDate   DateTime  @db.Date
+  isCurrent Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  students  Student[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+}
+
+model ClassLevel {
+  id        String         @id @default(cuid())
+  schoolId  String
+  name      String         @db.VarChar(60)
+  /// Subject group for higher classes, e.g. "Pre-Medical".
+  stream    String?        @db.VarChar(60)
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  deletedAt DateTime?
+  sections  Section[]
+  subjects  ClassSubject[]
+  students  Student[]
+
+  @@index([schoolId, sortOrder])
+}
+
+model Section {
+  id             String               @id @default(cuid())
+  schoolId       String
+  classId        String
+  class          ClassLevel           @relation(fields: [classId], references: [id])
+  name           String               @db.VarChar(20)
+  campusId       String?
+  campus         Campus?              @relation(fields: [campusId], references: [id])
+  capacity       Int?
+  room           String?              @db.VarChar(40)
+  classTeacherId String?
+  classTeacher   User?                @relation(fields: [classTeacherId], references: [id])
+  createdAt      DateTime             @default(now())
+  deletedAt      DateTime?
+  students       Student[]
+  assignments    TeachingAssignment[]
+
+  @@index([schoolId])
+  @@index([classId])
+}
+
+model Subject {
+  id          String               @id @default(cuid())
+  schoolId    String
+  name        String               @db.VarChar(80)
+  code        String?              @db.VarChar(20)
+  createdAt   DateTime             @default(now())
+  deletedAt   DateTime?
+  classes     ClassSubject[]
+  assignments TeachingAssignment[]
+
+  @@index([schoolId])
+}
+
+model ClassSubject {
+  classId    String
+  class      ClassLevel @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId  String
+  subject    Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  isOptional Boolean    @default(false)
+
+  @@id([classId, subjectId])
+}
+
+/// Which teacher teaches which subject in which section.
+model TeachingAssignment {
+  id        String   @id @default(cuid())
+  schoolId  String
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   User     @relation(fields: [teacherId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([sectionId, subjectId])
+  @@index([schoolId, teacherId])
+}
+
+model StaffProfile {
+  id            String    @id @default(cuid())
+  schoolId      String
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  employeeNo    String    @db.VarChar(30)
+  designation   String?   @db.VarChar(80)
+  cnic          String?   @db.VarChar(20)
+  gender        Gender?
+  dob           DateTime? @db.Date
+  qualification String?   @db.VarChar(160)
+  joiningDate   DateTime? @db.Date
+  salary        Decimal?  @db.Decimal(12, 2)
+  address       String?   @db.VarChar(300)
+  campusId      String?
+  /// { name, relation, phone }
+  emergency     Json?
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([schoolId, employeeNo])
+}
+
+/// A household: siblings share one family and one parent login.
+model Family {
+  id           String     @id @default(cuid())
+  schoolId     String
+  familyNo     String     @db.VarChar(20)
+  parentUserId String?    @unique
+  parentUser   User?      @relation(fields: [parentUserId], references: [id])
+  createdAt    DateTime   @default(now())
+  guardians    Guardian[]
+  students     Student[]
+
+  @@unique([schoolId, familyNo])
+}
+
+model Guardian {
+  id               String           @id @default(cuid())
+  schoolId         String
+  familyId         String
+  family           Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  relation         GuardianRelation
+  /// For GUARDIAN: uncle, grandmother, ...
+  relationDetail   String?          @db.VarChar(40)
+  fullName         String           @db.VarChar(160)
+  cnic             String?          @db.VarChar(20)
+  phone            String?          @db.VarChar(30)
+  whatsapp         String?          @db.VarChar(30)
+  email            String?          @db.VarChar(160)
+  occupation       String?          @db.VarChar(100)
+  organization     String?          @db.VarChar(160)
+  education        String?          @db.VarChar(100)
+  monthlyIncome    Int?
+  officeAddress    String?          @db.VarChar(300)
+  address          String?          @db.VarChar(300)
+  isDeceased       Boolean          @default(false)
+  /// Receives WhatsApp messages and alerts.
+  receivesMessages Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([schoolId, cnic])
+  @@index([schoolId, phone])
+  @@index([familyId])
+}
+
+model Student {
+  id            String           @id @default(cuid())
+  schoolId      String
+  userId        String?          @unique
+  user          User?            @relation(fields: [userId], references: [id])
+  familyId      String
+  family        Family           @relation(fields: [familyId], references: [id])
+  admissionNo   String           @db.VarChar(30)
+  admissionDate DateTime         @db.Date
+  admissionType AdmissionType    @default(NEW)
+  sessionId     String?
+  session       AcademicSession? @relation(fields: [sessionId], references: [id])
+  classId       String
+  class         ClassLevel       @relation(fields: [classId], references: [id])
+  sectionId     String?
+  section       Section?         @relation(fields: [sectionId], references: [id])
+  rollNo        String?          @db.VarChar(20)
+  status        StudentStatus    @default(ACTIVE)
+  statusDate    DateTime?        @db.Date
+  statusReason  String?          @db.VarChar(300)
+
+  fullName         String    @db.VarChar(160)
+  nameUrdu         String?   @db.VarChar(160)
+  gender           Gender
+  dob              DateTime? @db.Date
+  placeOfBirth     String?   @db.VarChar(80)
+  bForm            String?   @db.VarChar(20)
+  religion         String?   @db.VarChar(40)
+  nationality      String?   @db.VarChar(40)
+  motherTongue     String?   @db.VarChar(40)
+  bloodGroup       String?   @db.VarChar(5)
+  currentAddress   String?   @db.VarChar(300)
+  permanentAddress String?   @db.VarChar(300)
+  city             String?   @db.VarChar(80)
+  area             String?   @db.VarChar(80)
+  phone            String?   @db.VarChar(30)
+  email            String?   @db.VarChar(160)
+  photoFileId      String?
+
+  /// { name, relation, phone }
+  emergencyContact  Json?
+  /// { schoolName, lastClass, year, marks, reasonForLeaving, slcNo }
+  previousSchool    Json?
+  /// { allergies, conditions, medicines, specialNeeds, doctorName, doctorPhone }
+  health            Json?
+  feeCategory       String?  @db.VarChar(60)
+  discountType      String?  @db.VarChar(60)
+  discountPercent   Decimal? @db.Decimal(5, 2)
+  transportRequired Boolean  @default(false)
+  notes             String?  @db.Text
+
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  deletedAt DateTime?
+  documents StudentDocument[]
+
+  @@unique([schoolId, admissionNo])
+  @@index([schoolId, status, classId, sectionId])
+  @@index([schoolId, fullName])
+  @@index([familyId])
+}
+
+model StudentDocument {
+  id        String   @id @default(cuid())
+  schoolId  String
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  docType   String   @db.VarChar(40)
+  fileId    String
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
 }
