@@ -213,7 +213,7 @@ describe('manual messages', () => {
     // 3 students, 2 families; Ali and Hira share a father.
     expect(prev.whatsappNumbers).toBe(2);
     expect(prev.appUsers).toBe(2);
-    expect(prev.sample).toBe('School closed tomorrow - School alpha');
+    expect(prev.sample).toBe('Message from School alpha: School closed tomorrow Thank you.');
 
     const sent = await principal.post('/api/messaging/compose', { title: 'Holiday', message: 'School closed tomorrow', audience, channels: { whatsapp: true, inApp: true } });
     expect(sent.status).toBe(201);
