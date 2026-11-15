@@ -1,7 +1,9 @@
 # School Management System (SMS + LMS): Feature Plan
 
-Status: **planning**. Nothing gets built until this list is agreed.
-Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second release, **[P3]** later or optional add-on.
+Status: **planning, revision 2**. All features below are approved for building except the add-on modules (section 16), which are out of scope.
+Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second release, **[P3]** later.
+
+**Revision 2 changes:** add-ons removed; detailed admission form and profile photo (4.1, 4.2); teacher's own schedule (5.1, 7.4 moved to P1); full online exam paper builder, review and publishing (8.3); one approval and publishing workflow for all results (8.4); principal can edit everything (1.2); new sections 18 to 25 for features that were missing.
 
 ---
 
@@ -62,6 +64,13 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 - [P2] Two-factor authentication (OTP) for Super Admin and Principal.
 - [P2] Super Admin "login as principal" (impersonation) for support, recorded in the audit log.
 
+### 1.2 Principal has full control of their school
+- [P1] Principal can **view, edit, correct or delete any record** in the school: student enrollment forms and profiles, staff profiles, attendance, test marks, exam marks, online exam answers and marks, remarks, fee records, receipts, honors, gallery.
+- [P1] Principal can edit marks and results **even after publishing**; parents see the corrected result and can optionally be notified of the correction.
+- [P1] Every principal edit keeps the old value and new value in the audit log (who, when, why: a reason box on sensitive edits like marks and fees).
+- [P1] Principal can lock records (e.g. lock a term's results or a month's attendance) so teachers and staff can no longer change them.
+- [P1] Recycle bin: deleted records can be restored by the principal for 30 days.
+
 ---
 
 ## 2. Super Admin panel (you)
@@ -100,7 +109,67 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 
 ## 4. Student management
 
-- [P1] Admission form: photo, name, father/mother name, CNIC/B-form, DOB, gender, address, phone numbers, WhatsApp number, blood group, previous school, admission date, class, section, roll number.
+### 4.1 Enrollment / admission form (student bio data)
+All fields can be edited later by the principal (and by staff who have permission). Principal can mark which fields are required for their school.
+
+**Admission details** [P1]
+- Admission number (auto-generated), admission date, session, class and section applied for, roll number, admission type (new / transfer from another school / re-admission), house [P2].
+
+**Student personal information** [P1]
+- Full name, name in Urdu [P2], gender, date of birth (age calculated automatically), place of birth.
+- B-Form / CRC / CNIC number (validated format).
+- Religion, nationality, mother tongue.
+- Blood group.
+- Current address, permanent address, city, area / sector (useful for reports).
+- Student's own phone/email (optional, older students).
+
+**Father's information** [P1]
+- Name, CNIC, mobile, WhatsApp number, email, occupation, organization, monthly income [P2], education [P2], office address [P2].
+- Status: alive / deceased (affects fee concession and communication).
+
+**Mother's information** [P1]
+- Name, CNIC, mobile, WhatsApp number, occupation, education [P2].
+
+**Guardian (if not living with parents)** [P1]
+- Name, relation, CNIC, mobile, WhatsApp, address.
+- Primary contact selection: which number gets WhatsApp messages (father / mother / guardian, or more than one).
+
+**Emergency contact** [P1]
+- Name, relation, phone (someone other than parents).
+
+**Previous school** [P1]
+- School name, last class passed, year, marks/grade, reason for leaving, School Leaving Certificate number.
+
+**Health information** [P1]
+- Allergies, chronic conditions (asthma, diabetes, epilepsy…), regular medicines, disabilities / special needs, family doctor and phone.
+- Vaccination record [P2], height and weight [P2].
+
+**Siblings** [P1]
+- Link brothers/sisters already studying in the school (one parent login, sibling discount, one family fee voucher).
+
+**Fee details at admission** [P1]
+- Fee category, discount/concession type and %, admission fee paid, transport needed (yes/no, noted only).
+
+**Documents upload** [P1]
+- B-Form copy, father's CNIC front/back, mother's CNIC, previous result card, leaving certificate, medical certificate, birth certificate, any other files.
+- Checklist showing which documents are still missing.
+
+**Admission declaration** [P2]
+- Parent agrees to school rules (checkbox / signature image), date.
+
+**Printing and output**
+- [P1] Printable admission form PDF (filled), and a blank form for parents who fill it on paper.
+- [P1] Admission confirmation sent to parent on WhatsApp with the parent and student login details.
+
+### 4.2 Student profile photo
+- [P1] Upload a profile photo from computer or phone gallery, or **take it with the phone/laptop camera**.
+- [P1] Crop and rotate before saving; automatic resize and compression.
+- [P1] Photo is used everywhere: profile, attendance lists, report cards, ID cards, certificates, honor board.
+- [P1] Change photo later (principal/staff; parents can request a change [P2]).
+- [P2] Bulk photo upload: upload many images named by admission number and the system matches them to students.
+- [P1] Same photo features for staff and teacher profiles.
+
+### 4.3 Student records
 - [P1] Parent/guardian details; multiple guardians; link siblings (sibling discount, one parent login).
 - [P1] Auto-create student login and parent login.
 - [P1] Student profile page: personal info, attendance summary, fee history, results, remarks, honors, documents, all on one screen.
@@ -124,6 +193,13 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 - [P1] Create teacher/staff login with role and permissions.
 - [P1] Assign classes and subjects to teachers.
 - [P1] Bulk import staff.
+
+### 5.1 Teacher's own schedule ("My Classes")
+- [P1] Teacher sees **which classes and sections they are assigned, which subject, and at what time** (period number, start and end time, room) for every day of the week.
+- [P1] "Today" view on the teacher dashboard: next period, current period, classes left today.
+- [P1] Weekly view and printable personal timetable.
+- [P1] Their upcoming duties in one list: tests to take, online exams scheduled, marks entry pending, homework to post, papers waiting for review.
+- [P2] Notification before each period / exam duty (optional).
 - [P2] Staff attendance (manual, or QR/biometric later).
 - [P2] Staff leave requests and approval by principal.
 - [P2] Payroll: monthly salary, allowances, deductions (late, absent, advance), payslip PDF, salary paid register.
@@ -166,9 +242,11 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 - [P1] Parents see it in the app and optionally get it on WhatsApp (daily digest).
 - [P2] Assignment submission by students (upload photo/PDF), teacher checks and gives marks/feedback.
 
-### 7.4 Timetable
-- [P2] Class timetable (periods, subjects, teachers).
-- [P2] Teacher timetable auto-generated from class timetables; clash detection.
+### 7.4 Timetable (moved to P1 so teachers see their schedule)
+- [P1] Period timings per school (can differ for e.g. Friday or summer/winter timings [P2]).
+- [P1] Class timetable (periods, subjects, teachers, rooms).
+- [P1] Teacher timetable auto-generated from class timetables; clash detection (same teacher in two classes at once).
+- [P1] Students and parents see the class timetable.
 - [P3] Substitute teacher assignment when a teacher is absent.
 
 ---
@@ -195,16 +273,71 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 - [P2] Result comparison charts (subject-wise, term-wise progress of a student).
 - [P3] Custom report card templates per school.
 
-### 8.3 Online exams / quizzes
-- [P1] Question bank per subject and chapter: MCQ, true/false, fill in the blank, short answer.
-- [P1] Create online test: pick questions (manual or random), duration, start/end time, marks, negative marking option.
-- [P1] Students attempt on phone/computer with timer; auto-submit when time ends.
-- [P1] Auto-grading for objective questions; teacher grades short answers.
-- [P1] Result shown instantly or after teacher releases it.
-- [P2] Shuffle questions and options per student; one attempt only; anti-cheating basics (tab switch warnings).
+### 8.3 Online exams (full online paper)
+
+**Paper builder (teacher)** [P1]
+- Teacher creates an online paper for the classes/sections and subjects they are assigned to.
+- Paper header: title, exam/term it belongs to (or standalone test), class, section(s), subject, total marks, passing marks, instructions.
+- Paper divided into sections (e.g. Section A: MCQs, Section B: Short questions, Section C: Long questions), each with its own instructions and marks.
+- Question types:
+  - **MCQ, single correct answer**
+  - **MCQ, multiple correct answers** [P2]
+  - **True / False**
+  - **Fill in the blanks** (one or more blanks in a sentence; accepted answers list, case-insensitive option)
+  - **Matching columns** [P2]
+  - **Short question / answer** (text box, word limit optional)
+  - **Long question / answer** (large text box; option to also upload photos of a handwritten answer)
+- Marks per question; optional negative marking for MCQs.
+- Images in questions and options (diagrams, maps, figures); maths/science symbols [P2].
+- "Attempt any X out of Y" choice questions (e.g. attempt any 5 of 8 short questions).
+- Save from question bank, or write new questions that are saved to the bank automatically.
+- Preview the paper exactly as students will see it.
+- Duplicate an old paper and edit it; save as draft.
+- [P2] Principal approval of the paper before it goes live (optional setting per school).
 - [P2] Bulk import questions from Excel/Word.
-- [P2] Analytics: hardest questions, average score, per-student breakdown.
-- [P3] Long answer with file upload; image-based questions.
+
+**Scheduling** [P1]
+- Start date/time and end date/time (window), and duration (e.g. 45 minutes from when the student starts).
+- Which classes/sections can attend; exclude specific students; extra time for specific students [P2].
+- Students and parents are notified of the upcoming exam (in-app, WhatsApp optional).
+
+**Student attempts the exam** [P1]
+- Every student logs in with their own ID and sees "Upcoming / Live / Completed" exams.
+- Works on phone, tablet and computer.
+- Countdown timer; question navigator (answered / not answered / marked for review).
+- **Answers auto-save every few seconds**, so if internet drops or the phone switches off, the student can log back in and continue (within the time limit).
+- Auto-submit when time ends; confirm screen on manual submit.
+- One attempt only (teacher can allow a re-attempt for a specific student).
+- Shuffle question order and MCQ options per student.
+- Anti-cheating basics: warning and log when the student leaves the tab/app, copy-paste disabled, full-screen mode on computers [P2].
+
+**Checking and review (teacher)** [P1]
+- MCQ, true/false, fill-in-the-blank and matching are **marked automatically**.
+- Teacher can override any auto-marked answer (e.g. accept a spelling variation in a blank).
+- Short and long answers: teacher reads each student's answer and gives marks.
+- **Remarks per question** and an **overall remark per student** (e.g. "Good effort, revise chapter 3").
+- Check student-by-student, or question-by-question across the whole class (faster for checking one question for everyone).
+- Progress bar: how many papers checked out of total.
+- See who did not attend; mark absent.
+
+**Publishing with principal permission** [P1]
+- When checking is done, teacher **submits results to the principal for approval**.
+- Principal sees the result sheet, can open any student's paper, **edit marks or remarks**, then **approve and publish** or **send back to the teacher with a comment**.
+- After publishing, students see marks, correct answers (if the teacher allows), per-question remarks and overall remark; parents see the result in their portal and can receive it on WhatsApp (one click for the whole class).
+- Online exam marks can count towards the term result (e.g. a mid-term held online feeds into the report card).
+
+**Analytics** [P2]
+- Class average, highest/lowest, pass %, question-wise analysis (which question most students got wrong), time taken per student.
+
+### 8.4 One approval and publishing workflow for all results
+Applies to class tests, term exams and online exams. [P1]
+1. **Draft:** teacher enters or checks marks; only teacher, class teacher and principal can see them.
+2. **Submitted:** teacher submits to principal; teacher can no longer edit (unless sent back).
+3. **Sent back:** principal returns it with a comment; teacher fixes and resubmits.
+4. **Approved and published:** principal approves; students and parents can see it; WhatsApp sending becomes available.
+5. **Corrected after publishing:** only the principal can change it; change is logged and parents can be notified.
+- Principal setting: class tests can be allowed to publish directly by the teacher (no approval) if the school prefers, while exams always need approval.
+- Principal dashboard shows "Results waiting for approval".
 
 ---
 
@@ -353,17 +486,9 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 
 ---
 
-## 16. Extra modules schools commonly ask for [P3, sell as add-ons]
+## 16. Add-on modules: OUT OF SCOPE
 
-- **Transport:** routes, vehicles, drivers, stops, transport fee, student-to-route mapping.
-- **Library:** books catalog, issue/return, fines.
-- **Inventory:** uniforms, books, stationery stock and sales.
-- **Hostel:** rooms, allocation, hostel fee.
-- **Parent feedback / complaints** box with tracking.
-- **Surveys and polls** for parents/staff.
-- **Mobile apps** (Android/iOS) after the PWA proves itself.
-- **Urdu language** support (RTL) alongside English.
-- **AI helpers:** auto-written report card remarks, question generation from syllabus.
+Not being built: transport, library, inventory, hostel, surveys/polls, native mobile apps (the PWA covers phones), Urdu RTL interface, AI helpers. Can be reconsidered later.
 
 ---
 
@@ -380,21 +505,83 @@ Priority tags: **[P1]** must ship in the first release (MVP), **[P2]** second re
 
 ---
 
-## 18. Suggested build order
+## 18. Admissions pipeline (before a child becomes a student)
+- [P1] Enquiry register: parent name, phone, child name, class wanted, source (referral, banner, social media), follow-up date and notes.
+- [P1] Admission test / interview for applicants: schedule, marks, result (pass / fail / waiting list).
+- [P1] Convert an applicant to a student in one click (enquiry data fills the enrollment form).
+- [P2] Admission reports: enquiries vs admissions per month, by source, by class.
+- [P2] Seats per section and capacity warnings.
 
-1. **Foundation:** monorepo, Next.js + Express + MySQL setup, auth, roles/permissions, multi-tenancy, Super Admin creates schools and principals, subscription plans.
-2. **School setup + people:** sessions, classes, sections, subjects, students (with parent logins), staff/teachers, bulk import.
-3. **Attendance** + absent WhatsApp alerts (sets up the WhatsApp pipeline early).
-4. **Fees:** structure, monthly generation, vouchers, collection, receipts, hand-over and principal approval, defaulters, comparisons.
-5. **Tests and exams:** marks entry, results, report cards, publishing, WhatsApp sending.
-6. **Remarks, monthly parent report, rankings, honors, honor board.**
-7. **LMS:** syllabus + progress, study material, homework, online exams/question bank.
-8. **Gallery, announcements, dashboards polish, reports export.**
-9. **P2 items:** payroll, expenses, timetable, certificates, ID cards, etc.
+## 19. Student lifecycle and session end
+- [P1] **Withdrawal process:** request, fee clearance check (all dues must be paid or waived by principal), then School Leaving Certificate issued and status set to "Left".
+- [P1] **Session closing:** promote students, carry forward arrears, archive the old session (still viewable, read-only), start the new session with new fee structure.
+- [P1] Full academic history per student across all years: classes, results, attendance, fees, remarks, honors.
+- [P2] Re-admission of a student who left (keeps old history).
+- [P2] Alumni list (graduated students with contact).
+
+## 20. More fee features
+- [P1] **Family voucher:** one combined voucher and one payment for all siblings.
+- [P1] Advance payment (pay several months ahead), with the balance shown as credit.
+- [P1] Duplicate voucher / reprint receipt.
+- [P1] Receipt numbering per school, bank account details printed on vouchers.
+- [P2] Refunds and security deposit (refundable on leaving).
+- [P2] Bank deposit entry: principal records cash deposited to bank, with slip photo.
+- [P2] Fee structure change mid-session (new fee applies from a chosen month).
+
+## 21. Exam administration
+- [P1] Date sheet creation and publishing to students and parents.
+- [P2] Admit cards / roll number slips (PDF).
+- [P2] Seating plan per exam room.
+- [P2] Invigilation duty roster for teachers (shows on teacher's schedule).
+- [P2] Result re-check request by parents, tracked until the teacher/principal responds.
+- [P2] Supplementary / re-exam for failed students.
+
+## 22. Parent and teacher interaction
+- [P1] Parent–teacher messaging inside the app (text and images), visible to principal; teachers can turn off messages outside school hours.
+- [P1] Circulars with **read receipts**: see which parents have opened an announcement.
+- [P2] Digital consent forms (e.g. trip permission): parent taps Agree / Disagree.
+- [P2] Parent–teacher meeting scheduling: teacher opens slots, parents book a time.
+- [P2] Complaints and feedback from parents to principal with status (open, in progress, resolved).
+
+## 23. Student safety and daily life
+- [P1] Early leave / gate pass: student leaves early, recorded with who picked them up; parent gets a WhatsApp.
+- [P2] Authorized pick-up persons per student (name, relation, photo).
+- [P2] Visitor log at the school gate.
+- [P2] Co-curricular activities and clubs: memberships, events, positions won (feeds honors).
+- [P2] External achievements (competitions, olympiads, sports) on the student profile.
+
+## 24. Usability for everyone
+- [P1] Setup wizard for a new school: step-by-step checklist (school profile, session, classes, subjects, fee structure, import students, import staff).
+- [P1] Global search: type a name, roll number, admission number or phone to jump to a student, staff or receipt.
+- [P1] Notification center in the app with unread count.
+- [P1] Every list is filterable, sortable, printable and exportable to Excel/PDF.
+- [P1] Light and dark mode; works well on small phones.
+- [P2] Help guides and short videos inside the app for each role.
+- [P2] Notification preferences (which alerts each user wants).
+
+## 25. Live classes and online learning extras
+- [P2] Schedule online classes with a meeting link (Zoom / Google Meet); appears on student and teacher schedules; attendance for the online class.
+- [P2] Class discussion / doubts board where students ask questions and teachers answer.
+- [P2] Recorded lecture links attached to syllabus topics.
 
 ---
 
-## 19. Open questions to settle before coding
+## 26. Suggested build order
+
+1. **Foundation:** monorepo, Next.js + Express + MySQL setup, auth, roles/permissions, multi-tenancy, audit log, Super Admin creates schools and principals, subscription plans.
+2. **School setup + people:** setup wizard, sessions, classes, sections, subjects, period timings, full enrollment form with profile photo and documents, parent logins, staff/teachers, bulk import, global search.
+3. **Timetable + teacher schedule** ("My Classes").
+4. **Attendance** + absent WhatsApp alerts (sets up the WhatsApp pipeline early).
+5. **Fees:** structure, monthly generation, family vouchers, collection, receipts, hand-over and principal approval, defaulters, comparisons.
+6. **Tests and exams:** marks entry, approval and publishing workflow, results, report cards, date sheets, WhatsApp sending.
+7. **Online exams:** question bank, paper builder (all question types), scheduling, student attempt with auto-save, checking and remarks, principal approval and publishing.
+8. **Remarks, monthly parent report, rankings, honors, honor board.**
+9. **LMS:** syllabus + progress, study material, homework.
+10. **Communication:** parent–teacher messaging, circulars with read receipts, gate pass; gallery, dashboards polish, reports export.
+11. **Admissions pipeline and session closing / withdrawal.**
+12. **P2 items:** payroll, expenses, certificates, ID cards, live classes, etc.
+
+## 27. Open questions to settle before coding
 
 1. **Database:** MySQL on Oracle Cloud (OCI), or the Oracle Database product itself? This plan assumes **MySQL on OCI**.
 2. **WhatsApp:** one platform-wide WhatsApp number for all schools, or each school connects its own number? Who pays per-message costs?
