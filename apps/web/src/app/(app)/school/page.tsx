@@ -4,25 +4,32 @@ import Link from 'next/link';
 import { useAuth } from '@/components/auth';
 import { useData } from '@/components/useData';
 import { StorageAlert, UsageBars } from '@/components/UsageBars';
-import { Card, ErrorBox, Loading, PageHeader } from '@/components/ui';
+import { Card, ErrorBox, Loading, PageHeader, Stat } from '@/components/ui';
 import type { Usage } from '@/lib/types';
 
+interface Checklist {
+  steps: { key: string; label: string; done: boolean; href: string }[];
+  done: number;
+  total: number;
+}
+
 const upcoming = [
-  ['Classes, sections and subjects', 'Step 2'],
-  ['Student enrollment form with photo and documents', 'Step 2'],
-  ['Staff and teacher accounts', 'Step 2'],
   ['Timetable and teacher schedules', 'Step 3'],
   ['Attendance with WhatsApp alerts', 'Step 4'],
   ['Fees, vouchers, collection and hand-over', 'Step 5'],
   ['Tests, exams and report cards', 'Step 6'],
   ['Online exams', 'Step 7'],
+  ['Remarks, monthly reports, rankings and honors', 'Step 8'],
 ];
 
 export default function SchoolDashboard() {
   const { me } = useAuth();
+  const isPrincipal = me?.user.role === 'PRINCIPAL';
   const { data, error, loading } = useData<{ usage: Usage }>('/school/overview');
+  const { data: checklist } = useData<Checklist>(isPrincipal ? '/setup/checklist' : null);
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const allDone = checklist && checklist.done === checklist.total;
 
   return (
     <>
@@ -33,10 +40,36 @@ export default function SchoolDashboard() {
       ) : data ? (
         <div className="space-y-6">
           <StorageAlert usage={data.usage} />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Stat label="Active students" value={data.usage.students.used} hint={data.usage.students.limit ? `of ${data.usage.students.limit} on your plan` : undefined} />
+            <Stat label="Staff & teachers" value={data.usage.staff.used} hint={data.usage.staff.limit ? `of ${data.usage.staff.limit}` : undefined} />
+            <Stat label="Storage used" value={`${data.usage.storage.percent}%`} />
+            {checklist && <Stat label="Setup" value={`${checklist.done}/${checklist.total}`} hint={allDone ? 'Complete' : 'steps done'} />}
+          </div>
           <div className="grid gap-6 lg:grid-cols-3">
+            {checklist && !allDone && (
+              <Card title="Set up your school" className="lg:col-span-2">
+                <div className="mb-4 h-2 rounded-full bg-gray-100">
+                  <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${(checklist.done / checklist.total) * 100}%` }} />
+                </div>
+                <ol className="space-y-2">
+                  {checklist.steps.map((s, i) => (
+                    <li key={s.key}>
+                      <Link href={s.href} className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition ${s.done ? 'border-gray-100 text-gray-500' : 'border-gray-200 hover:border-brand-500 hover:bg-brand-50'}`}>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${s.done ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {s.done ? '✓' : i + 1}
+                        </span>
+                        <span className={s.done ? 'line-through' : 'font-medium text-gray-900'}>{s.label}</span>
+                        {!s.done && <span className="ml-auto text-brand-700">→</span>}
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </Card>
+            )}
             <Card
               title="Plan usage"
-              className="lg:col-span-2"
+              className={checklist && !allDone ? '' : 'lg:col-span-2'}
               actions={
                 <Link href="/school/usage" className="text-sm font-medium text-brand-700 hover:underline">
                   Details →
@@ -45,25 +78,23 @@ export default function SchoolDashboard() {
             >
               <UsageBars usage={data.usage} />
             </Card>
-            <Card title="Getting started">
-              <ol className="space-y-3 text-sm">
-                <li className="flex gap-2">
-                  <span className="text-emerald-600">✓</span> Account created
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-emerald-600">✓</span> Password set
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-gray-400">○</span>
-                  <Link href="/school/settings" className="text-brand-700 hover:underline">
-                    Add school logo and contact details
+            {(!checklist || allDone) && (
+              <Card title="Quick actions">
+                <div className="grid gap-2">
+                  <Link href="/school/students/new" className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:border-brand-500">
+                    + New admission
                   </Link>
-                </li>
-                <li className="flex gap-2 text-gray-500">
-                  <span className="text-gray-400">○</span> Set up classes and add students (coming next)
-                </li>
-              </ol>
-            </Card>
+                  <Link href="/school/students" className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:border-brand-500">
+                    Find a student
+                  </Link>
+                  {isPrincipal && (
+                    <Link href="/school/staff/new" className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:border-brand-500">
+                      + Add staff
+                    </Link>
+                  )}
+                </div>
+              </Card>
+            )}
           </div>
           <Card title="Coming soon to your school">
             <ul className="grid gap-2 sm:grid-cols-2">

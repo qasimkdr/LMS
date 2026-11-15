@@ -21,6 +21,17 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - Files: uploads checked against the plan's file-size and storage limits; downloads only within the same school.
 - Audit log of important actions (secrets are never logged).
 
+## What works now (step 2: school setup and people)
+
+- **Classes & subjects:** academic sessions, classes and sections (one-click Playgroup → Class 10 or → Intermediate with FSc/ICS/I.Com/FA groups), subjects per class (compulsory/optional), campuses (limited by plan), and which enrollment fields are required.
+- **Teacher assignments:** class teacher for each section and a teacher for each subject in each section.
+- **Students:** full admission form (student, father, mother, guardian, emergency contact, previous school, health, fee details) with photo upload or camera capture and crop. Automatic admission and family numbers. Brothers and sisters are detected from the father's CNIC or mobile and share one family and one parent login. Student and parent logins with printable slips. Profile with family, documents checklist and uploads, login reset/disable, status (left, struck off, graduated, transferred), printable filled and blank admission forms.
+- **Staff:** teachers and office staff with profile, salary (principal only) and per-person permissions; password reset and disable.
+- **Excel/CSV import** for students and staff: template download, row-by-row check before saving, sibling grouping, login slips afterwards.
+- **Global search** by name, admission number, roll number, CNIC, father's name or phone.
+- **Recycle bin:** deleted students and staff can be restored for 30 days. All edits are audited with old and new values.
+- **Teachers** see their classes and students; **parents** see all their children; **students** see their profile.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

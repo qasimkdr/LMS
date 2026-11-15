@@ -74,3 +74,70 @@ export interface StoredFile {
   createdAt: string;
   uploadedById: string;
 }
+
+// ---------- Step 2 ----------
+
+export interface Section {
+  id: string;
+  name: string;
+  campusId: string | null;
+  capacity: number | null;
+  room: string | null;
+  classTeacher: { id: string; fullName: string } | null;
+  studentCount: number;
+}
+
+export interface ClassLevel {
+  id: string;
+  name: string;
+  stream: string | null;
+  sortOrder: number;
+  studentCount: number;
+  subjects: { id: string; name: string; code: string | null; isOptional: boolean }[];
+  sections: Section[];
+}
+
+export interface Structure {
+  sessions: { id: string; name: string; startDate: string; endDate: string; isCurrent: boolean }[];
+  classes: ClassLevel[];
+  subjects: { id: string; name: string; code: string | null }[];
+  campuses: { id: string; name: string; address: string | null; isMain: boolean }[];
+  teachers: { id: string; fullName: string }[];
+}
+
+export interface Guardian {
+  id?: string;
+  relation: 'FATHER' | 'MOTHER' | 'GUARDIAN';
+  relationDetail?: string | null;
+  fullName: string;
+  cnic?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  occupation?: string | null;
+  organization?: string | null;
+  education?: string | null;
+  monthlyIncome?: number | null;
+  officeAddress?: string | null;
+  address?: string | null;
+  isDeceased?: boolean;
+  receivesMessages?: boolean;
+}
+
+export interface StudentListItem {
+  id: string;
+  admissionNo: string;
+  rollNo: string | null;
+  fullName: string;
+  gender: string;
+  dob: string | null;
+  status: string;
+  photoFileId: string | null;
+  admissionDate: string;
+  class: { id: string; name: string; stream: string | null };
+  section: { id: string; name: string } | null;
+  family: { id: string; familyNo: string; guardians: Guardian[] };
+}
+
+export const className = (c: { name: string; stream?: string | null } | null | undefined, s?: { name: string } | null) =>
+  c ? `${c.name}${c.stream ? ` ${c.stream}` : ''}${s ? ` – ${s.name}` : ''}` : '—';

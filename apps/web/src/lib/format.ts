@@ -56,3 +56,26 @@ export const categoryLabel: Record<string, string> = {
   EXAM: 'Exams',
   OTHER: 'Other',
 };
+
+export const studentStatusLabel: Record<string, string> = {
+  ACTIVE: 'Active',
+  LEFT: 'Left',
+  STRUCK_OFF: 'Struck off',
+  GRADUATED: 'Graduated',
+  TRANSFERRED: 'Transferred',
+};
+
+export const genderLabel: Record<string, string> = { MALE: 'Male', FEMALE: 'Female', OTHER: 'Other' };
+export const relationLabel: Record<string, string> = { FATHER: 'Father', MOTHER: 'Mother', GUARDIAN: 'Guardian' };
+
+export function age(dob: string | null | undefined): string {
+  if (!dob) return '—';
+  const d = new Date(dob);
+  const now = new Date();
+  let y = now.getFullYear() - d.getFullYear();
+  if (now < new Date(now.getFullYear(), d.getMonth(), d.getDate())) y--;
+  return `${y} yrs`;
+}
+
+/** yyyy-mm-dd for <input type="date"> */
+export const dateInput = (d: string | Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : '');

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { homeFor, useAuth } from './auth';
 import { Badge, Loading, statusTone } from './ui';
+import { GlobalSearch } from './GlobalSearch';
 import { date, roleLabel, statusLabel } from '@/lib/format';
 import type { Me } from '@/lib/types';
 
@@ -26,10 +27,15 @@ function navFor(me: Me): NavItem[] {
     ];
   }
   if (r === 'PRINCIPAL' || r === 'STAFF') {
+    const p = r === 'PRINCIPAL';
+    const has = (k: string) => p || me.user.permissions.includes(k);
     const items: NavItem[] = [{ href: '/school', label: 'Dashboard', icon: '◧' }];
-    if (r === 'PRINCIPAL' || me.user.permissions.includes('files.manage')) items.push({ href: '/school/files', label: 'Files', icon: '▤' });
+    if (has('students.view')) items.push({ href: '/school/students', label: 'Students', icon: '☺' });
+    if (has('staff.view')) items.push({ href: '/school/staff', label: 'Staff & teachers', icon: '♟' });
+    if (p) items.push({ href: '/school/setup', label: 'Classes & subjects', icon: '▦' }, { href: '/school/assignments', label: 'Teacher assignments', icon: '⇄' });
+    if (has('files.manage')) items.push({ href: '/school/files', label: 'Files', icon: '▤' });
     items.push({ href: '/school/usage', label: 'Plan & usage', icon: '◔' });
-    if (r === 'PRINCIPAL') items.push({ href: '/school/settings', label: 'School profile', icon: '⚙' });
+    if (p) items.push({ href: '/school/settings', label: 'School profile', icon: '⚙' }, { href: '/school/recycle-bin', label: 'Recycle bin', icon: '♻' });
     return items;
   }
   return [{ href: '/home', label: 'Home', icon: '◧' }];
@@ -39,6 +45,8 @@ function navFor(me: Me): NavItem[] {
 function allowed(me: Me, path: string) {
   const r = me.user.role;
   if (path.startsWith('/admin')) return r === 'SUPER_ADMIN';
+  // Teachers may open the profile of a student in their classes (the API checks the section).
+  if (r === 'TEACHER' && /^\/school\/students\/(?!new$|import$|blank-form$)[^/]+$/.test(path)) return true;
   if (path.startsWith('/school')) return r === 'PRINCIPAL' || r === 'STAFF';
   return true;
 }
@@ -94,6 +102,8 @@ export function Shell({ children }: { children: ReactNode }) {
   }
 
   const nav = navFor(me);
+  const showSearch =
+    me.user.role === 'PRINCIPAL' || (me.user.role === 'STAFF' && (me.user.permissions.includes('students.view') || me.user.permissions.includes('staff.view')));
   const isActive = (href: string) => (href === '/admin' || href === '/school' || href === '/home' ? pathname === href : pathname.startsWith(href));
 
   const sidebar = (
@@ -138,8 +148,8 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen lg:pl-60">
-      <aside className="fixed inset-y-0 left-0 hidden w-60 border-r border-gray-200 bg-white lg:block">{sidebar}</aside>
+    <div className="min-h-screen lg:pl-60 print:pl-0">
+      <aside className="fixed inset-y-0 left-0 hidden w-60 overflow-y-auto border-r border-gray-200 bg-white lg:block print:hidden">{sidebar}</aside>
       {menuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMenuOpen(false)}>
           <div className="absolute inset-0 bg-gray-900/40" />
@@ -148,7 +158,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </aside>
         </div>
       )}
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden print:hidden">
         <button onClick={() => setMenuOpen(true)} className="rounded-lg p-1.5 text-gray-700 hover:bg-gray-100" aria-label="Open menu">
           ☰
         </button>
@@ -159,8 +169,19 @@ export function Shell({ children }: { children: ReactNode }) {
           </span>
         )}
       </header>
-      {me.school && <SchoolBanner school={me.school} />}
-      <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+      {me.school && (
+        <div className="print:hidden">
+          <SchoolBanner school={me.school} />
+        </div>
+      )}
+      {showSearch && (
+        <div className="border-b border-gray-200 bg-white px-4 py-2.5 sm:px-6 print:hidden">
+          <div className="mx-auto max-w-6xl">
+            <GlobalSearch />
+          </div>
+        </div>
+      )}
+      <main className="mx-auto max-w-6xl overflow-x-hidden px-4 py-6 sm:px-6 lg:py-8 print:max-w-none print:p-0">{children}</main>
     </div>
   );
 }
