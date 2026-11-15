@@ -40,6 +40,16 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Teachers** see today's periods (current and next highlighted) and their week; **students and parents** see each child's timetable, day by day on phones.
 - Timetable is a plan module: schools without it on their plan don't see it.
 
+## What works now (step 4: attendance and messaging)
+
+- **Attendance:** the class teacher marks today (everyone starts Present; P / A / L / Leave / Half day, optional remark). The principal (and staff with permission) can mark or correct any past day, with a reason; every change is audited. Today's overview (who hasn't marked, absentees), printable monthly register, low-attendance list, class-wise %, a calendar on each student's profile, and a calendar for parents and students.
+- **Each school's own WhatsApp:** Settings → WhatsApp: phone number ID and permanent token (stored encrypted), connection check, test message, master on/off, and for each message type *Send automatically / Only when we press Send / Off*. Suggested template texts to submit to Meta, editable template names, webhook URL and verify token for delivered/read ticks.
+- **Absent alerts:** on save, parents of absent (and optionally late) students get a WhatsApp template message once per day, plus an in-app notification. Manual mode adds a "Send alerts" button.
+- **Manual messages:** write to the whole school, classes, sections, selected students' parents, or staff; `{student}`, `{class}`, `{parent}` placeholders; WhatsApp and/or app notification; schedule for later; preview with counts; history with sent/delivered/read/failed per person and retry.
+- **Outbox:** messages are queued in the database and sent by a background worker with retries; delivery and read receipts arrive by webhook (signature checked).
+- **Notifications:** bell with unread count for every school user.
+- Set `WHATSAPP_DRY_RUN=true` in development to record messages as sent without calling Meta.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

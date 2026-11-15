@@ -15,7 +15,6 @@ interface Checklist {
 
 const upcoming = [
   ['Timetable and teacher schedules', 'Step 3'],
-  ['Attendance with WhatsApp alerts', 'Step 4'],
   ['Fees, vouchers, collection and hand-over', 'Step 5'],
   ['Tests, exams and report cards', 'Step 6'],
   ['Online exams', 'Step 7'],
@@ -27,6 +26,8 @@ export default function SchoolDashboard() {
   const isPrincipal = me?.user.role === 'PRINCIPAL';
   const { data, error, loading } = useData<{ usage: Usage }>('/school/overview');
   const { data: checklist } = useData<Checklist>(isPrincipal ? '/setup/checklist' : null);
+  const hasAttendance = (me?.school?.plan.modules ?? []).includes('attendance');
+  const { data: attendance } = useData<{ percent: number | null; totals: Record<string, number>; notMarked: number }>(hasAttendance ? '/attendance/today' : null);
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const allDone = checklist && checklist.done === checklist.total;
@@ -40,6 +41,25 @@ export default function SchoolDashboard() {
       ) : data ? (
         <div className="space-y-6">
           <StorageAlert usage={data.usage} />
+          {hasAttendance && attendance && (
+            <Link href="/school/attendance" className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-brand-500">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Today’s attendance</div>
+                  <div className="mt-1 text-2xl font-semibold">{attendance.percent === null ? 'Not marked yet' : `${attendance.percent}%`}</div>
+                </div>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <span>
+                    Absent <strong className="text-red-600">{attendance.totals.ABSENT ?? 0}</strong>
+                  </span>
+                  <span>
+                    Late <strong>{attendance.totals.LATE ?? 0}</strong>
+                  </span>
+                  <span className={attendance.notMarked ? 'text-amber-700' : 'text-emerald-700'}>{attendance.notMarked ? `${attendance.notMarked} class(es) not marked` : 'All classes marked'}</span>
+                </div>
+              </div>
+            </Link>
+          )}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Active students" value={data.usage.students.used} hint={data.usage.students.limit ? `of ${data.usage.students.limit} on your plan` : undefined} />
             <Stat label="Staff & teachers" value={data.usage.staff.used} hint={data.usage.staff.limit ? `of ${data.usage.staff.limit}` : undefined} />

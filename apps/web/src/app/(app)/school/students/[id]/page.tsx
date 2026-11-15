@@ -12,10 +12,11 @@ import { Avatar } from '@/components/Avatar';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { GuardianFields, emptyGuardian } from '@/components/StudentForm';
 import { Badge, Button, Card, Empty, ErrorBox, Field, Loading, Modal, SecretBox } from '@/components/ui';
+import { AttendanceCalendar, STATUS, type Status } from '@/components/Attendance';
 import { age, bytes, date, dateTime, genderLabel, relationLabel, studentStatusLabel } from '@/lib/format';
 import { className, type Guardian } from '@/lib/types';
 
-type Tab = 'overview' | 'family' | 'documents' | 'account';
+type Tab = 'overview' | 'family' | 'attendance' | 'documents' | 'account';
 
 interface LoginInfo {
   id: string;
@@ -114,6 +115,7 @@ function ProfileInner({ id }: { id: string }) {
     { key: 'overview', label: 'Overview' },
     { key: 'family', label: 'Family' },
   ];
+  if ((me?.school?.plan.modules ?? []).includes('attendance')) tabs.push({ key: 'attendance', label: 'Attendance' });
   if (!isTeacher) tabs.push({ key: 'documents', label: 'Documents', count: st.documents.length }, { key: 'account', label: 'Logins' });
 
   return (
@@ -247,6 +249,7 @@ function ProfileInner({ id }: { id: string }) {
       )}
 
       {tab === 'family' && <FamilyTab data={data} canManage={Boolean(canManage)} reload={reload} />}
+      {tab === 'attendance' && <AttendanceTab id={id} />}
       {tab === 'documents' && <DocumentsTab data={data} canManage={Boolean(canManage)} reload={reload} />}
       {tab === 'account' && <AccountTab data={data} reload={reload} />}
 
@@ -272,6 +275,43 @@ export default function StudentProfilePage({ params }: { params: Promise<{ id: s
     <Suspense fallback={<Loading />}>
       <ProfileInner id={id} />
     </Suspense>
+  );
+}
+
+// ---------- Attendance ----------
+
+function AttendanceTab({ id }: { id: string }) {
+  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const { data, loading } = useData<{
+    month: { counts: Record<string, number>; percent: number | null; days: { date: string; status: Status }[] };
+    year: { from: string; counts: Record<string, number>; percent: number | null };
+  }>(`/attendance/students/${id}?month=${month}`);
+  if (loading && !data) return <Loading />;
+  if (!data) return null;
+  const summary = (c: Record<string, number>) =>
+    (Object.keys(STATUS) as Status[])
+      .filter((s) => c[s])
+      .map((s) => (
+        <span key={s} className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS[s].cell}`}>
+          {STATUS[s].label}: {c[s]}
+        </span>
+      ));
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <Card title="Calendar" className="lg:col-span-2">
+        <AttendanceCalendar month={month} days={data.month.days} onMonth={setMonth} />
+      </Card>
+      <div className="space-y-6">
+        <Card title="This month">
+          <div className="text-3xl font-semibold">{data.month.percent === null ? '—' : `${data.month.percent}%`}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">{summary(data.month.counts)}</div>
+        </Card>
+        <Card title={`This session (since ${date(data.year.from)})`}>
+          <div className="text-3xl font-semibold">{data.year.percent === null ? '—' : `${data.year.percent}%`}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">{summary(data.year.counts)}</div>
+        </Card>
+      </div>
+    </div>
   );
 }
 

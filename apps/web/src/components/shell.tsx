@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { homeFor, useAuth } from './auth';
 import { Badge, Loading, statusTone } from './ui';
 import { GlobalSearch } from './GlobalSearch';
+import { NotificationBell } from './NotificationBell';
 import { date, roleLabel, statusLabel } from '@/lib/format';
 import type { Me } from '@/lib/types';
 
@@ -35,6 +36,9 @@ function navFor(me: Me): NavItem[] {
     if (has('staff.view')) items.push({ href: '/school/staff', label: 'Staff & teachers', icon: '♟' });
     if (p) items.push({ href: '/school/setup', label: 'Classes & subjects', icon: '▦' }, { href: '/school/assignments', label: 'Teacher assignments', icon: '⇄' });
     if (mods.includes('timetable')) items.push({ href: '/school/timetable', label: 'Timetable', icon: '◷' });
+    if (mods.includes('attendance') && (has('attendance.manage') || has('students.view'))) items.push({ href: '/school/attendance', label: 'Attendance', icon: '✓' });
+    if (has('messages.send')) items.push({ href: '/school/messages', label: 'Messages', icon: '✉' });
+    if (p && mods.includes('whatsapp')) items.push({ href: '/school/whatsapp', label: 'WhatsApp settings', icon: '☏' });
     if (has('files.manage')) items.push({ href: '/school/files', label: 'Files', icon: '▤' });
     items.push({ href: '/school/usage', label: 'Plan & usage', icon: '◔' });
     if (p) items.push({ href: '/school/settings', label: 'School profile', icon: '⚙' }, { href: '/school/recycle-bin', label: 'Recycle bin', icon: '♻' });
@@ -42,6 +46,8 @@ function navFor(me: Me): NavItem[] {
   }
   const items: NavItem[] = [{ href: '/home', label: 'Home', icon: '◧' }];
   if (mods.includes('timetable')) items.push({ href: '/home/timetable', label: r === 'TEACHER' ? 'My timetable' : 'Timetable', icon: '◷' });
+  if (mods.includes('attendance')) items.push({ href: '/home/attendance', label: 'Attendance', icon: '✓' });
+  items.push({ href: '/notifications', label: 'Notifications', icon: '◉' });
   return items;
 }
 
@@ -168,8 +174,9 @@ export function Shell({ children }: { children: ReactNode }) {
         </button>
         <span className="truncate text-sm font-semibold">{me.school?.name ?? 'Platform Admin'}</span>
         {me.school && (
-          <span className="ml-auto">
+          <span className="ml-auto flex items-center gap-2">
             <Badge tone={statusTone[me.school.effectiveStatus]}>{statusLabel[me.school.effectiveStatus]}</Badge>
+            <NotificationBell />
           </span>
         )}
       </header>
@@ -178,10 +185,13 @@ export function Shell({ children }: { children: ReactNode }) {
           <SchoolBanner school={me.school} />
         </div>
       )}
-      {showSearch && (
-        <div className="border-b border-gray-200 bg-white px-4 py-2.5 sm:px-6 print:hidden">
-          <div className="mx-auto max-w-6xl">
-            <GlobalSearch />
+      {me.school && (
+        <div className={`border-b border-gray-200 bg-white px-4 py-2.5 sm:px-6 print:hidden ${showSearch ? '' : 'hidden lg:block'}`}>
+          <div className="mx-auto flex max-w-6xl items-center gap-3">
+            {showSearch ? <GlobalSearch /> : <span className="flex-1" />}
+            <span className="ml-auto hidden lg:inline-flex">
+              <NotificationBell />
+            </span>
           </div>
         </div>
       )}

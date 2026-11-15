@@ -36,9 +36,9 @@ interface Overview {
 }
 
 const soon: Record<string, string[]> = {
-  TEACHER: ['Attendance', 'Marks entry', 'Online exams', 'Homework', 'Class chat'],
-  STUDENT: ['Homework', 'Online exams', 'Results', 'Attendance', 'Class chat'],
-  PARENT: ['Attendance', 'Fee vouchers and online payment', 'Results and report cards', 'Messages to teachers', 'Announcements'],
+  TEACHER: ['Marks entry', 'Online exams', 'Homework', 'Class chat'],
+  STUDENT: ['Homework', 'Online exams', 'Results', 'Class chat'],
+  PARENT: ['Fee vouchers and online payment', 'Results and report cards', 'Messages to teachers', 'Announcements'],
 };
 
 function ChildCard({ c }: { c: Child }) {
@@ -84,6 +84,15 @@ export default function HomePage() {
         <Loading />
       ) : data ? (
         <div className="space-y-6">
+          {data.role === 'TEACHER' && (data.classTeacherOf?.length ?? 0) > 0 && (me.school?.plan.modules ?? []).includes('attendance') && (
+            <Link href="/home/attendance" className="flex items-center justify-between rounded-xl border-2 border-brand-200 bg-brand-50 p-4 hover:border-brand-500">
+              <span>
+                <span className="block font-semibold text-brand-900">Mark today’s attendance</span>
+                <span className="text-sm text-brand-800">{data.classTeacherOf!.map((s) => className(s.class, s)).join(', ')}</span>
+              </span>
+              <span className="text-brand-700">→</span>
+            </Link>
+          )}
           {data.role === 'TEACHER' && tt?.week && todayCard('Today', <TodayList week={tt.week} mode="teacher" now={tt.now} />)}
           {data.role !== 'TEACHER' &&
             tt?.children?.map((c) => (
