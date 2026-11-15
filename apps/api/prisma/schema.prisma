@@ -960,14 +960,16 @@ model AssessmentType {
 
 /// Grade bands, pass mark and publishing rules for a school.
 model ExamSettings {
-  schoolId          String   @id
+  schoolId            String   @id
   /// [{ grade: "A+", min: 90, remark: "Outstanding" }, …] highest first.
-  gradeBands        Json
-  passPercent       Decimal  @default(33) @db.Decimal(5, 2)
+  gradeBands          Json
+  passPercent         Decimal  @default(33) @db.Decimal(5, 2)
   /// Class tests need the principal's approval before students and parents see them.
-  testsNeedApproval Boolean  @default(true)
-  showPositions     Boolean  @default(true)
-  updatedAt         DateTime @updatedAt
+  testsNeedApproval   Boolean  @default(true)
+  showPositions       Boolean  @default(true)
+  /// Online exam papers need the principal's approval before they go live.
+  onlinePaperApproval Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
 }
 
 model Assessment {
@@ -1086,4 +1088,136 @@ model ResultRemark {
   updatedAt       DateTime   @updatedAt
 
   @@unique([assessmentId, studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Step 7: online exams
+// ---------------------------------------------------------------------------
+
+enum QuestionType {
+  MCQ
+  MULTI
+  TRUE_FALSE
+  FILL
+  MATCH
+  SHORT
+  LONG
+}
+
+/// Shared question bank of a school (teachers reuse each other's questions).
+model BankQuestion {
+  id          String       @id @default(cuid())
+  schoolId    String
+  subjectId   String
+  classId     String?
+  chapter     String?      @db.VarChar(120)
+  type        QuestionType
+  text        String       @db.Text
+  imageFileId String?
+  /// MCQ/MULTI: [{ id, text }]; MATCH: { left: string[], right: string[] }
+  options     Json?
+  /// MCQ: optionId; MULTI: optionId[]; TRUE_FALSE: boolean; FILL: string[][] (accepted answers per blank);
+  /// MATCH: number[] (right index for each left item); SHORT/LONG: model answer text (optional).
+  answer      Json?
+  marks       Decimal      @default(1) @db.Decimal(6, 2)
+  createdById String
+  usedCount   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([schoolId, subjectId])
+}
+
+model OnlinePaper {
+  id               String                @id @default(cuid())
+  schoolId         String
+  title            String                @db.VarChar(160)
+  subjectId        String
+  classId          String
+  sectionIds       Json
+  instructions     String?               @db.Text
+  /// DRAFT → (AWAITING_APPROVAL) → SCHEDULED → RESULTS_SUBMITTED → (RESULTS_RETURNED) → PUBLISHED
+  status           String                @default("DRAFT") @db.VarChar(20)
+  startAt          DateTime?
+  endAt            DateTime?
+  durationMinutes  Int                   @default(30)
+  shuffleQuestions Boolean               @default(true)
+  shuffleOptions   Boolean               @default(true)
+  /// Fraction of a question's marks taken off for a wrong MCQ / true-false answer (0 = none).
+  negativeMarking  Decimal               @default(0) @db.Decimal(4, 2)
+  /// Students see correct answers with their result.
+  showAnswers      Boolean               @default(true)
+  passMarks        Decimal?              @db.Decimal(7, 2)
+  reviewNote       String?               @db.VarChar(500)
+  /// Term-exam paper whose marks are filled from this online exam (scaled), if chosen.
+  linkPaperId      String?
+  /// Created when results are published so they appear with other results.
+  assessmentId     String?
+  createdById      String
+  publishedAt      DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  sections         OnlinePaperSection[]
+  questions        OnlinePaperQuestion[]
+  attempts         OnlineAttempt[]
+
+  @@index([schoolId, status])
+  @@index([classId])
+}
+
+model OnlinePaperSection {
+  id           String                @id @default(cuid())
+  paperId      String
+  paper        OnlinePaper           @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  title        String                @db.VarChar(120)
+  instructions String?               @db.VarChar(500)
+  /// "Attempt any N" (null = all questions).
+  attemptAny   Int?
+  sortOrder    Int                   @default(0)
+  questions    OnlinePaperQuestion[]
+}
+
+/// A copy of the question inside the paper (editing the bank later does not change a running exam).
+model OnlinePaperQuestion {
+  id          String             @id @default(cuid())
+  paperId     String
+  paper       OnlinePaper        @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  sectionId   String
+  section     OnlinePaperSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  bankId      String?
+  type        QuestionType
+  text        String             @db.Text
+  imageFileId String?
+  options     Json?
+  answer      Json?
+  marks       Decimal            @db.Decimal(6, 2)
+  sortOrder   Int                @default(0)
+}
+
+model OnlineAttempt {
+  id            String      @id @default(cuid())
+  schoolId      String
+  paperId       String
+  paper         OnlinePaper @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  studentId     String
+  startedAt     DateTime    @default(now())
+  deadline      DateTime
+  submittedAt   DateTime?
+  autoSubmitted Boolean     @default(false)
+  /// Question ids in the order this student sees them, and option order per question.
+  questionOrder Json
+  optionOrder   Json
+  /// { [paperQuestionId]: answer }
+  answers       Json
+  /// { [paperQuestionId]: { auto: number|null, manual: number|null, remark: string|null } }
+  marking       Json?
+  overallRemark String?     @db.VarChar(500)
+  score         Decimal?    @db.Decimal(8, 2)
+  /// Times the student left the exam tab/app.
+  tabSwitches   Int         @default(0)
+  lastSavedAt   DateTime?
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([paperId, studentId])
+  @@index([studentId])
 }

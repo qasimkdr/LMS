@@ -48,6 +48,7 @@ router.put(
         passPercent: z.coerce.number().min(0).max(100).optional(),
         testsNeedApproval: z.boolean().optional(),
         showPositions: z.boolean().optional(),
+        onlinePaperApproval: z.boolean().optional(),
       }),
       req.body,
     );
@@ -619,7 +620,7 @@ async function publish(assessmentId: string, userId: string) {
 }
 
 /** In-app notice to parents and students; WhatsApp when `whatsapp` is true and connected. */
-async function sendResults(assessmentId: string, studentIds: string[] | null, whatsapp: boolean) {
+export async function sendResults(assessmentId: string, studentIds: string[] | null, whatsapp: boolean) {
   const a = await prisma.assessment.findUniqueOrThrow({ where: { id: assessmentId } });
   const school = await prisma.school.findUniqueOrThrow({ where: { id: a.schoolId } });
   const results = await prisma.studentResult.findMany({ where: { assessmentId, ...(studentIds ? { studentId: { in: studentIds } } : {}) } });

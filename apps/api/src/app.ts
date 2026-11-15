@@ -23,6 +23,7 @@ import feeReportRoutes, { myFeesRouter } from './routes/feeReports';
 import payRoutes, { payReturnRouter } from './routes/pay';
 import examRoutes from './routes/exams';
 import resultRoutes from './routes/results';
+import onlineExamRoutes from './routes/onlineExams';
 
 export function createApp() {
   const app = express();
@@ -65,6 +66,7 @@ export function createApp() {
   app.use('/api/pay', ...school, requireModule('fees'), payRoutes);
   app.use('/api/exams', ...school, requireModule('exams'), examRoutes);
   app.use('/api/results', ...school, requireModule('exams'), resultRoutes);
+  app.use('/api/online-exams', ...school, requireModule('online_exams'), onlineExamRoutes);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);
