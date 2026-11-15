@@ -18,6 +18,9 @@ import timetableRoutes from './routes/timetable';
 import { requireModule } from './middleware/modules';
 import messagingRoutes, { notificationsRouter, webhookRouter } from './routes/messaging';
 import attendanceRoutes from './routes/attendance';
+import feeRoutes from './routes/fees';
+import feeReportRoutes, { myFeesRouter } from './routes/feeReports';
+import payRoutes, { payReturnRouter } from './routes/pay';
 
 export function createApp() {
   const app = express();
@@ -26,6 +29,8 @@ export function createApp() {
   app.use(helmet());
   // Meta calls this without our cookies or CSRF header; it needs the raw body to check the signature.
   app.use('/api/webhooks', webhookRouter);
+  // Payment gateways post the result from the parent's browser (form post, no CSRF header).
+  app.use('/api/pay/return', payReturnRouter);
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
@@ -52,6 +57,10 @@ export function createApp() {
   app.use('/api/attendance', ...school, requireModule('attendance'), attendanceRoutes);
   app.use('/api/messaging', ...school, messagingRoutes);
   app.use('/api/notifications', ...school, notificationsRouter);
+  app.use('/api/fees/reports', ...school, requireModule('fees'), feeReportRoutes);
+  app.use('/api/fees/my', ...school, requireModule('fees'), myFeesRouter);
+  app.use('/api/fees', ...school, requireModule('fees'), feeRoutes);
+  app.use('/api/pay', ...school, requireModule('fees'), payRoutes);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);

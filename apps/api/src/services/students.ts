@@ -53,6 +53,7 @@ export const studentFieldsSchema = z.object({
   feeCategory: optStr(60),
   discountType: optStr(60),
   discountPercent: z.coerce.number().min(0).max(100).nullish(),
+  discountAmount: z.coerce.number().min(0).max(10_000_000).nullish(),
   transportRequired: z.boolean().default(false),
   notes: optStr(5000),
   admissionNo: optStr(30),

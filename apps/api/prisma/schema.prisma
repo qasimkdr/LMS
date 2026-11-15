@@ -484,6 +484,8 @@ model Student {
   feeCategory       String?  @db.VarChar(60)
   discountType      String?  @db.VarChar(60)
   discountPercent   Decimal? @db.Decimal(5, 2)
+  /// Fixed amount off each month (on discountable heads), in addition to the percentage.
+  discountAmount    Decimal? @db.Decimal(12, 2)
   transportRequired Boolean  @default(false)
   notes             String?  @db.Text
 
@@ -707,4 +709,225 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@index([schoolId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Step 5: fees
+// ---------------------------------------------------------------------------
+
+enum FeeFrequency {
+  /// Charged every month.
+  MONTHLY
+  /// Charged only in the months listed in FeeHead.months (e.g. annual charges in April).
+  SELECTED_MONTHS
+  /// Never automatic; added as a one-off charge (admission fee, trip, books).
+  ONE_TIME
+}
+
+model FeeHead {
+  id           String       @id @default(cuid())
+  schoolId     String
+  name         String       @db.VarChar(80)
+  frequency    FeeFrequency @default(MONTHLY)
+  /// Months (1-12) for SELECTED_MONTHS.
+  months       Json?
+  /// Student discounts (sibling, scholarship…) apply to this head.
+  discountable Boolean      @default(true)
+  sortOrder    Int          @default(0)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  classFees    ClassFee[]
+
+  @@index([schoolId])
+}
+
+/// Amount of a fee head for a class.
+model ClassFee {
+  classId String
+  headId  String
+  head    FeeHead @relation(fields: [headId], references: [id], onDelete: Cascade)
+  amount  Decimal @db.Decimal(12, 2)
+
+  @@id([classId, headId])
+}
+
+model FeeSettings {
+  schoolId      String   @id
+  /// Day of month the monthly voucher is due.
+  dueDay        Int      @default(10)
+  /// NONE | FIXED | PER_DAY
+  lateFeeType   String   @default("NONE") @db.VarChar(10)
+  lateFeeAmount Decimal  @default(0) @db.Decimal(12, 2)
+  /// Cap for PER_DAY (0 = no cap).
+  lateFeeMax    Decimal  @default(0) @db.Decimal(12, 2)
+  /// Generate next month's vouchers automatically on the 1st.
+  autoGenerate  Boolean  @default(false)
+  /// { bankName, accountTitle, accountNumber, branch, iban }
+  bankDetails   Json?
+  voucherNote   String?  @db.VarChar(500)
+  receiptPrefix String   @default("R") @db.VarChar(10)
+  updatedAt     DateTime @updatedAt
+}
+
+enum FeeInvoiceStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+/// One fee voucher for one student (monthly, or a one-off charge).
+model FeeInvoice {
+  id             String                 @id @default(cuid())
+  schoolId       String
+  studentId      String
+  familyId       String
+  invoiceNo      String                 @db.VarChar(30)
+  /// "YYYY-MM" for monthly vouchers; null for one-off charges.
+  period         String?                @db.VarChar(7)
+  title          String                 @db.VarChar(120)
+  issueDate      DateTime               @db.Date
+  dueDate        DateTime               @db.Date
+  total          Decimal                @db.Decimal(12, 2)
+  paidAmount     Decimal                @default(0) @db.Decimal(12, 2)
+  status         FeeInvoiceStatus       @default(UNPAID)
+  /// Late fee already added to this voucher.
+  lateFeeApplied Boolean                @default(false)
+  createdById    String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  lines          FeeInvoiceLine[]
+  allocations    FeePaymentAllocation[]
+
+  @@unique([schoolId, invoiceNo])
+  @@index([schoolId, period])
+  @@index([studentId, status])
+  @@index([familyId, status])
+}
+
+model FeeInvoiceLine {
+  id          String     @id @default(cuid())
+  invoiceId   String
+  invoice     FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  headId      String?
+  /// MONTHLY | ONE_TIME | LATE_FEE | DISCOUNT | ADJUSTMENT
+  kind        String     @db.VarChar(20)
+  description String     @db.VarChar(160)
+  /// Negative for discounts.
+  amount      Decimal    @db.Decimal(12, 2)
+}
+
+enum FeePaymentStatus {
+  VALID
+  CANCEL_REQUESTED
+  CANCELLED
+}
+
+/// A receipt. Covers one or more vouchers of one family; any amount not allocated is the family's credit.
+model FeePayment {
+  id                  String                 @id @default(cuid())
+  schoolId            String
+  receiptNo           String                 @db.VarChar(30)
+  familyId            String
+  /// Set when the payment was for one student only.
+  studentId           String?
+  amount              Decimal                @db.Decimal(12, 2)
+  /// CASH | BANK | CHEQUE | ONLINE | OTHER
+  method              String                 @db.VarChar(20)
+  reference           String?                @db.VarChar(120)
+  /// COUNTER (collected by staff) | ONLINE (paid by parent through the gateway)
+  source              String                 @default("COUNTER") @db.VarChar(10)
+  receivedAt          DateTime
+  collectedById       String?
+  handoverId          String?
+  handover            FeeHandover?           @relation(fields: [handoverId], references: [id])
+  status              FeePaymentStatus       @default(VALID)
+  cancelReason        String?                @db.VarChar(300)
+  cancelRequestedById String?
+  cancelledById       String?
+  cancelledAt         DateTime?
+  note                String?                @db.VarChar(300)
+  createdAt           DateTime               @default(now())
+  allocations         FeePaymentAllocation[]
+
+  @@unique([schoolId, receiptNo])
+  @@index([schoolId, receivedAt])
+  @@index([familyId])
+  @@index([collectedById, handoverId])
+}
+
+model FeePaymentAllocation {
+  id        String     @id @default(cuid())
+  paymentId String
+  payment   FeePayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoiceId String
+  invoice   FeeInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Decimal    @db.Decimal(12, 2)
+
+  @@index([invoiceId])
+  @@index([paymentId])
+}
+
+enum HandoverStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Staff hand the money they collected to the principal, who approves it.
+model FeeHandover {
+  id             String         @id @default(cuid())
+  schoolId       String
+  staffId        String
+  /// Total of the receipts included (expected).
+  expectedAmount Decimal        @db.Decimal(12, 2)
+  /// What the staff member says they are handing over.
+  declaredAmount Decimal        @db.Decimal(12, 2)
+  /// { CASH: n, BANK: n, … }
+  byMethod       Json
+  note           String?        @db.VarChar(300)
+  status         HandoverStatus @default(PENDING)
+  reviewedById   String?
+  reviewedAt     DateTime?
+  reviewNote     String?        @db.VarChar(300)
+  createdAt      DateTime       @default(now())
+  payments       FeePayment[]
+
+  @@index([schoolId, status])
+  @@index([staffId])
+}
+
+/// Each school's own payment gateway account (money goes straight to the school).
+model PaymentGatewaySettings {
+  schoolId         String   @id
+  /// NONE | JAZZCASH | TEST
+  provider         String   @default("NONE") @db.VarChar(20)
+  enabled          Boolean  @default(false)
+  merchantId       String?  @db.VarChar(60)
+  passwordEnc      String?  @db.Text
+  integritySaltEnc String?  @db.Text
+  sandbox          Boolean  @default(true)
+  allowPartial     Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+}
+
+model OnlinePayment {
+  id          String    @id @default(cuid())
+  schoolId    String
+  familyId    String
+  invoiceIds  Json
+  amount      Decimal   @db.Decimal(12, 2)
+  provider    String    @db.VarChar(20)
+  txnRef      String    @unique @db.VarChar(40)
+  /// INITIATED | SUCCESS | FAILED
+  status      String    @default("INITIATED") @db.VarChar(12)
+  message     String?   @db.VarChar(300)
+  response    Json?
+  paymentId   String?
+  createdById String
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([schoolId, createdAt])
+  @@index([familyId])
 }

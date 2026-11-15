@@ -18,6 +18,7 @@ export default defineConfig({
       LOCAL_STORAGE_DIR: './storage-test',
       APP_URL: 'http://localhost:3000',
       WHATSAPP_DRY_RUN: 'false',
+      PAYMENTS_TEST_GATEWAY: 'true',
     },
   },
 });
