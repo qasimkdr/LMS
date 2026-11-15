@@ -13,7 +13,7 @@ export const PERMISSION_GROUPS: { title: string; items: [string, string][] }[] =
   { title: 'Staff', items: [['staff.view', 'View staff'], ['staff.manage', 'Add and edit staff']] },
   { title: 'Fees', items: [['fees.collect', 'Collect fees and issue receipts'], ['fees.manage', 'Fee structure and vouchers'], ['fees.reports', 'Fee reports']] },
   { title: 'Academics', items: [['attendance.manage', 'Mark and edit attendance'], ['exams.manage', 'Exams and results']] },
-  { title: 'Other', items: [['messages.send', 'Send WhatsApp and announcements'], ['files.manage', 'Upload and delete files'], ['gallery.manage', 'Gallery'], ['reports.view', 'View reports']] },
+  { title: 'Other', items: [['messages.send', 'Send WhatsApp and announcements'], ['files.manage', 'Upload and delete files'], ['gallery.manage', 'Gallery'], ['honors.manage', 'Give honors and awards'], ['reports.view', 'View reports and send monthly reports']] },
 ];
 
 export interface StaffValues {

@@ -92,8 +92,48 @@ export const MESSAGE_TYPES: Record<string, MessageTypeDef> = {
     params: ['Test or exam name', 'Student name', 'Marks, % and grade', 'School name'],
     available: true,
   },
-  MONTHLY_REPORT: { label: 'Monthly progress report', description: 'Step 8', rules: ['manual', 'off'], defaultRule: 'manual', suggestedTemplate: { name: 'monthly_report', language: 'en', category: 'UTILITY', text: '' }, params: [], available: false },
-  REMARK: { label: 'Teacher remarks', description: 'Step 8', rules: ['manual', 'off'], defaultRule: 'manual', suggestedTemplate: { name: 'student_remark', language: 'en', category: 'UTILITY', text: '' }, params: [], available: false },
+  MONTHLY_REPORT: {
+    label: 'Monthly progress report',
+    description: 'Sent when the principal presses "Send to parents" on the monthly reports page.',
+    rules: ['manual', 'off'],
+    defaultRule: 'manual',
+    suggestedTemplate: {
+      name: 'monthly_report',
+      language: 'en',
+      category: 'UTILITY',
+      text: 'Dear Parent, the monthly report of {{1}} for {{2}} is ready. Attendance: {{3}}. Test average: {{4}}. Fee balance: {{5}}. See the full report in the school app. Thank you, {{6}}.',
+    },
+    params: ['Student name', 'Month', 'Attendance %', 'Test average', 'Fee balance', 'School name'],
+    available: true,
+  },
+  REMARK: {
+    label: 'Teacher remarks',
+    description: 'Remarks shared with parents. Automatic: every shared remark. Manual: only when the teacher ticks "Send on WhatsApp".',
+    rules: ['auto', 'manual', 'off'],
+    defaultRule: 'manual',
+    suggestedTemplate: {
+      name: 'student_remark',
+      language: 'en',
+      category: 'UTILITY',
+      text: 'Dear Parent, {{2}} has written a remark ({{3}}) about {{1}}: {{4}} Thank you, {{5}}.',
+    },
+    params: ['Student name', 'Teacher name', 'Category', 'Remark', 'School name'],
+    available: true,
+  },
+  HONOR: {
+    label: 'Honors and awards',
+    description: 'Congratulations to parents when their child receives an honor such as Student of the Month.',
+    rules: ['auto', 'manual', 'off'],
+    defaultRule: 'auto',
+    suggestedTemplate: {
+      name: 'honor_award',
+      language: 'en',
+      category: 'UTILITY',
+      text: 'Congratulations! {{1}} has been awarded {{2}} ({{3}}) at {{4}}. We are proud of this achievement. Thank you.',
+    },
+    params: ['Student name', 'Honor', 'Period', 'School name'],
+    available: true,
+  },
 };
 
 /** "{{1}} of {{2}}" + ["Ali", "Class 5"] -> "Ali of Class 5" */

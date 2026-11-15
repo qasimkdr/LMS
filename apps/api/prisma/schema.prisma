@@ -1221,3 +1221,97 @@ model OnlineAttempt {
   @@unique([paperId, studentId])
   @@index([studentId])
 }
+
+// ---------- Step 8: remarks, monthly reports, honors ----------
+
+enum RemarkCategory {
+  ACADEMIC
+  BEHAVIOR
+  DISCIPLINE
+  APPRECIATION
+  HEALTH
+  OTHER
+}
+
+/// A teacher's or principal's remark about a student.
+model StudentRemark {
+  id          String         @id @default(cuid())
+  schoolId    String
+  studentId   String
+  sectionId   String?
+  category    RemarkCategory
+  text        String         @db.VarChar(1000)
+  date        DateTime       @db.Date
+  /// false = internal (staff only); true = parents and the student can see it.
+  shared      Boolean        @default(true)
+  createdById String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  /// When parents were sent a WhatsApp message about it.
+  sentAt      DateTime?
+  deletedAt   DateTime?
+
+  @@index([schoolId, studentId])
+  @@index([schoolId, date])
+}
+
+/// Monthly progress report of one student (data is a snapshot taken when generated).
+model MonthlyReport {
+  id          String    @id @default(cuid())
+  schoolId    String
+  studentId   String
+  sectionId   String?
+  classId     String
+  /// "YYYY-MM"
+  period      String    @db.VarChar(7)
+  data        Json
+  /// Class teacher's comment for this month.
+  comment     String?   @db.VarChar(600)
+  commentById String?
+  /// DRAFT until sent to parents.
+  status      String    @default("DRAFT") @db.VarChar(10)
+  generatedAt DateTime  @default(now())
+  sentAt      DateTime?
+  sentById    String?
+
+  @@unique([studentId, period])
+  @@index([schoolId, period])
+}
+
+model HonorType {
+  id            String   @id @default(cuid())
+  schoolId      String
+  name          String   @db.VarChar(60)
+  icon          String   @default("🏅") @db.VarChar(8)
+  /// CLASS = one winner per class (e.g. Student of the Month); SCHOOL = whole school.
+  scope         String   @default("CLASS") @db.VarChar(6)
+  /// Suggestion rule for built-in honors: TOP_MONTH, ATTENDANCE, IMPROVED, STAR; null for custom honors.
+  rule          String?  @db.VarChar(20)
+  publicDefault Boolean  @default(true)
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  honors        Honor[]
+
+  @@unique([schoolId, name])
+}
+
+model Honor {
+  id          String    @id @default(cuid())
+  schoolId    String
+  typeId      String
+  type        HonorType @relation(fields: [typeId], references: [id])
+  studentId   String
+  classId     String?
+  /// "YYYY-MM" for monthly honors, or free text like "2026-27" / "Sports Day 2026".
+  period      String    @db.VarChar(30)
+  citation    String?   @db.VarChar(300)
+  /// Shown on the honor board to everyone in the school.
+  isPublic    Boolean   @default(true)
+  createdById String
+  createdAt   DateTime  @default(now())
+  notifiedAt  DateTime?
+
+  @@index([schoolId, period])
+  @@index([studentId])
+}

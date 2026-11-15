@@ -8,6 +8,7 @@ import { useAuth } from '@/components/auth';
 import { useData } from '@/components/useData';
 import { useToast } from '@/components/toast';
 import { Tabs } from '@/components/Tabs';
+import { StudentProgress } from '@/components/progress/StudentProgress';
 import { Avatar } from '@/components/Avatar';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { GuardianFields, emptyGuardian } from '@/components/StudentForm';
@@ -18,7 +19,7 @@ import { ResultsList, type ResultRow } from '@/components/exams/ResultsList';
 import { age, bytes, date, dateTime, genderLabel, relationLabel, studentStatusLabel } from '@/lib/format';
 import { className, type Guardian } from '@/lib/types';
 
-type Tab = 'overview' | 'family' | 'attendance' | 'results' | 'fees' | 'documents' | 'account';
+type Tab = 'overview' | 'family' | 'attendance' | 'results' | 'progress' | 'fees' | 'documents' | 'account';
 
 interface LoginInfo {
   id: string;
@@ -119,6 +120,7 @@ function ProfileInner({ id }: { id: string }) {
   ];
   if ((me?.school?.plan.modules ?? []).includes('attendance')) tabs.push({ key: 'attendance', label: 'Attendance' });
   if ((me?.school?.plan.modules ?? []).includes('exams')) tabs.push({ key: 'results', label: 'Results' });
+  tabs.push({ key: 'progress', label: 'Remarks & progress' });
   const feePerm = me?.user.role === 'PRINCIPAL' || ['fees.collect', 'fees.manage', 'fees.reports'].some((k) => me?.user.permissions.includes(k));
   if ((me?.school?.plan.modules ?? []).includes('fees') && feePerm) tabs.push({ key: 'fees', label: 'Fees' });
   if (!isTeacher) tabs.push({ key: 'documents', label: 'Documents', count: st.documents.length }, { key: 'account', label: 'Logins' });
@@ -256,6 +258,7 @@ function ProfileInner({ id }: { id: string }) {
       {tab === 'family' && <FamilyTab data={data} canManage={Boolean(canManage)} reload={reload} />}
       {tab === 'attendance' && <AttendanceTab id={id} />}
       {tab === 'results' && <StudentResults id={id} />}
+      {tab === 'progress' && <StudentProgress studentId={id} studentName={st.fullName} />}
       {tab === 'fees' && <StudentFees studentId={id} familyId={st.family.id} />}
       {tab === 'documents' && <DocumentsTab data={data} canManage={Boolean(canManage)} reload={reload} />}
       {tab === 'account' && <AccountTab data={data} reload={reload} />}

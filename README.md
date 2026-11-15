@@ -78,6 +78,14 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Checking:** objective questions are marked automatically (partial marks for blanks and matching); the teacher marks short/long answers per student or one question for the whole class, can override any mark, and adds remarks per question and overall.
 - **Results:** the teacher sends the checked results to the principal, who publishes or sends back with a note. Publishing creates a normal "Online test" result (positions, monthly averages, report to parents) and can also copy the marks, scaled, into a term-exam paper. Students see their score, each answer with marks, remarks and (if allowed) the correct answers.
 
+## What works now (step 8: remarks, monthly reports, rankings and honors)
+
+- **Remarks:** teachers (for their own classes) and the principal write remarks — academic, behavior, discipline, appreciation, health — for one student or many at once. Each remark is either shared with parents (in the app, optionally WhatsApp) or kept staff-only. Remarks history is on the student profile ("Remarks & progress" tab); parents and students see shared remarks.
+- **Monthly progress report:** for every student: attendance %, each test/exam result of the month with grade and position, test average with the change from last month and the class average, fee status, shared remarks and honors, plus a class teacher's comment. Drafts are prepared automatically on the 1st of each month (or on demand); the principal reviews and sends them in one click (in-app + WhatsApp template `monthly_report`). Printable / save as PDF.
+- **Rankings:** top of the school and top 3 in each class by month, by term exam or for the whole session (ties share a position); subject toppers per exam; most improved since last month / the previous exam; 100% attendance list. Teachers see rankings of the classes they teach.
+- **Honors:** ready-made honors (Student of the Month, Best Attendance, Most Improved, Star Performer, Best Behavior, Subject Star, Sports Star, Head Boy / Head Girl, Prefect) plus the school's own. The principal (or staff with "Give honors") picks winners — the system suggests them from results and attendance — and chooses which honors appear on the **honor board** that everyone in the school can see. Parents get a congratulation (in-app + WhatsApp template `honor_award`); honors appear on the profile and in the monthly report.
+- **Fix:** PATCH requests no longer reset fields that were not sent to their defaults.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

@@ -39,6 +39,11 @@ function navFor(me: Me): NavItem[] {
     if (mods.includes('attendance') && (has('attendance.manage') || has('students.view'))) items.push({ href: '/school/attendance', label: 'Attendance', icon: '✓' });
     if (mods.includes('exams') && (has('exams.manage') || has('students.view'))) items.push({ href: '/school/exams', label: 'Exams & results', icon: '✎' });
     if (mods.includes('online_exams') && has('exams.manage')) items.push({ href: '/online-exams', label: 'Online exams', icon: '⌨' });
+    if (has('students.view')) items.push({ href: '/remarks', label: 'Remarks', icon: '✍' });
+    if (has('reports.view')) items.push({ href: '/monthly-reports', label: 'Monthly reports', icon: '▤' });
+    if (mods.includes('honors') && (has('exams.manage') || has('students.view'))) items.push({ href: '/rankings', label: 'Rankings', icon: '▲' });
+    if (mods.includes('honors') && has('honors.manage')) items.push({ href: '/school/honors', label: 'Honors', icon: '★' });
+    if (mods.includes('honors')) items.push({ href: '/honors', label: 'Honor board', icon: '♛' });
     if (mods.includes('fees') && (has('fees.collect') || has('fees.manage') || has('fees.reports'))) items.push({ href: '/school/fees', label: 'Fees', icon: '₨' });
     if (has('messages.send')) items.push({ href: '/school/messages', label: 'Messages', icon: '✉' });
     if (p && mods.includes('whatsapp')) items.push({ href: '/school/whatsapp', label: 'WhatsApp settings', icon: '☏' });
@@ -53,6 +58,10 @@ function navFor(me: Me): NavItem[] {
   if (mods.includes('exams')) items.push(r === 'TEACHER' ? { href: '/home/marks', label: 'Tests & marks', icon: '✎' } : { href: '/home/results', label: 'Results', icon: '✎' });
   if (mods.includes('online_exams') && r === 'TEACHER') items.push({ href: '/online-exams', label: 'Online exams', icon: '⌨' });
   if (mods.includes('online_exams') && r === 'STUDENT') items.push({ href: '/home/online-exams', label: 'Online exams', icon: '⌨' });
+  if (r === 'TEACHER') items.push({ href: '/remarks', label: 'Remarks', icon: '✍' }, { href: '/monthly-reports', label: 'Monthly reports', icon: '▤' });
+  else items.push({ href: '/home/remarks', label: 'Remarks', icon: '✍' }, { href: '/home/reports', label: 'Monthly reports', icon: '▤' });
+  if (mods.includes('honors') && r === 'TEACHER') items.push({ href: '/rankings', label: 'Rankings', icon: '▲' });
+  if (mods.includes('honors')) items.push({ href: '/honors', label: 'Honor board', icon: '♛' });
   if (mods.includes('fees') && (r === 'PARENT' || r === 'STUDENT')) items.push({ href: '/home/fees', label: 'Fees', icon: '₨' });
   items.push({ href: '/notifications', label: 'Notifications', icon: '◉' });
   return items;

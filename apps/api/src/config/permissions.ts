@@ -15,6 +15,7 @@ export const PERMISSIONS = {
   'messages.send': 'Send WhatsApp / announcements',
   'files.manage': 'Upload and delete files',
   'gallery.manage': 'Manage gallery',
+  'honors.manage': 'Give honors and awards',
   'admissions.manage': 'Manage enquiries and admissions',
   'reports.view': 'View reports',
 } as const;

@@ -24,6 +24,9 @@ import payRoutes, { payReturnRouter } from './routes/pay';
 import examRoutes from './routes/exams';
 import resultRoutes from './routes/results';
 import onlineExamRoutes from './routes/onlineExams';
+import remarkRoutes from './routes/remarks';
+import monthlyReportRoutes from './routes/monthlyReports';
+import honorRoutes, { rankingsRouter } from './routes/honors';
 
 export function createApp() {
   const app = express();
@@ -67,6 +70,10 @@ export function createApp() {
   app.use('/api/exams', ...school, requireModule('exams'), examRoutes);
   app.use('/api/results', ...school, requireModule('exams'), resultRoutes);
   app.use('/api/online-exams', ...school, requireModule('online_exams'), onlineExamRoutes);
+  app.use('/api/remarks', ...school, remarkRoutes);
+  app.use('/api/monthly-reports', ...school, monthlyReportRoutes);
+  app.use('/api/rankings', ...school, requireModule('honors'), rankingsRouter);
+  app.use('/api/honors', ...school, requireModule('honors'), honorRoutes);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);
