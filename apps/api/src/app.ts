@@ -35,6 +35,8 @@ import circularRoutes from './routes/circulars';
 import { galleryRouter, gatePassRouter } from './routes/schoolLife';
 import dashboardRoutes from './routes/dashboard';
 import reportRoutes from './routes/reports';
+import admissionRoutes from './routes/admissions';
+import { historyRouter, promotionRouter, withdrawalRouter } from './routes/lifecycle';
 
 export function createApp() {
   const app = express();
@@ -90,6 +92,10 @@ export function createApp() {
   app.use('/api/gate-passes', ...school, gatePassRouter);
   app.use('/api/dashboard', ...school, dashboardRoutes);
   app.use('/api/reports', ...school, reportRoutes);
+  app.use('/api/admissions', ...school, requireModule('admissions'), admissionRoutes);
+  app.use('/api/withdrawals', ...school, withdrawalRouter);
+  app.use('/api/promotion', ...school, promotionRouter);
+  app.use('/api/history', ...school, historyRouter);
   app.use('/api/gallery', ...school, requireModule('gallery'), galleryRouter);
 
   app.use('/api', notFoundHandler);

@@ -37,6 +37,15 @@ export interface StaffValues {
     campusId: string;
     emergency: { name: string; relation: string; phone: string };
     notes: string;
+    guardianName: string;
+    maritalStatus: string;
+    bloodGroup: string;
+    religion: string;
+    experienceYears: string;
+    previousEmployer: string;
+    specialization: string;
+    specialistSubjectIds: string[];
+    qualifications: { degree: string; institute: string; year: string; grade: string }[];
   };
 }
 
@@ -66,6 +75,15 @@ export function toStaffValues(u?: any): StaffValues {
       campusId: s(p?.campusId),
       emergency: { name: s(p?.emergency?.name), relation: s(p?.emergency?.relation), phone: s(p?.emergency?.phone) },
       notes: s(p?.notes),
+      guardianName: s(p?.guardianName),
+      maritalStatus: s(p?.maritalStatus),
+      bloodGroup: s(p?.bloodGroup),
+      religion: s(p?.religion),
+      experienceYears: s(p?.experienceYears),
+      previousEmployer: s(p?.previousEmployer),
+      specialization: s(p?.specialization),
+      specialistSubjectIds: Array.isArray(p?.specialistSubjectIds) ? p.specialistSubjectIds : [],
+      qualifications: Array.isArray(p?.qualifications) ? p.qualifications.map((q: Record<string, unknown>) => ({ degree: s(q.degree), institute: s(q.institute), year: s(q.year), grade: s(q.grade) })) : [],
     },
   };
 }
@@ -73,7 +91,7 @@ export function toStaffValues(u?: any): StaffValues {
 export function StaffForm({ mode, initial, onSubmit, submitLabel }: { mode: 'create' | 'edit'; initial?: StaffValues; onSubmit: (body: object) => Promise<void>; submitLabel: string }) {
   const { me } = useAuth();
   const isPrincipal = me?.user.role === 'PRINCIPAL';
-  const { data: structure } = useData<{ campuses: { id: string; name: string }[] }>('/setup/structure');
+  const { data: structure } = useData<{ campuses: { id: string; name: string }[]; subjects: { id: string; name: string }[] }>('/setup/structure');
   const [v, setV] = useState<StaffValues>(initial ?? toStaffValues());
   const [error, setError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
@@ -96,6 +114,10 @@ export function StaffForm({ mode, initial, onSubmit, submitLabel }: { mode: 'cre
       campusId: p.campusId || null,
       emergency,
       salary: p.salary === '' ? null : Number(p.salary),
+      maritalStatus: p.maritalStatus || null,
+      bloodGroup: p.bloodGroup || null,
+      experienceYears: p.experienceYears === '' ? null : Number(p.experienceYears),
+      qualifications: p.qualifications.filter((q) => q.degree.trim()).map((q) => ({ degree: q.degree, institute: q.institute, year: q.year ? Number(q.year) : null, grade: q.grade })),
     };
     if (!isPrincipal) delete profile.salary;
     const body: Record<string, unknown> = { fullName: v.fullName, email: v.email, phone: v.phone, photoFileId: v.photoFileId, profile };
@@ -161,8 +183,31 @@ export function StaffForm({ mode, initial, onSubmit, submitLabel }: { mode: 'cre
           <Field label="Date of birth">
             <input className="input" type="date" value={v.profile.dob} onChange={setP('dob')} />
           </Field>
-          <Field label="Qualification">
-            <input className="input" value={v.profile.qualification} onChange={setP('qualification')} />
+          <Field label="Father / husband name">
+            <input className="input" value={v.profile.guardianName} onChange={setP('guardianName')} />
+          </Field>
+          <Field label="Marital status">
+            <select className="input" value={v.profile.maritalStatus} onChange={setP('maritalStatus')}>
+              <option value="">—</option>
+              <option value="SINGLE">Single</option>
+              <option value="MARRIED">Married</option>
+              <option value="WIDOWED">Widowed</option>
+              <option value="DIVORCED">Divorced</option>
+            </select>
+          </Field>
+          <Field label="Blood group">
+            <select className="input" value={v.profile.bloodGroup} onChange={setP('bloodGroup')}>
+              <option value="">—</option>
+              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((b) => (
+                <option key={b}>{b}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Religion">
+            <input className="input" value={v.profile.religion} onChange={setP('religion')} />
+          </Field>
+          <Field label="Highest qualification">
+            <input className="input" placeholder="e.g. M.Sc Mathematics" value={v.profile.qualification} onChange={setP('qualification')} />
           </Field>
           <Field label="Joining date">
             <input className="input" type="date" value={v.profile.joiningDate} onChange={setP('joiningDate')} />
@@ -203,6 +248,76 @@ export function StaffForm({ mode, initial, onSubmit, submitLabel }: { mode: 'cre
               <textarea className="input min-h-16" value={v.profile.notes} onChange={setP('notes')} />
             </Field>
           </div>
+        </div>
+      </Card>
+
+      {v.role === 'TEACHER' && (
+        <Card title="Teaching">
+          <div className="space-y-4">
+            <div>
+              <div className="label">Specialist subjects</div>
+              <p className="mb-2 text-xs text-gray-500">Subjects this teacher is best at. They can still be given any class or subject in Teacher assignments.</p>
+              {!structure?.subjects.length ? (
+                <p className="text-sm text-gray-500">Add subjects in Classes &amp; subjects first.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {structure.subjects.map((sub) => {
+                    const on = v.profile.specialistSubjectIds.includes(sub.id);
+                    return (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => setV((x) => ({ ...x, profile: { ...x.profile, specialistSubjectIds: on ? x.profile.specialistSubjectIds.filter((i) => i !== sub.id) : [...x.profile.specialistSubjectIds, sub.id] } }))}
+                        className={`rounded-full border px-3 py-1 text-sm transition duration-200 active:scale-95 ${on ? 'border-brand-500 bg-brand-50 font-medium text-brand-800 shadow-sm' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                      >
+                        {on ? '★ ' : ''}
+                        {sub.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Specialization (optional)">
+                <input className="input" placeholder="e.g. O-Level Physics, Early years" value={v.profile.specialization} onChange={setP('specialization')} />
+              </Field>
+              <Field label="Teaching experience (years)">
+                <input className="input" type="number" min={0} max={60} value={v.profile.experienceYears} onChange={setP('experienceYears')} />
+              </Field>
+              <Field label="Previous school / employer">
+                <input className="input" value={v.profile.previousEmployer} onChange={setP('previousEmployer')} />
+              </Field>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <Card title="Qualifications">
+        <div className="space-y-2">
+          {v.profile.qualifications.map((q, i) => (
+            <div key={i} className="grid animate-fade-up gap-2 sm:grid-cols-[1.4fr_1.6fr_6rem_6rem_auto]">
+              {(['degree', 'institute', 'year', 'grade'] as const).map((k) => (
+                <input
+                  key={k}
+                  className="input"
+                  aria-label={k}
+                  placeholder={{ degree: 'Degree / certificate', institute: 'Institute / board', year: 'Year', grade: 'Grade / %' }[k]}
+                  inputMode={k === 'year' ? 'numeric' : undefined}
+                  value={q[k]}
+                  onChange={(e) => setV((x) => ({ ...x, profile: { ...x.profile, qualifications: x.profile.qualifications.map((y, j) => (j === i ? { ...y, [k]: e.target.value } : y)) } }))}
+                />
+              ))}
+              <button type="button" className="rounded-lg px-2 text-gray-400 hover:text-red-600" onClick={() => setV((x) => ({ ...x, profile: { ...x.profile, qualifications: x.profile.qualifications.filter((_, j) => j !== i) } }))} aria-label="Remove qualification">
+                ✕
+              </button>
+            </div>
+          ))}
+          {v.profile.qualifications.length < 10 && (
+            <Button type="button" variant="ghost" onClick={() => setV((x) => ({ ...x, profile: { ...x.profile, qualifications: [...x.profile.qualifications, { degree: '', institute: '', year: '', grade: '' }] } }))}>
+              + Add qualification
+            </Button>
+          )}
         </div>
       </Card>
 

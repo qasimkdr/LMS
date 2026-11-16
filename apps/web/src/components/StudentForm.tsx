@@ -224,21 +224,25 @@ interface FamilyMatch {
 export function StudentForm({
   mode,
   initial,
+  initialGuardian,
   onSubmit,
   submitLabel,
 }: {
   mode: 'create' | 'edit';
   initial?: StudentValues;
+  /** Prefill (e.g. from an admission enquiry): goes to father, mother or guardian by relation. */
+  initialGuardian?: Partial<Guardian> & { relation: Guardian['relation'] };
   onSubmit: (payload: { student: ReturnType<typeof toPayload>; guardians: Guardian[]; familyId: string | null; createStudentLogin: boolean; createParentLogin: boolean; reason?: string }) => Promise<void>;
   submitLabel: string;
 }) {
   const { data: structure } = useData<Structure>('/setup/structure');
   const { data: meta } = useData<{ requiredStudentFields: string[] }>('/setup/meta');
   const [v, setV] = useState<StudentValues>(initial ?? toValues());
-  const [father, setFather] = useState<Guardian>(emptyGuardian('FATHER'));
-  const [mother, setMother] = useState<Guardian>(emptyGuardian('MOTHER'));
-  const [guardian, setGuardian] = useState<Guardian>(emptyGuardian('GUARDIAN'));
-  const [hasGuardian, setHasGuardian] = useState(false);
+  const pre = (r: Guardian['relation']) => ({ ...emptyGuardian(r), ...(initialGuardian?.relation === r ? initialGuardian : {}) });
+  const [father, setFather] = useState<Guardian>(pre('FATHER'));
+  const [mother, setMother] = useState<Guardian>(pre('MOTHER'));
+  const [guardian, setGuardian] = useState<Guardian>(pre('GUARDIAN'));
+  const [hasGuardian, setHasGuardian] = useState(initialGuardian?.relation === 'GUARDIAN');
   const [sibling, setSibling] = useState<FamilyMatch | null>(null);
   const [matches, setMatches] = useState<FamilyMatch[]>([]);
   const [logins, setLogins] = useState({ student: true, parent: true });

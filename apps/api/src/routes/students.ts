@@ -135,12 +135,17 @@ router.post(
     assertCan(req, 'students.manage');
     const schoolId = tenantId(req);
     const input = parse(createStudentSchema, req.body);
+    // Admission from an enquiry: link it once the student exists.
+    const { enquiryId } = parse(z.object({ enquiryId: z.string().nullish() }), req.body);
+    const enquiry = enquiryId ? await prisma.enquiry.findFirst({ where: { id: enquiryId, schoolId, studentId: null } }) : null;
+    if (enquiryId && !enquiry) throw badRequest('This enquiry is already admitted or does not exist');
     const school = await prisma.school.findUniqueOrThrow({ where: { id: schoolId } });
     checkRequiredFields(requiredFieldsOf(school.settings), input.student, input.guardians, Boolean(input.familyId));
     await checkStudentRefs(schoolId, input.student);
     await assertStudentCapacity(schoolId, 1);
     const secrets = await prepareSecrets(2);
     const result = await prisma.$transaction((tx) => createStudent(tx, school, input, secrets), { timeout: 20000 });
+    if (enquiry) await prisma.enquiry.update({ where: { id: enquiry.id }, data: { studentId: result.studentId, stage: 'ADMITTED' } });
     await audit(req, { action: 'student.create', entityType: 'Student', entityId: result.studentId, after: { ...input.student, familyNo: result.familyNo } });
     res.status(201).json(result);
   }),

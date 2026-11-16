@@ -50,17 +50,23 @@ export default function AssignmentsPage() {
     }
   }
 
-  const teacherOptions = (
-    <>
-      <option value="">— Not assigned —</option>
-      {data.teachers.map((t) => (
-        <option key={t.id} value={t.id}>
-          {t.fullName}
-          {load.get(t.id) ? ` (${load.get(t.id)})` : ''}
-        </option>
-      ))}
-    </>
-  );
+  /** Specialists of the subject are listed first with a star. */
+  const teacherOptions = (subjectId?: string) => {
+    const spec = (t: (typeof data.teachers)[number]) => Boolean(subjectId && (t as { specialistSubjectIds?: string[] }).specialistSubjectIds?.includes(subjectId));
+    const list = [...data.teachers].sort((a, b) => Number(spec(b)) - Number(spec(a)));
+    return (
+      <>
+        <option value="">— Not assigned —</option>
+        {list.map((t) => (
+          <option key={t.id} value={t.id}>
+            {spec(t) ? '★ ' : ''}
+            {t.fullName}
+            {load.get(t.id) ? ` (${load.get(t.id)})` : ''}
+          </option>
+        ))}
+      </>
+    );
+  };
 
   return (
     <>
@@ -121,13 +127,13 @@ export default function AssignmentsPage() {
                           <td className="px-5 py-2 font-semibold">{sec.name}</td>
                           <td className="px-3 py-2">
                             <select className="input min-w-40 py-1" value={sec.classTeacher?.id ?? ''} onChange={(e) => setClassTeacher(sec.id, e.target.value)}>
-                              {teacherOptions}
+                              {teacherOptions()}
                             </select>
                           </td>
                           {c.subjects.map((s) => (
                             <td key={s.id} className="px-3 py-2">
                               <select className="input min-w-40 py-1" value={map.get(`${sec.id}:${s.id}`) ?? ''} onChange={(e) => setTeacher(sec.id, s.id, e.target.value)}>
-                                {teacherOptions}
+                                {teacherOptions(s.id)}
                               </select>
                             </td>
                           ))}

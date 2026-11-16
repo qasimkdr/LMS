@@ -45,8 +45,10 @@ function navFor(me: Me): NavGroup[] {
     add('Overview', [{ href: '/school', label: 'Dashboard', icon: '◧' }, (has('reports.view') || has('students.view') || has('fees.reports')) && { href: '/reports', label: 'Reports & exports', icon: '⇩' }]);
     add('People', [
       has('students.view') && { href: '/school/students', label: 'Students', icon: '☺' },
+      on('admissions') && has('admissions.manage') && { href: '/admissions', label: 'Admissions', icon: '✚' },
       has('staff.view') && { href: '/school/staff', label: 'Staff & teachers', icon: '♟' },
       (has('attendance.manage') || has('students.view')) && { href: '/gate-pass', label: 'Gate pass', icon: '⇥' },
+      has('students.view') && { href: '/withdrawals', label: 'Leaving & certificates', icon: '⎋' },
     ]);
     add('Academics', [
       p && { href: '/school/setup', label: 'Classes & subjects', icon: '▦' },
@@ -81,6 +83,7 @@ function navFor(me: Me): NavGroup[] {
       has('files.manage') && { href: '/school/files', label: 'Files', icon: '▤' },
       { href: '/school/usage', label: 'Plan & usage', icon: '◔' },
       p && { href: '/school/settings', label: 'School profile', icon: '⌂' },
+      p && { href: '/school/session-close', label: 'Close session', icon: '↻' },
       p && { href: '/school/recycle-bin', label: 'Recycle bin', icon: '♻' },
     ]);
     return groups;

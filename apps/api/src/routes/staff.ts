@@ -45,6 +45,18 @@ export const profileSchema = z.object({
   campusId: z.string().nullish(),
   emergency: z.object({ name: optStr(160), relation: optStr(40), phone: optStr(30) }).nullish(),
   notes: optStr(5000),
+  guardianName: optStr(160),
+  maritalStatus: z.enum(['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED']).nullish(),
+  bloodGroup: z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).nullish(),
+  religion: optStr(40),
+  qualifications: z
+    .array(z.object({ degree: z.string().trim().min(1).max(80), institute: optStr(160), year: z.coerce.number().int().min(1950).max(2100).nullish(), grade: optStr(20) }))
+    .max(10)
+    .optional(),
+  experienceYears: z.coerce.number().int().min(0).max(60).nullish(),
+  previousEmployer: optStr(160),
+  specialistSubjectIds: z.array(z.string()).max(20).optional(),
+  specialization: optStr(200),
 });
 
 export const staffSchema = z.object({
@@ -69,6 +81,13 @@ export async function assertStaffCapacity(schoolId: string, adding: number) {
 }
 
 /** Creates a teacher/staff account with profile. Call inside a transaction. */
+/** Specialist subjects must be subjects of this school. */
+async function checkSubjects(tx: Prisma.TransactionClient, schoolId: string, ids: string[] | undefined) {
+  if (!ids?.length) return;
+  const n = await tx.subject.count({ where: { schoolId, id: { in: ids } } });
+  if (n !== new Set(ids).size) throw badRequest('Unknown subject in specialist subjects');
+}
+
 export async function createStaff(
   tx: Prisma.TransactionClient,
   school: { id: string; code: string },
@@ -89,6 +108,7 @@ export async function createStaff(
     for (let i = 2; await tx.user.findUnique({ where: { username: uname } }); i++) uname = `${school.code}.${employeeNo.toLowerCase()}-${i}`;
   }
   if (input.email && (await tx.user.findUnique({ where: { email: input.email } }))) throw conflict('Email is already used by another account');
+  await checkSubjects(tx, school.id, input.profile.specialistSubjectIds);
   const tempPassword = secret?.tempPassword ?? generateTempPassword();
   const passwordHash = secret?.hash ?? (await hashPassword(tempPassword));
   const { employeeNo: _e, ...profile } = input.profile;
@@ -249,6 +269,7 @@ router.patch(
         },
       });
       if (profile) {
+        await checkSubjects(tx, schoolId, profile.specialistSubjectIds);
         const { employeeNo, emergency, ...rest } = profile;
         await tx.staffProfile.upsert({
           where: { userId: before.id },

@@ -369,25 +369,37 @@ model TeachingAssignment {
 }
 
 model StaffProfile {
-  id            String    @id @default(cuid())
-  schoolId      String
-  userId        String    @unique
-  user          User      @relation(fields: [userId], references: [id])
-  employeeNo    String    @db.VarChar(30)
-  designation   String?   @db.VarChar(80)
-  cnic          String?   @db.VarChar(20)
-  gender        Gender?
-  dob           DateTime? @db.Date
-  qualification String?   @db.VarChar(160)
-  joiningDate   DateTime? @db.Date
-  salary        Decimal?  @db.Decimal(12, 2)
-  address       String?   @db.VarChar(300)
-  campusId      String?
+  id                   String    @id @default(cuid())
+  schoolId             String
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id])
+  employeeNo           String    @db.VarChar(30)
+  designation          String?   @db.VarChar(80)
+  cnic                 String?   @db.VarChar(20)
+  gender               Gender?
+  dob                  DateTime? @db.Date
+  qualification        String?   @db.VarChar(160)
+  joiningDate          DateTime? @db.Date
+  salary               Decimal?  @db.Decimal(12, 2)
+  address              String?   @db.VarChar(300)
+  campusId             String?
   /// { name, relation, phone }
-  emergency     Json?
-  notes         String?   @db.Text
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  emergency            Json?
+  notes                String?   @db.Text
+  /// Father's or husband's name.
+  guardianName         String?   @db.VarChar(160)
+  maritalStatus        String?   @db.VarChar(12)
+  bloodGroup           String?   @db.VarChar(4)
+  religion             String?   @db.VarChar(40)
+  /// [{ degree, institute, year, grade }]
+  qualifications       Json?
+  experienceYears      Int?
+  previousEmployer     String?   @db.VarChar(160)
+  /// Subjects the teacher specialises in (subject ids of this school); they can still teach anything.
+  specialistSubjectIds Json?
+  specialization       String?   @db.VarChar(200)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@unique([schoolId, employeeNo])
 }
@@ -1645,4 +1657,95 @@ model AlbumPhoto {
   createdAt   DateTime @default(now())
 
   @@index([albumId])
+}
+
+// ---------- Step 11: admissions, withdrawals, session closing ----------
+
+/// An admission enquiry, followed up until the child is admitted (or the family decides not to).
+model Enquiry {
+  id             String        @id @default(cuid())
+  schoolId       String
+  enquiryNo      Int
+  childName      String        @db.VarChar(160)
+  gender         Gender?
+  dob            DateTime?     @db.Date
+  classId        String?
+  parentName     String        @db.VarChar(160)
+  relation       String?       @db.VarChar(20)
+  phone          String        @db.VarChar(30)
+  email          String?       @db.VarChar(160)
+  address        String?       @db.VarChar(300)
+  previousSchool String?       @db.VarChar(160)
+  /// WALK_IN, REFERRAL, BANNER, SOCIAL, WEBSITE, NEWSPAPER, OTHER
+  source         String        @default("WALK_IN") @db.VarChar(12)
+  /// NEW, FOLLOW_UP, TEST, PASSED, WAITLIST, FAILED, ADMITTED, LOST
+  stage          String        @default("NEW") @db.VarChar(10)
+  followUpDate   DateTime?     @db.Date
+  testAt         DateTime?
+  testMarks      Decimal?      @db.Decimal(6, 2)
+  testTotal      Decimal?      @db.Decimal(6, 2)
+  testRemarks    String?       @db.VarChar(300)
+  lostReason     String?       @db.VarChar(200)
+  studentId      String?
+  createdById    String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  notes          EnquiryNote[]
+
+  @@unique([schoolId, enquiryNo])
+  @@index([schoolId, stage])
+}
+
+model EnquiryNote {
+  id        String   @id @default(cuid())
+  enquiryId String
+  enquiry   Enquiry  @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  authorId  String
+  text      String   @db.VarChar(1000)
+  createdAt DateTime @default(now())
+}
+
+/// Leaving process: request → fee clearance → School Leaving Certificate.
+model Withdrawal {
+  id            String    @id @default(cuid())
+  schoolId      String
+  studentId     String
+  reason        String    @db.VarChar(300)
+  leavingDate   DateTime  @db.Date
+  /// REQUESTED, COMPLETED, CANCELLED
+  status        String    @default("REQUESTED") @db.VarChar(10)
+  requestedById String
+  requestedAt   DateTime  @default(now())
+  waivedAmount  Decimal   @default(0) @db.Decimal(12, 2)
+  waivedById    String?
+  conduct       String?   @db.VarChar(40)
+  remarks       String?   @db.VarChar(300)
+  certificateNo Int?
+  completedAt   DateTime?
+  completedById String?
+  /// Class at the time of leaving (for the certificate).
+  classLabel    String?   @db.VarChar(80)
+
+  @@index([schoolId, status])
+  @@index([studentId])
+}
+
+/// One line of a session's promotion: where a student went.
+model PromotionRecord {
+  id            String   @id @default(cuid())
+  schoolId      String
+  batchId       String
+  studentId     String
+  fromSessionId String?
+  toSessionId   String
+  fromClassId   String
+  fromSectionId String?
+  toClassId     String?
+  toSectionId   String?
+  /// PROMOTE, RETAIN, GRADUATE, LEAVE
+  action        String   @db.VarChar(10)
+  createdAt     DateTime @default(now())
+
+  @@index([schoolId, batchId])
+  @@index([studentId])
 }

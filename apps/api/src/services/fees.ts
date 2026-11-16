@@ -33,7 +33,8 @@ export async function recalcInvoice(tx: Tx, invoiceId: string) {
   const agg = await tx.feePaymentAllocation.aggregate({ where: { invoiceId, payment: { status: { not: 'CANCELLED' } } }, _sum: { amount: true } });
   const paid = round2(num(agg._sum.amount));
   const total = num(inv.total);
-  const status = paid <= 0 ? 'UNPAID' : paid + 0.001 >= total ? 'PAID' : 'PARTIAL';
+  // A voucher with nothing left to pay (e.g. fully waived) counts as paid.
+  const status = total <= 0.001 ? 'PAID' : paid <= 0 ? 'UNPAID' : paid + 0.001 >= total ? 'PAID' : 'PARTIAL';
   return tx.feeInvoice.update({ where: { id: invoiceId }, data: { paidAmount: paid, status } });
 }
 

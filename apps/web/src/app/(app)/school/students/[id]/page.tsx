@@ -9,6 +9,7 @@ import { useData } from '@/components/useData';
 import { useToast } from '@/components/toast';
 import { Tabs } from '@/components/Tabs';
 import { StudentProgress } from '@/components/progress/StudentProgress';
+import { LeaveSchool, StudentHistory } from '@/components/progress/Lifecycle';
 import { Avatar } from '@/components/Avatar';
 import { PhotoPicker } from '@/components/PhotoPicker';
 import { GuardianFields, emptyGuardian } from '@/components/StudentForm';
@@ -19,7 +20,7 @@ import { ResultsList, type ResultRow } from '@/components/exams/ResultsList';
 import { age, bytes, date, dateTime, genderLabel, relationLabel, studentStatusLabel } from '@/lib/format';
 import { className, type Guardian } from '@/lib/types';
 
-type Tab = 'overview' | 'family' | 'attendance' | 'results' | 'progress' | 'fees' | 'documents' | 'account';
+type Tab = 'overview' | 'family' | 'attendance' | 'results' | 'progress' | 'history' | 'fees' | 'documents' | 'account';
 
 interface LoginInfo {
   id: string;
@@ -97,7 +98,7 @@ function ProfileInner({ id }: { id: string }) {
   const isTeacher = me?.user.role === 'TEACHER';
   const tab = (params.get('tab') as Tab) || 'overview';
   const { data, error, loading, reload } = useData<Detail>(`/students/${id}`);
-  const [modal, setModal] = useState<null | 'status' | 'delete'>(null);
+  const [modal, setModal] = useState<null | 'status' | 'delete' | 'leave'>(null);
 
   if (loading && !data) return <Loading />;
   if (error) return <ErrorBox error={error} />;
@@ -120,7 +121,7 @@ function ProfileInner({ id }: { id: string }) {
   ];
   if ((me?.school?.plan.modules ?? []).includes('attendance')) tabs.push({ key: 'attendance', label: 'Attendance' });
   if ((me?.school?.plan.modules ?? []).includes('exams')) tabs.push({ key: 'results', label: 'Results' });
-  tabs.push({ key: 'progress', label: 'Remarks & progress' });
+  tabs.push({ key: 'progress', label: 'Remarks & progress' }, { key: 'history', label: 'History' });
   const feePerm = me?.user.role === 'PRINCIPAL' || ['fees.collect', 'fees.manage', 'fees.reports'].some((k) => me?.user.permissions.includes(k));
   if ((me?.school?.plan.modules ?? []).includes('fees') && feePerm) tabs.push({ key: 'fees', label: 'Fees' });
   if (!isTeacher) tabs.push({ key: 'documents', label: 'Documents', count: st.documents.length }, { key: 'account', label: 'Logins' });
@@ -161,7 +162,12 @@ function ProfileInner({ id }: { id: string }) {
             <Link href={`/school/students/${id}/print`}>
               <Button variant="secondary">Print form</Button>
             </Link>
-            <Button variant="secondary" onClick={() => setModal('status')}>
+            {st.status === 'ACTIVE' && (
+              <Button variant="secondary" onClick={() => setModal('leave')}>
+                Leave school
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => setModal('status')}>
               Status
             </Button>
             <Button variant="ghost" className="text-red-600" onClick={() => setModal('delete')}>
@@ -259,10 +265,12 @@ function ProfileInner({ id }: { id: string }) {
       {tab === 'attendance' && <AttendanceTab id={id} />}
       {tab === 'results' && <StudentResults id={id} />}
       {tab === 'progress' && <StudentProgress studentId={id} studentName={st.fullName} />}
+      {tab === 'history' && <StudentHistory studentId={id} />}
       {tab === 'fees' && <StudentFees studentId={id} familyId={st.family.id} />}
       {tab === 'documents' && <DocumentsTab data={data} canManage={Boolean(canManage)} reload={reload} />}
       {tab === 'account' && <AccountTab data={data} reload={reload} />}
 
+      {modal === 'leave' && <LeaveSchool studentId={id} name={st.fullName} onClose={() => setModal(null)} />}
       {modal === 'status' && <StatusModal id={id} current={st.status} onClose={() => setModal(null)} onDone={() => { setModal(null); reload(); }} />}
       {modal === 'delete' && (
         <DeleteModal

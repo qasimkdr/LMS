@@ -106,6 +106,25 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Gallery:** albums visible to the whole school, chosen classes, or staff only; bulk photo upload where each photo is resized (max 1920 px), compressed to WebP and gets a thumbnail; masonry grid, lightbox with keyboard and swipe, captions, album cover.
 - **Reports & exports (Excel):** student list and contacts, class strength by gender, monthly attendance register, low attendance list, fee collection (receipts) for a date range, fee defaulters, result / tabulation sheet, syllabus coverage, WhatsApp messages log — each shown only to users with the right permission.
 
+## What works now (step 11: admissions, leaving, session closing, teacher profiles)
+
+- **Teacher enrollment:** full bio data — name, photo, mobile, email, CNIC, gender, date of birth, father/husband name, marital status, blood group, religion, address, emergency contact, joining date, salary (principal only), designation, highest qualification plus a list of qualifications (degree, institute, year, grade), teaching experience, previous school, specialization and **specialist subjects**. Specialists are starred and listed first in Teacher assignments, but any teacher can still be given any class or subject. Staff documents (CNIC copy, degrees…) are uploaded on the profile.
+- **Admissions pipeline:** enquiry register (child, class wanted, parent, phone, source, follow-up date, notes) on a board — New → Following up → Test / interview → Passed / Waiting list (or Not passed / Not joining). Admission test with date, marks and remarks; follow-up notes with the next follow-up date; "due today" counter; this month's enquiries, admissions and best source. **Admit now** opens the enrollment form already filled from the enquiry and links the new student.
+- **Leaving / withdrawal:** start from the student profile → fee clearance (collect, or the principal waives the remaining dues) → complete: a numbered **School Leaving Certificate** (printable, with date of birth in words, class, reason, conduct, last exam) and the student is marked Left; the student login (and the parent login, if no other child studies here) is switched off.
+- **Session closing:** a wizard for the principal — next session name/dates suggested, every class mapped to its next class, every student set to Promote / Stay / Graduate (students who did not pass the final exam are suggested to stay), same section name kept, optional % increase of all class fees, typed confirmation. Unpaid vouchers carry forward automatically; graduates are marked and their logins switched off; past sessions stay viewable.
+- **Academic history:** a History tab on each student — class and outcome in every session, attendance %, term exam results, test average, fees paid and honors per year, plus the leaving certificate.
+
+## Accounts and logins
+
+| Who | Created by | Username | First password |
+| --- | --- | --- | --- |
+| Principal | Platform super admin, when the school is added | chosen by the super admin | temporary, shown once |
+| Teacher / office staff | Principal (or staff with "Add and edit staff") in Staff & teachers → Add, or bulk import from Excel | automatic `schoolcode.e001` (from the employee no.) or a custom username; the email (if given) also works for login | temporary, shown once and printable as a login slip |
+| Student | Created automatically on admission | `schoolcode.<admission no>` | temporary, printed on the admission slip |
+| Parent | Created automatically on the first child's admission; brothers and sisters share **one** family login | `schoolcode.p<family no>` | temporary, printed on the admission slip |
+
+Everyone must choose their own password at first login. Forgotten passwords are reset by the principal (or staff with the permission) from the person's profile → Logins / Reset password, which shows a new temporary password. Logins of students who leave or graduate are switched off automatically.
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

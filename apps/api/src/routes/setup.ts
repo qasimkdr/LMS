@@ -77,7 +77,7 @@ router.get(
       prisma.campus.findMany({ where: { schoolId }, orderBy: [{ isMain: 'desc' }, { name: 'asc' }] }),
       prisma.user.findMany({
         where: { schoolId, role: 'TEACHER', deletedAt: null, isActive: true },
-        select: { id: true, fullName: true },
+        select: { id: true, fullName: true, staffProfile: { select: { specialistSubjectIds: true } } },
         orderBy: { fullName: 'asc' },
       }),
     ]);
@@ -102,7 +102,7 @@ router.get(
       })),
       subjects,
       campuses,
-      teachers,
+      teachers: teachers.map((t) => ({ id: t.id, fullName: t.fullName, specialistSubjectIds: (t.staffProfile?.specialistSubjectIds as string[] | null) ?? [] })),
     });
   }),
 );

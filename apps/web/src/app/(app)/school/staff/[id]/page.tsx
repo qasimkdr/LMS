@@ -24,6 +24,7 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
   const isPrincipal = me?.user.role === 'PRINCIPAL';
   const canManage = isPrincipal || me?.user.permissions.includes('staff.manage');
   const { data, error, loading, reload } = useData<{ staff: Staff }>(`/staff/${id}`);
+  const { data: structure } = useData<{ subjects: { id: string; name: string }[] }>('/setup/structure');
   const [editing, setEditing] = useState(false);
   const [secret, setSecret] = useState<{ username: string; tempPassword: string } | null>(null);
 
@@ -125,6 +126,49 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
           <SecretBox label={`New password for ${secret.username}`} value={secret.tempPassword} />
         </div>
       )}
+      {(s.role === 'TEACHER' || (p.qualifications ?? []).length > 0) && (
+        <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          {s.role === 'TEACHER' && (
+            <Card title="Teaching profile">
+              <div className="flex flex-wrap gap-2">
+                {((p.specialistSubjectIds ?? []) as string[]).map((sid) => (
+                  <span key={sid} className="animate-pop rounded-full bg-gradient-to-r from-brand-50 to-violet-50 px-3 py-1 text-sm font-medium text-brand-800 ring-1 ring-brand-100">
+                    ★ {structure?.subjects.find((x) => x.id === sid)?.name ?? '…'}
+                  </span>
+                ))}
+                {!(p.specialistSubjectIds ?? []).length && <span className="text-sm text-gray-400">No specialist subjects set</span>}
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                {[
+                  ['Specialization', p.specialization],
+                  ['Experience', p.experienceYears != null ? `${p.experienceYears} year${p.experienceYears === 1 ? '' : 's'}` : null],
+                  ['Previous school / employer', p.previousEmployer],
+                ].map(([k, v]) => (
+                  <div key={k as string}>
+                    <dt className="text-xs text-gray-500">{k}</dt>
+                    <dd className="mt-0.5">{v || <span className="text-gray-400">—</span>}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Card>
+          )}
+          <Card title="Qualifications">
+            {!(p.qualifications ?? []).length ? (
+              <p className="text-sm text-gray-400">No qualifications added.</p>
+            ) : (
+              <ol className="relative space-y-3 border-l-2 border-gray-100 pl-5">
+                {(p.qualifications as { degree: string; institute?: string; year?: number; grade?: string }[]).map((q, i) => (
+                  <li key={i} className="relative">
+                    <span className="absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-gradient-to-br from-brand-500 to-violet-500 shadow" />
+                    <div className="text-sm font-medium">{q.degree}</div>
+                    <div className="text-xs text-gray-500">{[q.institute, q.year, q.grade].filter(Boolean).join(' · ')}</div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+        </div>
+      )}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Details">
           <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -134,7 +178,11 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
               ['CNIC', p.cnic],
               ['Gender', p.gender ? { MALE: 'Male', FEMALE: 'Female', OTHER: 'Other' }[p.gender as string] : null],
               ['Date of birth', p.dob ? date(p.dob) : null],
-              ['Qualification', p.qualification],
+              ['Father / husband', p.guardianName],
+              ['Marital status', p.maritalStatus ? String(p.maritalStatus).charAt(0) + String(p.maritalStatus).slice(1).toLowerCase() : null],
+              ['Blood group', p.bloodGroup],
+              ['Religion', p.religion],
+              ['Highest qualification', p.qualification],
               ['Joining date', p.joiningDate ? date(p.joiningDate) : null],
               ...(isPrincipal ? [['Salary', p.salary != null ? money(p.salary, me?.school?.currency) : null]] : []),
               ['Address', p.address],
