@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>School Management System — Product Booklet</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --ink: #0f172a; --body: #334155; --muted: #64748b; --line: #e2e8f0; --soft: #f1f5f9; --paper: #ffffff;
+    --blue: #2563eb; --blue-50: #eff6ff; --blue-100: #dbeafe; --navy: #0b1730;
+    --green: #059669; --green-50: #ecfdf5; --amber: #d97706; --amber-50: #fffbeb; --rose: #e11d48; --rose-50: #fff1f2; --teal: #0d9488; --teal-50: #f0fdfa; --sky: #0284c7; --sky-50: #f0f9ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #e5e7eb; }
+  body { font-family: 'Inter', 'DejaVu Sans', sans-serif; color: var(--body); font-size: 9.6pt; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; background: var(--paper); position: relative; overflow: hidden; page-break-after: always; break-after: page; padding: 16mm 15mm 18mm; }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  h1, h2, h3, h4 { color: var(--ink); letter-spacing: -0.02em; line-height: 1.15; }
+  h2 { font-size: 21pt; font-weight: 700; text-wrap: balance; }
+  h3 { font-size: 11.5pt; font-weight: 650; letter-spacing: -0.01em; }
+  p { margin-top: 2mm; }
+  .eyebrow { font-size: 7.6pt; font-weight: 650; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+  .lead { font-size: 11pt; color: var(--body); margin-top: 3mm; max-width: 165mm; }
+  .muted { color: var(--muted); }
+  .footer { position: absolute; left: 15mm; right: 15mm; bottom: 8mm; display: flex; justify-content: space-between; font-size: 7.4pt; color: #94a3b8; border-top: 0.3mm solid var(--line); padding-top: 2.5mm; }
+  .footer b { color: var(--ink); font-weight: 600; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5mm; }
+
+  /* Screenshot frames */
+  .browser { border-radius: 3mm; border: 0.3mm solid #d7dde6; background: #fff; box-shadow: 0 6mm 14mm -6mm rgb(15 23 42 / 0.25), 0 1mm 3mm rgb(15 23 42 / 0.06); overflow: hidden; }
+  .browser .bar { height: 6mm; background: #f8fafc; border-bottom: 0.3mm solid var(--line); display: flex; align-items: center; gap: 1.4mm; padding: 0 3mm; }
+  .browser .bar i { width: 2mm; height: 2mm; border-radius: 50%; background: #cbd5e1; display: inline-block; }
+  .browser .bar span { margin-left: 3mm; flex: 1; height: 3.2mm; border-radius: 2mm; background: #eef2f6; font-size: 5.5pt; color: #94a3b8; padding-left: 2mm; line-height: 3.2mm; max-width: 70mm; }
+  .browser img { display: block; width: 100%; height: auto; }
+  .crop { overflow: hidden; }
+  .crop img { width: 100%; display: block; }
+  .phone { width: 46mm; border-radius: 7.5mm; background: #0f172a; padding: 2mm; box-shadow: 0 8mm 16mm -6mm rgb(15 23 42 / 0.4); }
+  .phone .screen { border-radius: 5.8mm; overflow: hidden; background: #fff; height: 92mm; position: relative; }
+  .phone .screen img { width: 100%; display: block; }
+  .phone .notch { position: absolute; top: 1.6mm; left: 50%; transform: translateX(-50%); width: 15mm; height: 3.2mm; background: #0f172a; border-radius: 2mm; z-index: 2; }
+
+  /* Feature lists */
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 3.2mm 6mm; margin-top: 5mm; }
+  .feat { display: flex; gap: 3mm; align-items: flex-start; }
+  .feat .ic { flex: none; width: 7.5mm; height: 7.5mm; border-radius: 2mm; display: flex; align-items: center; justify-content: center; font-size: 9pt; font-weight: 700; }
+  .feat h4 { font-size: 9.6pt; font-weight: 650; }
+  .feat p { margin-top: 0.6mm; font-size: 8.6pt; color: var(--body); line-height: 1.42; }
+  .ic.blue { background: var(--blue-50); color: var(--blue); } .ic.green { background: var(--green-50); color: var(--green); } .ic.amber { background: var(--amber-50); color: var(--amber); }
+  .ic.rose { background: var(--rose-50); color: var(--rose); } .ic.teal { background: var(--teal-50); color: var(--teal); } .ic.sky { background: var(--sky-50); color: var(--sky); }
+  .benefit { margin-top: 5mm; border-left: 1mm solid var(--blue); background: var(--blue-50); padding: 3.5mm 4.5mm; border-radius: 0 2mm 2mm 0; color: var(--ink); font-size: 10pt; }
+  .benefit b { color: var(--blue); }
+  .tag { display: inline-block; font-size: 7pt; font-weight: 600; padding: 0.8mm 2.2mm; border-radius: 10mm; background: var(--soft); color: var(--body); margin: 0 1mm 1mm 0; }
+  .num { font-size: 20pt; font-weight: 700; letter-spacing: -0.03em; }
+  .card { border: 0.3mm solid var(--line); border-radius: 3mm; padding: 4.5mm; background: #fff; }
+  .divider { height: 0.3mm; background: var(--line); margin: 6mm 0; }
+  .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; }
+  .chip { display: inline-flex; align-items: center; gap: 1.5mm; font-size: 7.6pt; font-weight: 600; padding: 1.2mm 3mm; border-radius: 10mm; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 · COVER ============ -->
+<section class="page" style="padding:0; background:#fff;">
+  <div style="position:absolute; inset:0; background:
+      radial-gradient(130mm 90mm at 100% 0%, #e0f2fe 0%, transparent 60%),
+      radial-gradient(110mm 80mm at 0% 100%, #ecfdf5 0%, transparent 60%);"></div>
+  <div style="position:absolute; inset:0; opacity:.5; background-image: radial-gradient(#cbd5e1 0.35mm, transparent 0.4mm); background-size: 6mm 6mm; -webkit-mask-image: linear-gradient(to bottom, #000, transparent 45%);"></div>
+  <div style="position:relative; padding:15mm 15mm 0;">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:3mm;">
+        <div style="width:10mm; height:10mm; border-radius:2.6mm; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13pt;">S</div>
+        <div style="font-weight:700; color:var(--ink); font-size:11pt; letter-spacing:-0.01em;">School Management System</div>
+      </div>
+      <div class="chip" style="background:#fff; border:0.3mm solid var(--line); color:var(--body);">For principals &amp; school owners</div>
+    </div>
+
+    <div style="margin-top:17mm; max-width:178mm;">
+      <div class="eyebrow">One system · every classroom · every parent</div>
+      <h1 style="font-size:34pt; font-weight:750; margin-top:3mm; line-height:1.06; letter-spacing:-0.035em;">Run your entire school<br/>from <span style="color:var(--blue);">one screen.</span></h1>
+      <p style="font-size:12.2pt; color:var(--body); margin-top:5mm; max-width:160mm; line-height:1.5;">
+        Attendance, fees, examinations, homework and parent communication — connected in one secure system. Your staff spend less time on paperwork, parents stay informed automatically, and you see exactly how your school is performing, every day.
+      </p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:3.5mm; margin-top:8mm;">
+      <div class="card" style="padding:4mm; border-top:1mm solid var(--blue);"><div style="font-weight:700; color:var(--ink); font-size:10pt;">Save staff time</div><div style="font-size:8.2pt; margin-top:1mm;">Registers, vouchers, report cards and notices are prepared for you.</div></div>
+      <div class="card" style="padding:4mm; border-top:1mm solid var(--green);"><div style="font-weight:700; color:var(--ink); font-size:10pt;">Recover more fees</div><div style="font-size:8.2pt; margin-top:1mm;">Know who has paid, who hasn’t, and remind them in one click.</div></div>
+      <div class="card" style="padding:4mm; border-top:1mm solid var(--amber);"><div style="font-weight:700; color:var(--ink); font-size:10pt;">Informed parents</div><div style="font-size:8.2pt; margin-top:1mm;">Absences, results and homework reach parents on WhatsApp and the app.</div></div>
+      <div class="card" style="padding:4mm; border-top:1mm solid var(--rose);"><div style="font-weight:700; color:var(--ink); font-size:10pt;">Decide with facts</div><div style="font-size:8.2pt; margin-top:1mm;">Live numbers on attendance, recovery, results and syllabus.</div></div>
+    </div>
+  </div>
+
+  <div style="position:absolute; left:15mm; right:28mm; bottom:30mm;">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>yourschool.app/school</span></div><div class="crop" style="height:84mm;"><img src="img/dashboard.png" /></div></div>
+  </div>
+  <div style="position:absolute; right:12mm; bottom:20mm;">
+    <div class="phone" style="width:46mm;"><div class="screen" style="height:94mm;"><div class="notch"></div><img src="img/m-parent-home.png" /></div></div>
+  </div>
+  <div style="position:absolute; left:0; right:0; bottom:0; height:14mm; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; gap:4mm; font-size:8pt; font-weight:500; white-space:nowrap;">
+    <span>✓ 30-day free trial</span><span style="opacity:.35">|</span><span>✓ Staff training included</span><span style="opacity:.35">|</span><span>✓ Your school’s own WhatsApp number</span><span style="opacity:.35">|</span><span>✓ Works on any phone or computer</span>
+  </div>
+</section>
+
+<!-- ============ PAGE 2 · WHY ============ -->
+<section class="page">
+  <div class="eyebrow">Dear Principal</div>
+  <h2 style="margin-top:2mm;">Your school deserves better than registers, phone calls and guesswork.</h2>
+  <p class="lead">Every day, hours of valuable staff time go into tasks a computer can do in seconds — writing attendance registers, preparing fee vouchers, chasing defaulters, typing report cards and answering the same parent questions again and again. School Management System brings all of this into one place, so your team can focus on what matters most: teaching and caring for children.</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6mm; margin-top:7mm;">
+    <div class="card" style="background:#fafafa;">
+      <div class="eyebrow" style="color:var(--rose);">The usual way</div>
+      <ul style="list-style:none; margin-top:3mm; display:grid; gap:2.6mm;">
+        <li>✕ &nbsp;Paper attendance registers; parents learn about absences days later</li>
+        <li>✕ &nbsp;Fee vouchers written by hand; no clear list of defaulters</li>
+        <li>✕ &nbsp;Cash collected by different staff with no clear hand-over record</li>
+        <li>✕ &nbsp;Marks in notebooks; report cards typed one by one</li>
+        <li>✕ &nbsp;Parents call the office for every question</li>
+        <li>✕ &nbsp;Notices sent home in bags — many never reach parents</li>
+        <li>✕ &nbsp;The principal finds out about problems too late</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:#bfdbfe; background:linear-gradient(180deg,#f8fbff,#fff);">
+      <div class="eyebrow">With School Management System</div>
+      <ul style="list-style:none; margin-top:3mm; display:grid; gap:2.6mm; color:var(--ink);">
+        <li><b style="color:var(--green)">✓</b> &nbsp;Attendance in under a minute; parents of absent children told instantly</li>
+        <li><b style="color:var(--green)">✓</b> &nbsp;Monthly vouchers generated automatically, with sibling and late-fee rules</li>
+        <li><b style="color:var(--green)">✓</b> &nbsp;Every rupee recorded, and every hand-over approved by you</li>
+        <li><b style="color:var(--green)">✓</b> &nbsp;Marks entered once; grades, positions and report cards calculated for you</li>
+        <li><b style="color:var(--green)">✓</b> &nbsp;Parents see attendance, results, fees and homework on their phone</li>
+        <li><b style="color:var(--green)">✓</b> &nbsp;Circulars with read receipts — you know exactly who has read them</li>
+        <li><b style="color:var(--green)">✓</b> &nbsp;A live dashboard shows what needs your attention today</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-top:9mm;">One system. Everyone connected.</h3>
+  <p class="muted" style="margin-top:1mm;">Each person gets their own secure login and sees only what they need.</p>
+  <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:3mm; margin-top:4mm; text-align:center;">
+    <div class="card" style="padding:4mm 2mm;"><div class="feat" style="justify-content:center;"><span class="ic blue" style="width:10mm;height:10mm;font-size:12pt;">★</span></div><div style="font-weight:650; color:var(--ink); margin-top:2mm;">Principal</div><div style="font-size:7.8pt;">Full control, approvals, live numbers</div></div>
+    <div class="card" style="padding:4mm 2mm;"><div class="feat" style="justify-content:center;"><span class="ic teal" style="width:10mm;height:10mm;font-size:12pt;">₨</span></div><div style="font-weight:650; color:var(--ink); margin-top:2mm;">Office staff</div><div style="font-size:7.8pt;">Admissions, fees, receipts, records</div></div>
+    <div class="card" style="padding:4mm 2mm;"><div class="feat" style="justify-content:center;"><span class="ic green" style="width:10mm;height:10mm;font-size:12pt;">✎</span></div><div style="font-weight:650; color:var(--ink); margin-top:2mm;">Teachers</div><div style="font-size:7.8pt;">Attendance, marks, homework, remarks</div></div>
+    <div class="card" style="padding:4mm 2mm;"><div class="feat" style="justify-content:center;"><span class="ic amber" style="width:10mm;height:10mm;font-size:12pt;">♥</span></div><div style="font-weight:650; color:var(--ink); margin-top:2mm;">Parents</div><div style="font-size:7.8pt;">Alerts, results, fees, messages</div></div>
+    <div class="card" style="padding:4mm 2mm;"><div class="feat" style="justify-content:center;"><span class="ic rose" style="width:10mm;height:10mm;font-size:12pt;">☺</span></div><div style="font-weight:650; color:var(--ink); margin-top:2mm;">Students</div><div style="font-size:7.8pt;">Timetable, homework, online exams</div></div>
+  </div>
+
+  <div class="benefit" style="margin-top:8mm;">This booklet shows real screens from the system. In the next pages you will see how each part of your school becomes simpler — and what it means for <b>you, your teachers, and every family</b> you serve.</div>
+  <div class="footer"><span><b>School Management System</b> · Why schools choose us</span><span>2</span></div>
+</section>
+
+<!-- ============ PAGE 3 · PRINCIPAL ============ -->
+<section class="page">
+  <div class="eyebrow">For the principal</div>
+  <h2 style="margin-top:2mm;">Your whole school, at a glance — every morning.</h2>
+  <p class="lead">Open the dashboard and see today’s attendance, fee collection, pending approvals and the students who are doing best — without asking anyone for a report.</p>
+  <div class="browser" style="margin-top:6mm;"><div class="bar"><i></i><i></i><i></i><span>Principal dashboard</span></div><div class="crop" style="height:96mm;"><img src="img/dashboard.png" /></div></div>
+  <div class="features">
+    <div class="feat"><span class="ic blue">◧</span><div><h4>Live dashboard</h4><p>Students, attendance, fees collected today, outstanding dues and syllabus coverage — updated as staff work.</p></div></div>
+    <div class="feat"><span class="ic amber">!</span><div><h4>“Needs your attention”</h4><p>Cash hand-overs, marks sheets and online papers waiting for approval, open complaints and classes without attendance.</p></div></div>
+    <div class="feat"><span class="ic green">✓</span><div><h4>You approve what matters</h4><p>Results are published and cash is accepted only after your approval. Nothing reaches parents without your consent.</p></div></div>
+    <div class="feat"><span class="ic rose">⎙</span><div><h4>Every change recorded</h4><p>Edits to marks, fees and attendance are logged with who, when and why — complete transparency and accountability.</p></div></div>
+    <div class="feat"><span class="ic teal">♟</span><div><h4>Staff permissions</h4><p>Give the accountant fees, the clerk admissions, and teachers only their own classes. You stay in control of everything.</p></div></div>
+    <div class="feat"><span class="ic sky">⇩</span><div><h4>Reports in one click</h4><p>Student lists, attendance registers, fee collection, defaulters and result sheets — downloaded as Excel, ready to print.</p></div></div>
+  </div>
+  <div class="footer"><span><b>School Management System</b> · For the principal</span><span>3</span></div>
+</section>
+
+<!-- ============ PAGE 4 · FEES ============ -->
+<section class="page">
+  <div class="eyebrow" style="color:var(--green);">Fees &amp; finance</div>
+  <h2 style="margin-top:2mm;">Know where every rupee is — and collect more.</h2>
+  <p class="lead">Fee recovery is the lifeline of every private school. The system prepares vouchers, records every payment, shows who still owes and reminds them for you — so recovery improves without uncomfortable phone calls.</p>
+  <div class="browser" style="margin-top:6mm;"><div class="bar"><i></i><i></i><i></i><span>Fees · Overview</span></div><div class="crop" style="height:88mm;"><img src="img/fees.png" /></div></div>
+  <div class="features">
+    <div class="feat"><span class="ic green">₨</span><div><h4>Automatic monthly vouchers</h4><p>Generated for every student with tuition and other heads, sibling and scholarship discounts, due dates and late-fee rules.</p></div></div>
+    <div class="feat"><span class="ic teal">⌂</span><div><h4>One family, one payment</h4><p>Brothers and sisters are linked as one family; one combined payment clears their vouchers in order. Advances are kept as credit.</p></div></div>
+    <div class="feat"><span class="ic blue">⎙</span><div><h4>Receipts at the counter</h4><p>Staff collect cash, bank or cheque and print a numbered receipt instantly; parents get a WhatsApp confirmation.</p></div></div>
+    <div class="feat"><span class="ic amber">⇄</span><div><h4>Cash hand-over approval</h4><p>Each collector hands over their day’s cash to you in the system; you approve it — no missing amounts, no disputes.</p></div></div>
+    <div class="feat"><span class="ic rose">!</span><div><h4>Defaulters, ranked</h4><p>See who has not paid, for how many months and how much — and send polite WhatsApp reminders to all of them in one click.</p></div></div>
+    <div class="feat"><span class="ic sky">▲</span><div><h4>Recovery you can compare</h4><p>This month vs last month, last 6 and 12 months and the same month last year, by class and by collector. Parents can also pay online.</p></div></div>
+  </div>
+  <div class="benefit">For the principal: <b>a clear, honest picture of income every day</b> — and a simple way to improve recovery without extra staff.</div>
+  <div class="footer"><span><b>School Management System</b> · Fees &amp; finance</span><span>4</span></div>
+</section>
+
+<!-- ============ PAGE 5 · ATTENDANCE & DAILY ============ -->
+<section class="page">
+  <div class="eyebrow" style="color:var(--sky);">Attendance &amp; daily routine</div>
+  <h2 style="margin-top:2mm;">Attendance in under a minute. Parents informed instantly.</h2>
+  <p class="lead">The class teacher marks attendance on a phone or computer. Parents of absent or late children receive a WhatsApp message straight away — a strong signal to families that your school cares about every child, every day.</p>
+  <div class="browser" style="margin-top:6mm;"><div class="bar"><i></i><i></i><i></i><span>Attendance · Class 5 – A</span></div><div class="crop" style="height:50mm;"><img src="img/attendance-mark.png" /></div></div>
+  <div class="features">
+    <div class="feat"><span class="ic sky">✓</span><div><h4>Quick daily marking</h4><p>Everyone starts as present; tap only the absent, late or on-leave students. Works on any phone.</p></div></div>
+    <div class="feat"><span class="ic rose">☏</span><div><h4>Instant absence alerts</h4><p>Parents are told on WhatsApp the moment attendance is saved — no calls from the office needed.</p></div></div>
+    <div class="feat"><span class="ic blue">▦</span><div><h4>Registers prepared for you</h4><p>Monthly registers, class-wise percentages and a low-attendance list are always ready to print or download.</p></div></div>
+    <div class="feat"><span class="ic amber">⇥</span><div><h4>Gate pass for early leave</h4><p>Record who picked the child up and why; parents are notified at once and a printed slip is ready for the gate.</p></div></div>
+    <div class="feat"><span class="ic green">◷</span><div><h4>Timetable for everyone</h4><p>Class and teacher timetables with clash checks. Teachers see their day; students and parents see the class schedule.</p></div></div>
+    <div class="feat"><span class="ic teal">◧</span><div><h4>You see it live</h4><p>The dashboard shows today’s attendance for the whole school and which classes have not been marked yet.</p></div></div>
+  </div>
+  <div class="benefit">For parents: <b>peace of mind</b> — they know their child reached school, every single day.</div>
+  <div style="display:grid; grid-template-columns:1fr 1.1fr; gap:7mm; margin-top:5mm; align-items:center;">
+    <div>
+      <h3>What the parent receives</h3>
+      <p style="font-size:8.8pt;">Messages go from your school’s own WhatsApp number, in a clear and respectful format. You choose which alerts are switched on — absence, late arrival, fee receipt, homework, results and circulars.</p>
+      <div style="margin-top:3mm;"><span class="tag">Absent</span><span class="tag">Late</span><span class="tag">Fee receipt</span><span class="tag">Homework</span><span class="tag">Results</span><span class="tag">Circulars</span><span class="tag">Gate pass</span></div>
+    </div>
+    <div style="background:#efeae2; border-radius:3mm; padding:5mm; display:grid; gap:2.5mm;">
+      <div style="background:#fff; border-radius:0 2.5mm 2.5mm 2.5mm; padding:3mm 3.5mm; font-size:8.4pt; color:var(--ink); box-shadow:0 0.4mm 0.8mm rgb(0 0 0/.08);"><b>City Grammar School</b><br/>Dear parent, Ali Raza (Class 5-A) is marked <b>absent</b> today, 17 November. If this is unexpected, please contact the class teacher.<div style="text-align:right; font-size:6.8pt; color:#94a3b8;">8:12 AM</div></div>
+      <div style="background:#fff; border-radius:0 2.5mm 2.5mm 2.5mm; padding:3mm 3.5mm; font-size:8.4pt; color:var(--ink); box-shadow:0 0.4mm 0.8mm rgb(0 0 0/.08);"><b>City Grammar School</b><br/>Fee received: PKR 8,000 for Ali Raza, November. Receipt no. 1042. Thank you.<div style="text-align:right; font-size:6.8pt; color:#94a3b8;">1:40 PM</div></div>
+    </div>
+  </div>
+  <p style="font-size:7.4pt; color:var(--muted); margin-top:2mm;">Sample messages for illustration.</p>
+  <div class="footer"><span><b>School Management System</b> · Attendance &amp; daily routine</span><span>5</span></div>
+</section>
+
+<!-- ============ PAGE 6 · EXAMS & RESULTS ============ -->
+<section class="page">
+  <div class="eyebrow" style="color:var(--amber);">Examinations &amp; results</div>
+  <h2 style="margin-top:2mm;">From marks entry to report card — without the late nights.</h2>
+  <p class="lead">Teachers enter marks once. The system calculates totals, percentages, grades and positions, prepares printable report cards and, after your approval, shares results with parents.</p>
+  <div style="display:grid; grid-template-columns:1.35fr 1fr; gap:6mm; margin-top:6mm; align-items:start;">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>Rankings · November</span></div><div class="crop" style="height:70mm;"><img src="img/rankings.png" /></div></div>
+    <div class="card" style="background:var(--amber-50); border-color:#fde68a;">
+      <h3>Every kind of assessment</h3>
+      <div style="margin-top:3mm;"><span class="tag">Weekly test</span><span class="tag">Monthly test</span><span class="tag">Class test</span><span class="tag">Surprise test</span><span class="tag">First term</span><span class="tag">Mid-term</span><span class="tag">Send-up</span><span class="tag">Final / Annual</span><span class="tag">+ your own types</span></div>
+      <p style="font-size:8.6pt;">Teachers can also create their own test names, such as “Quiz” or “Unit test”.</p>
+    </div>
+  </div>
+  <div class="features">
+    <div class="feat"><span class="ic amber">✎</span><div><h4>Fast marks entry</h4><p>Enter marks section by section with absent marking and remarks; the principal approves or returns with a note.</p></div></div>
+    <div class="feat"><span class="ic blue">▤</span><div><h4>Date sheets</h4><p>Exam papers with date, time and total marks, shared with students and parents in advance.</p></div></div>
+    <div class="feat"><span class="ic green">A+</span><div><h4>Grades &amp; positions automatically</h4><p>Your own grade bands and pass marks; class and section positions; ties handled fairly.</p></div></div>
+    <div class="feat"><span class="ic rose">⎙</span><div><h4>Printable report cards</h4><p>Professional A4 report cards with photo, marks, grades, position, attendance and remarks.</p></div></div>
+    <div class="feat"><span class="ic teal">⌨</span><div><h4>Online exams</h4><p>MCQ, true/false, fill-in-the-blanks, matching, short and long questions; timer and auto-save; objective answers marked automatically.</p></div></div>
+    <div class="feat"><span class="ic sky">★</span><div><h4>Rankings &amp; honors</h4><p>Top students by class and school, most improved, 100% attendance, Student of the Month and a public honor board.</p></div></div>
+  </div>
+  <div class="footer"><span><b>School Management System</b> · Examinations &amp; results</span><span>6</span></div>
+</section>
+
+<!-- ============ PAGE 7 · TEACHING & LEARNING ============ -->
+<section class="page">
+  <div class="eyebrow" style="color:var(--teal);">Teaching &amp; learning</div>
+  <h2 style="margin-top:2mm;">Give teachers more time to teach.</h2>
+  <p class="lead">Homework, syllabus progress, study material and communication with students are all in one place — so teachers spend less time on registers and more time in the classroom.</p>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6mm; margin-top:6mm;">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>Syllabus coverage</span></div><div class="crop" style="height:58mm;"><img src="img/syllabus.png" /></div></div>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>Teacher home</span></div><div class="crop" style="height:58mm;"><img src="img/teacher.png" /></div></div>
+  </div>
+  <div class="features">
+    <div class="feat"><span class="ic teal">☷</span><div><h4>Syllabus progress</h4><p>Chapters and topics for every class and subject. Teachers tick what is taught; you see the % covered by every section.</p></div></div>
+    <div class="feat"><span class="ic green">✐</span><div><h4>Daily homework diary</h4><p>Homework for every subject with attachments, sent to parents as one neat daily message.</p></div></div>
+    <div class="feat"><span class="ic blue">❐</span><div><h4>Study material</h4><p>Notes, worksheets, books and video links shared with the right class — students can view and download anytime.</p></div></div>
+    <div class="feat"><span class="ic amber">✍</span><div><h4>Remarks</h4><p>Appreciation, behaviour or academic remarks for one student or the whole class — shared with parents or kept private.</p></div></div>
+    <div class="feat"><span class="ic rose">❝</span><div><h4>Safe class chat</h4><p>A group for each class with its teachers. Teachers moderate; messages clear automatically after 30 days.</p></div></div>
+    <div class="feat"><span class="ic sky">▤</span><div><h4>Monthly progress report</h4><p>Attendance, tests, fee status, remarks and honors for every child — prepared automatically each month.</p></div></div>
+  </div>
+  <div class="benefit">For teachers: <b>less paperwork, clearer classes, happier parents</b> — and recognition for the progress they achieve.</div>
+  <div class="footer"><span><b>School Management System</b> · Teaching &amp; learning</span><span>7</span></div>
+</section>
+
+<!-- ============ PAGE 8 · PARENTS & STUDENTS ============ -->
+<section class="page">
+  <div class="eyebrow" style="color:var(--rose);">For parents &amp; students</div>
+  <h2 style="margin-top:2mm;">Every parent, always in the picture.</h2>
+  <p class="lead">Parents see everything about their child on their phone — and receive important updates on WhatsApp. Involved parents mean better results, fewer complaints and stronger trust in your school.</p>
+  <div style="display:flex; justify-content:space-between; margin-top:6mm; padding:0 4mm;">
+    <div style="text-align:center;"><div class="phone"><div class="screen"><div class="notch"></div><img src="img/m-parent-home.png" /></div></div><div style="font-size:8pt; font-weight:600; color:var(--ink); margin-top:2.5mm;">Child’s day at a glance</div></div>
+    <div style="text-align:center;"><div class="phone"><div class="screen"><div class="notch"></div><img src="img/m-monthly-report.png" /></div></div><div style="font-size:8pt; font-weight:600; color:var(--ink); margin-top:2.5mm;">Monthly progress report</div></div>
+    <div style="text-align:center;"><div class="phone"><div class="screen"><div class="notch"></div><img src="img/m-parent-homework.png" /></div></div><div style="font-size:8pt; font-weight:600; color:var(--ink); margin-top:2.5mm;">Today’s homework</div></div>
+  </div>
+  <div class="grid2" style="margin-top:7mm;">
+    <div class="card" style="border-top:1mm solid var(--rose);">
+      <h3>What parents get</h3>
+      <ul style="list-style:none; margin-top:2.5mm; display:grid; gap:1.8mm; font-size:8.8pt;">
+        <li>✓ &nbsp;WhatsApp alert if the child is absent or late</li>
+        <li>✓ &nbsp;Results, report cards and the monthly progress report</li>
+        <li>✓ &nbsp;Fee vouchers, receipts and the option to pay online</li>
+        <li>✓ &nbsp;Daily homework and the school timetable</li>
+        <li>✓ &nbsp;Message the child’s teachers directly; complaints to the principal</li>
+        <li>✓ &nbsp;Circulars, gallery photos and the honor board</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:1mm solid var(--sky);">
+      <h3>What students get</h3>
+      <ul style="list-style:none; margin-top:2.5mm; display:grid; gap:1.8mm; font-size:8.8pt;">
+        <li>✓ &nbsp;Their timetable, homework and study material</li>
+        <li>✓ &nbsp;Online exams with instant feedback and teacher remarks</li>
+        <li>✓ &nbsp;Results, positions and syllabus progress</li>
+        <li>✓ &nbsp;A safe, moderated class chat</li>
+        <li>✓ &nbsp;Recognition on the school honor board</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:5mm; background:var(--soft); border:none;">
+    <h3>How families get started — it takes two minutes</h3>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:4mm; margin-top:3mm; font-size:8.6pt;">
+      <div><b style="color:var(--blue);">1. At admission</b><br/>Parent and student logins are created automatically and printed on the admission slip.</div>
+      <div><b style="color:var(--blue);">2. One family login</b><br/>Brothers and sisters share one parent account — switch between children with a tap.</div>
+      <div><b style="color:var(--blue);">3. First login</b><br/>They choose their own password and can use it on any phone or computer, no app store needed.</div>
+    </div>
+  </div>
+  <div class="footer"><span><b>School Management System</b> · For parents &amp; students</span><span>8</span></div>
+</section>
+
+<!-- ============ PAGE 9 · COMMUNICATION & LIFECYCLE ============ -->
+<section class="page">
+  <div class="eyebrow">Communication &amp; school life</div>
+  <h2 style="margin-top:2mm;">From the first enquiry to the leaving certificate.</h2>
+  <p class="lead">Everything a family experiences with your school — admission, everyday communication and finally the School Leaving Certificate — is organised, recorded and professional.</p>
+  <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:6mm; margin-top:6mm; align-items:start;">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>Admissions pipeline</span></div><div class="crop" style="height:66mm;"><img src="img/admissions.png" /></div></div>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>School Leaving Certificate</span></div><div class="crop" style="height:66mm;"><img src="img/certificate.png" style="margin-top:-6mm;" /></div></div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6mm; margin-top:5mm;">
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>Circulars · read receipts</span></div><div class="crop" style="height:52mm;"><img src="img/circulars.png" /></div></div>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i><span>School gallery</span></div><div class="crop" style="height:52mm;"><img src="img/gallery.png" /></div></div>
+  </div>
+  <div class="features">
+    <div class="feat"><span class="ic blue">✚</span><div><h4>Admissions pipeline</h4><p>Record every enquiry, follow up on time, hold admission tests and admit in one click — no enquiry is forgotten.</p></div></div>
+    <div class="feat"><span class="ic green">☺</span><div><h4>Complete student records</h4><p>Full admission form with photo, guardians, health and documents; sibling families linked automatically.</p></div></div>
+    <div class="feat"><span class="ic rose">✦</span><div><h4>Circulars with read receipts</h4><p>Send notices to all parents, chosen classes or staff — and see exactly who has read them.</p></div></div>
+    <div class="feat"><span class="ic amber">⚑</span><div><h4>Complaints handled properly</h4><p>Every complaint gets a ticket number and status; parents are updated at each step. Nothing is lost.</p></div></div>
+    <div class="feat"><span class="ic teal">▣</span><div><h4>Gallery &amp; honor board</h4><p>Photos of events and sports days, and students’ achievements, shared with your school community.</p></div></div>
+    <div class="feat"><span class="ic sky">↻</span><div><h4>Leaving &amp; new session</h4><p>Fee clearance and certificate in minutes; at year end, promote every class to the next in one guided step.</p></div></div>
+  </div>
+  <div class="footer"><span><b>School Management System</b> · Communication &amp; school life</span><span>9</span></div>
+</section>
+
+<!-- ============ PAGE 10 · BEFORE / AFTER ============ -->
+<section class="page">
+  <div class="eyebrow" style="color:var(--green);">Time &amp; money saved</div>
+  <h2 style="margin-top:2mm;">What changes in a typical week.</h2>
+  <p class="lead">An example for a school of around 400 students and 16 sections. Every school is different — use these figures as a guide to the kind of time your team can save.</p>
+  <table style="width:100%; border-collapse:separate; border-spacing:0; margin-top:6mm; font-size:9pt;">
+    <thead>
+      <tr style="text-align:left; color:var(--muted); font-size:7.6pt; text-transform:uppercase; letter-spacing:.08em;">
+        <th style="padding:2.5mm 3mm; border-bottom:0.4mm solid var(--line);">Task</th>
+        <th style="padding:2.5mm 3mm; border-bottom:0.4mm solid var(--line);">The usual way</th>
+        <th style="padding:2.5mm 3mm; border-bottom:0.4mm solid var(--line); color:var(--green);">With the system</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding:3mm; border-bottom:0.3mm solid var(--line); font-weight:600; color:var(--ink);">Daily attendance &amp; absence calls</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line);">Registers, totals and phone calls to parents — about 1 hour a day for the office</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line); color:var(--ink);">About 1 minute per class; alerts sent automatically</td></tr>
+      <tr><td style="padding:3mm; border-bottom:0.3mm solid var(--line); font-weight:600; color:var(--ink);">Monthly fee vouchers</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line);">Written or typed for every student — 1 to 2 days each month</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line); color:var(--ink);">Generated for the whole school in seconds</td></tr>
+      <tr><td style="padding:3mm; border-bottom:0.3mm solid var(--line); font-weight:600; color:var(--ink);">Defaulter follow-up</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line);">Lists made by hand, then individual calls</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line); color:var(--ink);">Ranked list and WhatsApp reminders in one click</td></tr>
+      <tr><td style="padding:3mm; border-bottom:0.3mm solid var(--line); font-weight:600; color:var(--ink);">Report cards</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line);">Totals, grades and positions calculated and typed — several days per term</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line); color:var(--ink);">Calculated automatically; print the whole class at once</td></tr>
+      <tr><td style="padding:3mm; border-bottom:0.3mm solid var(--line); font-weight:600; color:var(--ink);">Notices to parents</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line);">Photocopies sent home; no way to know who read them</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line); color:var(--ink);">Delivered to every parent’s phone, with read receipts</td></tr>
+      <tr><td style="padding:3mm; border-bottom:0.3mm solid var(--line); font-weight:600; color:var(--ink);">Monthly progress reports</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line);">Rarely possible — too much work</td><td style="padding:3mm; border-bottom:0.3mm solid var(--line); color:var(--ink);">Prepared automatically for every child, every month</td></tr>
+      <tr><td style="padding:3mm; font-weight:600; color:var(--ink);">Answering parent queries</td><td style="padding:3mm;">Frequent calls and visits to the office</td><td style="padding:3mm; color:var(--ink);">Parents find answers in the app; teachers reply in one place</td></tr>
+    </tbody>
+  </table>
+  <div class="grid3" style="margin-top:8mm;">
+    <div class="card" style="border-top:1mm solid var(--green); text-align:center;"><div class="num" style="color:var(--green);">10+ hrs</div><div style="font-size:8.6pt;">office time that can be saved every week*</div></div>
+    <div class="card" style="border-top:1mm solid var(--blue); text-align:center;"><div class="num" style="color:var(--blue);">Every parent</div><div style="font-size:8.6pt;">reached on their phone — not just those who come to school</div></div>
+    <div class="card" style="border-top:1mm solid var(--amber); text-align:center;"><div class="num" style="color:var(--amber);">Same day</div><div style="font-size:8.6pt;">visibility of attendance, collection and problems</div></div>
+  </div>
+  <div class="card" style="margin-top:6mm; display:grid; grid-template-columns:auto 1fr; gap:6mm; align-items:center; background:var(--soft); border:none;">
+    <div style="text-align:center; padding:0 3mm;"><div class="num" style="font-size:26pt; color:var(--ink);">≈ 40</div><div style="font-size:7.6pt; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);">hours a month</div></div>
+    <div><h3>What this means in money</h3><p style="font-size:8.8pt;">Ten hours a week adds up to about a full working week of one office person every month. That time can go to admissions, parent meetings and classroom support — instead of registers and vouchers. Add even a small improvement in fee recovery, and the system can pay for itself.</p></div>
+  </div>
+  <p style="font-size:7.6pt; color:var(--muted); margin-top:5mm;">* Illustrative estimate based on the example above. Actual savings depend on your school’s size and current processes. Better fee recovery comes from clear defaulter lists and timely reminders; results vary by school.</p>
+  <div class="footer"><span><b>School Management System</b> · Time &amp; money saved</span><span>10</span></div>
+</section>
+
+<!-- ============ PAGE 11 · TRUST, SETUP & SUPPORT ============ -->
+<section class="page">
+  <div class="eyebrow">Security, setup &amp; support</div>
+  <h2 style="margin-top:2mm;">Safe, simple to start, and supported.</h2>
+  <div class="grid2" style="margin-top:6mm;">
+    <div>
+      <h3>Your data is protected</h3>
+      <div style="display:grid; gap:3mm; margin-top:3mm;">
+        <div class="feat"><span class="ic blue">⛨</span><div><h4>Your school’s data is private</h4><p>Each school’s records are kept separate; no other school can see them.</p></div></div>
+        <div class="feat"><span class="ic green">⚿</span><div><h4>Secure logins &amp; permissions</h4><p>Everyone has their own password; staff see only what you allow; teachers see only their classes.</p></div></div>
+        <div class="feat"><span class="ic amber">⎙</span><div><h4>Full history of changes</h4><p>Important changes are recorded with name, date and reason.</p></div></div>
+        <div class="feat"><span class="ic teal">☁</span><div><h4>Secure cloud hosting</h4><p>Hosted on professional cloud servers — nothing to install or maintain at your school.</p></div></div>
+        <div class="feat"><span class="ic rose">☏</span><div><h4>Your own WhatsApp number</h4><p>Messages go from your school’s WhatsApp Business number. You choose which messages are sent, and can switch any off.</p></div></div>
+      </div>
+    </div>
+    <div>
+      <h3>Getting started</h3>
+      <div style="display:grid; gap:3mm; margin-top:3mm;">
+        <div class="card" style="display:flex; gap:3mm; padding:3.5mm;"><div class="num" style="font-size:14pt; color:var(--blue);">1</div><div><b style="color:var(--ink);">Free demonstration</b><br/><span style="font-size:8.6pt;">We show the system at your school, using your classes and needs.</span></div></div>
+        <div class="card" style="display:flex; gap:3mm; padding:3.5mm;"><div class="num" style="font-size:14pt; color:var(--blue);">2</div><div><b style="color:var(--ink);">30-day free trial</b><br/><span style="font-size:8.6pt;">Your school account is ready the same day. Add classes and import students and staff from Excel.</span></div></div>
+        <div class="card" style="display:flex; gap:3mm; padding:3.5mm;"><div class="num" style="font-size:14pt; color:var(--blue);">3</div><div><b style="color:var(--ink);">Staff training</b><br/><span style="font-size:8.6pt;">We train your principal, office staff and teachers until they are confident.</span></div></div>
+        <div class="card" style="display:flex; gap:3mm; padding:3.5mm;"><div class="num" style="font-size:14pt; color:var(--blue);">4</div><div><b style="color:var(--ink);">Go live</b><br/><span style="font-size:8.6pt;">Parents receive their logins and start receiving updates.</span></div></div>
+      </div>
+      <div class="card" style="margin-top:4mm; background:var(--green-50); border-color:#a7f3d0;">
+        <h3 style="color:#065f46;">Support you can count on</h3>
+        <ul style="list-style:none; margin-top:2mm; display:grid; gap:1.5mm; font-size:8.8pt; color:#064e3b;">
+          <li>✓ &nbsp;Training for principal, office staff and teachers</li>
+          <li>✓ &nbsp;Help by phone and WhatsApp on working days</li>
+          <li>✓ &nbsp;Regular updates and new features at no extra cost</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <h3>Simple monthly plans</h3>
+  <p style="max-width:170mm;">Plans are monthly, based on your school’s size and the features you need. There is no large upfront cost and nothing to install. <b style="color:var(--ink);">Ask us for a quotation for your school.</b></p>
+  <h3 style="margin-top:7mm;">All you need</h3>
+  <div class="grid3" style="margin-top:3mm;">
+    <div class="card" style="padding:4mm;"><div class="feat"><span class="ic blue">▭</span><div><h4>A phone or computer</h4><p>Any smartphone, tablet, laptop or desktop with a web browser.</p></div></div></div>
+    <div class="card" style="padding:4mm;"><div class="feat"><span class="ic green">◠</span><div><h4>An internet connection</h4><p>Normal Wi-Fi or mobile data is enough.</p></div></div></div>
+    <div class="card" style="padding:4mm;"><div class="feat"><span class="ic amber">☏</span><div><h4>A WhatsApp Business number</h4><p>Optional — for automatic messages to parents.</p></div></div></div>
+  </div>
+  <div class="footer"><span><b>School Management System</b> · Security, setup &amp; support</span><span>11</span></div>
+</section>
+
+<!-- ============ PAGE 12 · FAQ + OFFER + CONTACT ============ -->
+<section class="page" style="padding-bottom:0;">
+  <div class="eyebrow">Questions principals ask</div>
+  <h2 style="margin-top:2mm;">Frequently asked questions</h2>
+  <div class="grid2" style="margin-top:5mm; gap:4.5mm 7mm; font-size:8.8pt;">
+    <div><h4 style="font-size:9.6pt;">Is our school’s data safe?</h4><p style="margin-top:1mm;">Yes. Each school’s data is kept private and separate, every user has their own password and permissions, and important changes are recorded.</p></div>
+    <div><h4 style="font-size:9.6pt;">Do we need to buy computers?</h4><p style="margin-top:1mm;">No. It works in the web browser of any smartphone, tablet or computer you already have.</p></div>
+    <div><h4 style="font-size:9.6pt;">What if our internet is slow?</h4><p style="margin-top:1mm;">Pages are light and fast on mobile data. Online exams save answers automatically, even through short connection drops.</p></div>
+    <div><h4 style="font-size:9.6pt;">Can we bring in our existing records?</h4><p style="margin-top:1mm;">Yes. Students and staff can be imported from Excel, so you do not need to type everything again.</p></div>
+    <div><h4 style="font-size:9.6pt;">Will parents find it difficult?</h4><p style="margin-top:1mm;">No. Most updates simply arrive on WhatsApp. The parent app is simple, and logins are printed on the admission slip.</p></div>
+    <div><h4 style="font-size:9.6pt;">Who pays for WhatsApp messages?</h4><p style="margin-top:1mm;">Messages are sent from your school’s own WhatsApp Business number and billed by Meta to your school. You decide which messages are sent.</p></div>
+    <div><h4 style="font-size:9.6pt;">Can teachers use it without training?</h4><p style="margin-top:1mm;">It is designed to be simple, and we still train your teachers so they feel confident from the first day.</p></div>
+    <div><h4 style="font-size:9.6pt;">How much does it cost?</h4><p style="margin-top:1mm;">A monthly plan based on your school’s size. Ask us for a quotation — and start with a 30-day free trial.</p></div>
+  </div>
+
+  <div style="margin-top:8mm; border-radius:4mm; background:var(--ink); color:#fff; padding:7mm 8mm; position:relative; overflow:hidden;">
+    <div style="position:absolute; right:-20mm; top:-25mm; width:80mm; height:80mm; border-radius:50%; background:rgb(37 99 235 / .35);"></div>
+    <div style="position:relative; display:flex; justify-content:space-between; align-items:center; gap:8mm;">
+      <div>
+        <div class="eyebrow" style="color:#93c5fd;">Special offer for your school</div>
+        <div style="font-size:20pt; font-weight:700; letter-spacing:-0.02em; margin-top:2mm;">Try it free for 30 days.</div>
+        <div style="font-size:9.6pt; color:#cbd5e1; margin-top:2mm; max-width:120mm;">Full system, staff training included, no obligation. See the difference in your school before you decide.</div>
+      </div>
+      <div style="flex:none; text-align:center; background:#fff; color:var(--ink); border-radius:3mm; padding:4mm 6mm;">
+        <div style="font-size:24pt; font-weight:800; color:var(--blue); line-height:1;">30</div>
+        <div style="font-size:7.6pt; font-weight:600; letter-spacing:.1em; text-transform:uppercase;">days free</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:7mm; display:grid; grid-template-columns:1.2fr 1fr; gap:8mm; align-items:end;">
+    <div>
+      <h3>Book your free demonstration</h3>
+      <div style="display:grid; gap:4.5mm; margin-top:5mm; font-size:9pt;">
+        <div style="display:flex; align-items:flex-end; gap:3mm;"><span style="width:26mm; color:var(--muted);">Name</span><span style="flex:1; border-bottom:0.3mm solid #94a3b8; height:5mm;"></span></div>
+        <div style="display:flex; align-items:flex-end; gap:3mm;"><span style="width:26mm; color:var(--muted);">Phone / WhatsApp</span><span style="flex:1; border-bottom:0.3mm solid #94a3b8; height:5mm;"></span></div>
+        <div style="display:flex; align-items:flex-end; gap:3mm;"><span style="width:26mm; color:var(--muted);">Email</span><span style="flex:1; border-bottom:0.3mm solid #94a3b8; height:5mm;"></span></div>
+        <div style="display:flex; align-items:flex-end; gap:3mm;"><span style="width:26mm; color:var(--muted);">Website</span><span style="flex:1; border-bottom:0.3mm solid #94a3b8; height:5mm;"></span></div>
+      </div>
+    </div>
+    <div class="card" style="text-align:center; padding:5mm;">
+      <div style="width:12mm; height:12mm; margin:0 auto; border-radius:3mm; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15pt;">S</div>
+      <div style="font-weight:700; color:var(--ink); font-size:11pt; margin-top:2.5mm;">School Management System</div>
+      <div style="font-size:8.2pt; color:var(--muted); margin-top:1mm;">Attendance · Fees · Exams · Homework · Parents</div>
+    </div>
+  </div>
+  <div style="position:absolute; left:0; right:0; bottom:0; height:12mm; background:var(--soft); display:flex; align-items:center; justify-content:center; font-size:8pt; color:var(--muted);">
+    Thank you for your time. We would be glad to show how School Management System can help your school.
+  </div>
+</section>
+
+</body>
+</html>
