@@ -1436,3 +1436,213 @@ model LmsSettings {
   /// Teachers may post homework for any subject of their own class (as class teacher).
   classTeacherAllSubjects Boolean @default(true)
 }
+
+// ---------- Step 10: communication, gate pass, gallery ----------
+
+/// Settings of a section's class chat (rows exist only once changed).
+model ChatRoom {
+  sectionId String   @id
+  schoolId  String
+  /// OPEN, TEACHERS_ONLY (announcement mode) or CLOSED
+  mode      String   @default("OPEN") @db.VarChar(14)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model ChatMessage {
+  id               String    @id @default(cuid())
+  schoolId         String
+  sectionId        String
+  senderId         String
+  text             String?   @db.VarChar(2000)
+  fileId           String?
+  replyToId        String?
+  createdAt        DateTime  @default(now())
+  deletedAt        DateTime?
+  deletedById      String?
+  /// Reported messages are kept (even past 30 days) until a teacher or the principal reviews them.
+  reportedById     String?
+  reportReason     String?   @db.VarChar(300)
+  reportReviewedAt DateTime?
+
+  @@index([sectionId, createdAt])
+  @@index([schoolId, createdAt])
+}
+
+model ChatMute {
+  id        String   @id @default(cuid())
+  schoolId  String
+  sectionId String
+  userId    String
+  until     DateTime
+  byId      String
+
+  @@unique([sectionId, userId])
+}
+
+model CommSettings {
+  schoolId         String  @id
+  classChatEnabled Boolean @default(true)
+}
+
+/// Parent ↔ teacher conversation about one child.
+model Conversation {
+  id            String                @id @default(cuid())
+  schoolId      String
+  parentUserId  String
+  teacherId     String
+  studentId     String
+  /// GENERAL, QUERY or COMPLAINT (of the first message)
+  kind          String                @default("GENERAL") @db.VarChar(10)
+  lastMessageAt DateTime              @default(now())
+  forwardedAt   DateTime?
+  createdAt     DateTime              @default(now())
+  deletedAt     DateTime?
+  messages      ConversationMessage[]
+
+  @@unique([parentUserId, teacherId, studentId])
+  @@index([schoolId, teacherId])
+}
+
+model ConversationMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  text           String       @db.VarChar(3000)
+  fileIds        Json
+  /// Automatic "I will reply during school hours" note.
+  isAuto         Boolean      @default(false)
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+/// When a teacher receives parent messages (outside: automatic reply).
+model MessageHours {
+  userId   String  @id
+  schoolId String
+  enabled  Boolean @default(false)
+  start    String  @default("08:00") @db.VarChar(5)
+  end      String  @default("15:00") @db.VarChar(5)
+}
+
+model Complaint {
+  id                   String           @id @default(cuid())
+  schoolId             String
+  ticketNo             Int
+  parentUserId         String
+  studentId            String?
+  category             String           @db.VarChar(30)
+  subject              String           @db.VarChar(200)
+  description          String           @db.VarChar(4000)
+  fileIds              Json
+  privateFromTeachers  Boolean          @default(false)
+  /// NEW, IN_PROGRESS, RESOLVED, CLOSED
+  status               String           @default("NEW") @db.VarChar(12)
+  assignedToId         String?
+  sourceConversationId String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  resolvedAt           DateTime?
+  entries              ComplaintEntry[]
+
+  @@unique([schoolId, ticketNo])
+  @@index([schoolId, status])
+}
+
+model ComplaintEntry {
+  id          String    @id @default(cuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  authorId    String
+  /// REPLY (parent sees), NOTE (internal), STATUS, ASSIGN
+  kind        String    @db.VarChar(8)
+  text        String    @db.VarChar(3000)
+  fileIds     Json
+  createdAt   DateTime  @default(now())
+}
+
+model Circular {
+  id           String         @id @default(cuid())
+  schoolId     String
+  title        String         @db.VarChar(200)
+  body         String         @db.Text
+  fileIds      Json
+  /// SCHOOL (all parents), CLASSES, SECTIONS, or STAFF only
+  audience     String         @db.VarChar(10)
+  classIds     Json?
+  sectionIds   Json?
+  includeStaff Boolean        @default(false)
+  /// Recipient user ids at the time of sending (for read receipts).
+  recipientIds Json
+  whatsapp     Boolean        @default(false)
+  createdById  String
+  createdAt    DateTime       @default(now())
+  deletedAt    DateTime?
+  reads        CircularRead[]
+
+  @@index([schoolId, createdAt])
+}
+
+model CircularRead {
+  id         String   @id @default(cuid())
+  circularId String
+  circular   Circular @relation(fields: [circularId], references: [id], onDelete: Cascade)
+  userId     String
+  readAt     DateTime @default(now())
+
+  @@unique([circularId, userId])
+}
+
+model GatePass {
+  id          String    @id @default(cuid())
+  schoolId    String
+  passNo      Int
+  studentId   String
+  reason      String    @db.VarChar(300)
+  pickedUpBy  String    @db.VarChar(120)
+  relation    String    @db.VarChar(40)
+  pickerPhone String?   @db.VarChar(20)
+  leftAt      DateTime  @default(now())
+  issuedById  String
+  notifiedAt  DateTime?
+
+  @@unique([schoolId, passNo])
+  @@index([schoolId, leftAt])
+  @@index([studentId])
+}
+
+model Album {
+  id          String       @id @default(cuid())
+  schoolId    String
+  title       String       @db.VarChar(160)
+  description String?      @db.VarChar(1000)
+  eventDate   DateTime?    @db.Date
+  /// SCHOOL, CLASSES or STAFF
+  visibility  String       @default("SCHOOL") @db.VarChar(8)
+  classIds    Json?
+  coverFileId String?
+  createdById String
+  createdAt   DateTime     @default(now())
+  deletedAt   DateTime?
+  photos      AlbumPhoto[]
+
+  @@index([schoolId, createdAt])
+}
+
+model AlbumPhoto {
+  id          String   @id @default(cuid())
+  albumId     String
+  album       Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  fileId      String
+  thumbFileId String?
+  caption     String?  @db.VarChar(200)
+  width       Int?
+  height      Int?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([albumId])
+}

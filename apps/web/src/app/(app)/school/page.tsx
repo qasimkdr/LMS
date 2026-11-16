@@ -3,154 +3,295 @@
 import Link from 'next/link';
 import { useAuth } from '@/components/auth';
 import { useData } from '@/components/useData';
-import { StorageAlert, UsageBars } from '@/components/UsageBars';
-import { Card, ErrorBox, Loading, PageHeader, Stat } from '@/components/ui';
+import { StorageAlert } from '@/components/UsageBars';
+import { Avatar } from '@/components/Avatar';
+import { AreaChart, BarChart, CountUp, Gauge, HBars, Hero, HeroAction, KpiCard, Panel, PanelLink, TodoRow } from '@/components/fx';
+import { ErrorBox, Loading } from '@/components/ui';
+import { CATEGORY_LABEL, categoryTone, type RemarkCategory } from '@/components/progress/Remarks';
+import { Badge } from '@/components/ui';
+import { date } from '@/lib/format';
 import type { Usage } from '@/lib/types';
 
+interface Dash {
+  today: string;
+  students: { total: number; boys: number; girls: number; newThisMonth: number };
+  staff: { teachers: number; staff: number };
+  classStrength: { label: string; count: number }[];
+  attendanceTrend: { date: string; percent: number; absent: number }[];
+  syllabus: number | null;
+  top: { period: string; title: string; rows: { id: string; fullName: string; classLabel: string; photoFileId: string | null; percent: number; position: number }[] } | null;
+  upcomingExams: { id: string; assessmentId: string; title: string; kind: string; date: string | null; subject: string; classLabel: string }[];
+  approvals: { sheets: number; onlinePapers: number; onlineResults: number };
+  complaints: { open: number; oldest: { ticketNo: number; subject: string; createdAt: string } | null; list: { id: string; ticketNo: number; subject: string; status: string; createdAt: string }[] };
+  remarks: { id: string; category: RemarkCategory; text: string; date: string; student: string; studentId: string; by: string }[];
+  circulars: { id: string; title: string; createdAt: string; recipients: number; reads: number }[];
+  gatePassesToday: number;
+}
+interface Fees {
+  collection: { today: number; thisMonth: number; lastMonth: number; series: { month: string; amount: number }[] };
+  outstanding: number;
+  studentsOverdue: number;
+  pendingHandovers: number;
+  currentMonth: { recovery: number | null };
+}
 interface Checklist {
   steps: { key: string; label: string; done: boolean; href: string }[];
   done: number;
   total: number;
 }
 
-const upcoming = [
-  ['Timetable and teacher schedules', 'Step 3'],
-  ['Online exams', 'Step 7'],
-  ['Remarks, monthly reports, rankings and honors', 'Step 8'],
-];
+const short = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k` : String(Math.round(n)));
+const monthShort = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' });
+const dayShort = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const medal = ['🥇', '🥈', '🥉'];
 
 export default function SchoolDashboard() {
   const { me } = useAuth();
   const isPrincipal = me?.user.role === 'PRINCIPAL';
-  const { data, error, loading } = useData<{ usage: Usage }>('/school/overview');
+  const has = (k: string) => isPrincipal || Boolean(me?.user.permissions.includes(k));
+  const mods = me?.school?.plan.modules ?? [];
+  const { data, error, loading } = useData<Dash>('/dashboard');
+  const { data: overview } = useData<{ usage: Usage }>('/school/overview');
   const { data: checklist } = useData<Checklist>(isPrincipal ? '/setup/checklist' : null);
-  const hasAttendance = (me?.school?.plan.modules ?? []).includes('attendance');
-  const feeReports = (me?.school?.plan.modules ?? []).includes('fees') && (isPrincipal || Boolean(me?.user.permissions.includes('fees.reports')));
-  const { data: fees } = useData<{ collection: { today: number; thisMonth: number }; outstanding: number; pendingHandovers: number; currentMonth: { recovery: number | null } }>(feeReports ? '/fees/reports/summary' : null);
+  const feeAccess = mods.includes('fees') && has('fees.reports');
+  const { data: fees } = useData<Fees>(feeAccess ? '/fees/reports/summary' : null);
+  const { data: att } = useData<{ percent: number | null; totals: Record<string, number>; notMarked: number }>(mods.includes('attendance') ? '/attendance/today' : null);
   const cur = me?.school?.currency ?? 'PKR';
-  const { data: attendance } = useData<{ percent: number | null; totals: Record<string, number>; notMarked: number }>(hasAttendance ? '/attendance/today' : null);
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const allDone = checklist && checklist.done === checklist.total;
+
+  if (loading && !data) return <Loading />;
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return null;
+
+  const monthTrend = fees && fees.collection.lastMonth ? Math.round(((fees.collection.thisMonth - fees.collection.lastMonth) / fees.collection.lastMonth) * 100) : null;
+  const todo = [
+    fees && fees.pendingHandovers > 0 && { href: '/school/fees', icon: '⇄', label: 'Cash hand-overs to approve', count: fees.pendingHandovers, tone: 'amber' as const },
+    data.approvals.sheets > 0 && { href: '/school/exams', icon: '✎', label: 'Marks sheets to approve', count: data.approvals.sheets, tone: 'blue' as const },
+    data.approvals.onlinePapers > 0 && { href: '/online-exams', icon: '⌨', label: 'Online papers waiting for approval', count: data.approvals.onlinePapers, tone: 'violet' as const },
+    data.approvals.onlineResults > 0 && { href: '/online-exams', icon: '✓', label: 'Online exam results to publish', count: data.approvals.onlineResults, tone: 'emerald' as const },
+    data.complaints.open > 0 && { href: '/complaints', icon: '⚑', label: 'Open complaints', count: data.complaints.open, tone: 'rose' as const },
+    att && att.notMarked > 0 && { href: '/school/attendance', icon: '✓', label: 'Classes without attendance today', count: att.notMarked, tone: 'amber' as const },
+  ].filter(Boolean) as { href: string; icon: string; label: string; count: number; tone: 'amber' | 'blue' | 'violet' | 'emerald' | 'rose' }[];
+  const setupLeft = checklist && checklist.done < checklist.total;
 
   return (
     <>
-      <PageHeader title={`${greet}, ${me?.user.fullName.split(' ')[0]}`} subtitle={me?.school?.name} />
-      <ErrorBox error={error} />
-      {loading && !data ? (
-        <Loading />
-      ) : data ? (
-        <div className="space-y-6">
-          <StorageAlert usage={data.usage} />
-          {hasAttendance && attendance && (
-            <Link href="/school/attendance" className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-brand-500">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Today’s attendance</div>
-                  <div className="mt-1 text-2xl font-semibold">{attendance.percent === null ? 'Not marked yet' : `${attendance.percent}%`}</div>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span>
-                    Absent <strong className="text-red-600">{attendance.totals.ABSENT ?? 0}</strong>
-                  </span>
-                  <span>
-                    Late <strong>{attendance.totals.LATE ?? 0}</strong>
-                  </span>
-                  <span className={attendance.notMarked ? 'text-amber-700' : 'text-emerald-700'}>{attendance.notMarked ? `${attendance.notMarked} class(es) not marked` : 'All classes marked'}</span>
-                </div>
+      <Hero
+        eyebrow={new Date(`${data.today}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}
+        title={
+          <>
+            {greet}, {me?.user.fullName.split(' ')[0]} <span className="inline-block origin-[70%_70%] animate-[pop_0.6s_var(--ease-spring)_both]">👋</span>
+          </>
+        }
+        subtitle={`Here is what is happening at ${me?.school?.name} today.`}
+        aside={
+          att && (
+            <div className="glass flex items-center gap-4 rounded-2xl p-4">
+              <Gauge value={att.percent} size={96} stroke={9} color="#a5b4fc" track="rgb(255 255 255 / 0.18)" label={<span className="text-white">{att.percent === null ? '—' : <CountUp value={att.percent} decimals={att.percent % 1 ? 1 : 0} suffix="%" />}</span>} />
+              <div className="text-sm">
+                <div className="font-semibold">Attendance today</div>
+                <div className="text-white/75">{att.totals.ABSENT ?? 0} absent · {att.totals.LATE ?? 0} late</div>
+                <div className="text-white/75">{att.notMarked ? `${att.notMarked} class(es) not marked` : 'All classes marked'}</div>
               </div>
-            </Link>
+            </div>
+          )
+        }
+      >
+        {has('students.manage') && <HeroAction href="/school/students/new" icon="＋">New admission</HeroAction>}
+        {mods.includes('fees') && has('fees.collect') && <HeroAction href="/school/fees" icon="₨">Collect fee</HeroAction>}
+        {mods.includes('attendance') && <HeroAction href="/school/attendance" icon="✓">Attendance</HeroAction>}
+        {has('messages.send') && <HeroAction href="/circulars" icon="✦">Send circular</HeroAction>}
+      </Hero>
+
+      <div className="space-y-6">
+        {overview && <StorageAlert usage={overview.usage} />}
+
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard i={0} label="Students" icon="☺" tone="blue" href={has('students.view') ? '/school/students' : undefined} value={<CountUp value={data.students.total} />} hint={`${data.students.boys} boys · ${data.students.girls} girls${data.students.newThisMonth ? ` · +${data.students.newThisMonth} new` : ''}`} />
+          {fees ? (
+            <KpiCard i={1} label="Collected today" icon="₨" tone="emerald" href="/school/fees" value={<CountUp value={fees.collection.today} prefix={`${cur} `} />} hint={`This month ${cur} ${short(fees.collection.thisMonth)}`} trend={monthTrend} spark={fees.collection.series.slice(-7).map((s) => s.amount)} />
+          ) : (
+            <KpiCard i={1} label="Teachers & staff" icon="♟" tone="emerald" value={<CountUp value={data.staff.teachers + data.staff.staff} />} hint={`${data.staff.teachers} teachers · ${data.staff.staff} office staff`} />
           )}
-          {fees && (
-            <Link href="/school/fees" className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-brand-500">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-xs font-medium uppercase tracking-wide text-gray-500">Fees</div>
-                  <div className="mt-1 text-2xl font-semibold">
-                    {cur} {Math.round(fees.collection.today).toLocaleString('en-US')} <span className="text-sm font-normal text-gray-500">today</span>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span>
-                    This month <strong>{cur} {Math.round(fees.collection.thisMonth).toLocaleString('en-US')}</strong>
-                  </span>
-                  <span>
-                    Outstanding <strong className="text-red-600">{cur} {Math.round(fees.outstanding).toLocaleString('en-US')}</strong>
-                  </span>
-                  {fees.currentMonth.recovery !== null && <span>Recovery <strong>{fees.currentMonth.recovery}%</strong></span>}
-                  {fees.pendingHandovers > 0 && <span className="font-medium text-amber-700">{fees.pendingHandovers} hand-over(s) to approve</span>}
-                </div>
+          {fees ? (
+            <KpiCard i={2} label="Outstanding dues" icon="⏳" tone="rose" href="/school/fees" value={<CountUp value={fees.outstanding} prefix={`${cur} `} />} hint={`${fees.studentsOverdue} students overdue${fees.currentMonth.recovery !== null ? ` · ${fees.currentMonth.recovery}% recovered` : ''}`} />
+          ) : (
+            <KpiCard i={2} label="Classes" icon="▦" tone="rose" value={<CountUp value={data.classStrength.length} />} hint="with active students" />
+          )}
+          <KpiCard
+            i={3}
+            label={data.syllabus !== null ? 'Syllabus covered' : 'Teachers'}
+            icon={data.syllabus !== null ? '☷' : '♟'}
+            tone="violet"
+            href={data.syllabus !== null ? '/syllabus' : undefined}
+            value={data.syllabus !== null ? <CountUp value={data.syllabus} decimals={1} suffix="%" /> : <CountUp value={data.staff.teachers} />}
+            hint={data.syllabus !== null ? 'across all classes and subjects' : `${data.staff.staff} office staff`}
+          >
+            {data.syllabus !== null && (
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" style={{ width: `${data.syllabus}%` }} />
               </div>
-            </Link>
+            )}
+          </KpiCard>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          {data.attendanceTrend.length > 1 ? (
+            <Panel i={1} className="lg:col-span-2" title="Attendance over the last school days" action={<PanelLink href="/school/attendance">Open</PanelLink>}>
+              <AreaChart data={data.attendanceTrend.map((d) => ({ label: dayShort(d.date), value: d.percent }))} max={100} format={(v) => `${v}%`} />
+            </Panel>
+          ) : fees ? (
+            <Panel i={1} className="lg:col-span-2" title="Fee collection, last 7 months" action={<PanelLink href="/school/fees">Fees</PanelLink>}>
+              <BarChart data={fees.collection.series.slice(-7).map((s) => ({ label: monthShort(s.month), value: s.amount }))} format={(v) => short(v)} />
+            </Panel>
+          ) : (
+            <Panel i={1} className="lg:col-span-2" title="Students by class">
+              <HBars data={(data.classStrength.some((c) => c.count) ? data.classStrength.filter((c) => c.count) : data.classStrength).map((c) => ({ label: c.label, value: c.count }))} />
+            </Panel>
           )}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat label="Active students" value={data.usage.students.used} hint={data.usage.students.limit ? `of ${data.usage.students.limit} on your plan` : undefined} />
-            <Stat label="Staff & teachers" value={data.usage.staff.used} hint={data.usage.staff.limit ? `of ${data.usage.staff.limit}` : undefined} />
-            <Stat label="Storage used" value={`${data.usage.storage.percent}%`} />
-            {checklist && <Stat label="Setup" value={`${checklist.done}/${checklist.total}`} hint={allDone ? 'Complete' : 'steps done'} />}
-          </div>
-          <div className="grid gap-6 lg:grid-cols-3">
-            {checklist && !allDone && (
-              <Card title="Set up your school" className="lg:col-span-2">
-                <div className="mb-4 h-2 rounded-full bg-gray-100">
-                  <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${(checklist.done / checklist.total) * 100}%` }} />
+          <Panel i={2} title="Needs your attention">
+            {setupLeft && (
+              <Link href="/school/setup" className="mb-3 block rounded-xl bg-gradient-to-r from-brand-50 to-violet-50 p-3 ring-1 ring-brand-100 transition hover:ring-brand-300">
+                <div className="flex items-center justify-between text-sm font-medium text-brand-900">
+                  Finish setting up your school
+                  <span className="text-xs">
+                    {checklist!.done}/{checklist!.total}
+                  </span>
                 </div>
-                <ol className="space-y-2">
-                  {checklist.steps.map((s, i) => (
-                    <li key={s.key}>
-                      <Link href={s.href} className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition ${s.done ? 'border-gray-100 text-gray-500' : 'border-gray-200 hover:border-brand-500 hover:bg-brand-50'}`}>
-                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${s.done ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {s.done ? '✓' : i + 1}
-                        </span>
-                        <span className={s.done ? 'line-through' : 'font-medium text-gray-900'}>{s.label}</span>
-                        {!s.done && <span className="ml-auto text-brand-700">→</span>}
-                      </Link>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+                  <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-to-r from-brand-500 to-violet-500" style={{ width: `${(checklist!.done / checklist!.total) * 100}%` }} />
+                </div>
+                <div className="mt-2 text-xs text-brand-800">Next: {checklist!.steps.find((s) => !s.done)?.label}</div>
+              </Link>
+            )}
+            {todo.length ? (
+              <div className="-mx-2 space-y-0.5">
+                {todo.map((t) => (
+                  <TodoRow key={t.label} {...t} />
+                ))}
+              </div>
+            ) : (
+              !setupLeft && (
+                <div className="flex flex-col items-center py-6 text-center">
+                  <span className="mb-2 flex h-12 w-12 animate-pop items-center justify-center rounded-2xl bg-emerald-50 text-xl text-emerald-600">✓</span>
+                  <p className="text-sm font-medium text-gray-800">All caught up</p>
+                  <p className="text-xs text-gray-500">Nothing is waiting for you right now.</p>
+                </div>
+              )
+            )}
+          </Panel>
+        </div>
+
+        <div className="grid items-start gap-6 lg:grid-cols-3">
+          {fees && data.attendanceTrend.length > 1 && (
+            <Panel i={3} className="lg:col-span-2" title="Fee collection, last 7 months" action={<PanelLink href="/school/fees">Fees</PanelLink>}>
+              <BarChart data={fees.collection.series.slice(-7).map((s) => ({ label: monthShort(s.month), value: s.amount }))} format={(v) => `${cur} ${short(v)}`} />
+            </Panel>
+          )}
+          <Panel i={4} className={fees && data.attendanceTrend.length > 1 ? '' : 'lg:col-span-1'} title="Students by class">
+            {data.classStrength.length ? <HBars data={(data.classStrength.some((c) => c.count) ? data.classStrength.filter((c) => c.count) : data.classStrength).map((c) => ({ label: c.label, value: c.count }))} /> : <p className="text-sm text-gray-500">No classes yet.</p>}
+          </Panel>
+          {data.top && (
+            <Panel i={5} title={`Top students · ${data.top.title}`} action={<PanelLink href="/rankings">Rankings</PanelLink>}>
+              {!data.top.rows.length ? (
+                <p className="text-sm text-gray-500">No published results this month yet.</p>
+              ) : (
+                <ol className="space-y-2.5">
+                  {data.top.rows.map((r, i) => (
+                    <li key={r.id} className="reveal group flex items-center gap-3 rounded-xl p-1.5 transition hover:bg-gray-50" style={{ ['--i' as string]: i }}>
+                      <span className="w-6 text-center text-lg">{medal[r.position - 1] ?? r.position}</span>
+                      <span className="transition-transform duration-300 group-hover:scale-110">
+                        <Avatar fileId={r.photoFileId} name={r.fullName} size={34} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">{r.fullName}</span>
+                        <span className="block truncate text-xs text-gray-500">{r.classLabel}</span>
+                      </span>
+                      <span className="text-sm font-semibold tabular-nums">{r.percent}%</span>
                     </li>
                   ))}
                 </ol>
-              </Card>
-            )}
-            <Card
-              title="Plan usage"
-              className={checklist && !allDone ? '' : 'lg:col-span-2'}
-              actions={
-                <Link href="/school/usage" className="text-sm font-medium text-brand-700 hover:underline">
-                  Details →
-                </Link>
-              }
-            >
-              <UsageBars usage={data.usage} />
-            </Card>
-            {(!checklist || allDone) && (
-              <Card title="Quick actions">
-                <div className="grid gap-2">
-                  <Link href="/school/students/new" className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:border-brand-500">
-                    + New admission
-                  </Link>
-                  <Link href="/school/students" className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:border-brand-500">
-                    Find a student
-                  </Link>
-                  {isPrincipal && (
-                    <Link href="/school/staff/new" className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:border-brand-500">
-                      + Add staff
+              )}
+            </Panel>
+          )}
+          {data.upcomingExams.length > 0 && (
+            <Panel i={6} title="Upcoming exam papers" action={<PanelLink href="/school/exams">Exams</PanelLink>}>
+              <ol className="relative space-y-3 border-l-2 border-dashed border-gray-200 pl-4">
+                {data.upcomingExams.slice(0, 5).map((e) => (
+                  <li key={e.id} className="relative">
+                    <span className="absolute -left-[1.4rem] top-1 h-3 w-3 rounded-full border-2 border-white bg-gradient-to-br from-brand-500 to-violet-500 shadow" />
+                    <div className="text-xs font-semibold text-brand-700">{e.date ? dayShort(e.date) : 'Date not set'}</div>
+                    <div className="text-sm font-medium">
+                      {e.subject} · {e.classLabel}
+                    </div>
+                    <div className="text-xs text-gray-500">{e.title}</div>
+                  </li>
+                ))}
+              </ol>
+            </Panel>
+          )}
+          {data.remarks.length > 0 && (
+            <Panel i={7} title="Recent remarks" action={<PanelLink href="/remarks" />}>
+              <ul className="space-y-3">
+                {data.remarks.map((r) => (
+                  <li key={r.id} className="text-sm">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={categoryTone[r.category]}>{CATEGORY_LABEL[r.category]}</Badge>
+                      <Link href={`/school/students/${r.studentId}?tab=progress`} className="font-medium hover:underline">
+                        {r.student}
+                      </Link>
+                    </div>
+                    <p className="mt-0.5 line-clamp-2 text-gray-600">{r.text}</p>
+                    <div className="text-xs text-gray-400">
+                      {r.by} · {date(r.date)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+          {data.circulars.length > 0 && (
+            <Panel i={8} title="Circulars read by parents" action={<PanelLink href="/circulars" />}>
+              <ul className="space-y-4">
+                {data.circulars.map((c) => {
+                  const pct = c.recipients ? Math.round((c.reads / c.recipients) * 100) : 0;
+                  return (
+                    <li key={c.id}>
+                      <Link href={`/circulars?id=${c.id}`} className="group block">
+                        <div className="flex items-center justify-between gap-2 text-sm">
+                          <span className="truncate font-medium group-hover:text-brand-700">{c.title}</span>
+                          <span className="shrink-0 text-xs tabular-nums text-gray-500">
+                            {c.reads}/{c.recipients}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                          <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-to-r from-emerald-400 to-teal-500" style={{ width: `${pct}%` }} />
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Panel>
+          )}
+          {data.complaints.list.length > 0 && (
+            <Panel i={9} title="Open complaints" action={<PanelLink href="/complaints" />}>
+              <ul className="space-y-2">
+                {data.complaints.list.map((c) => (
+                  <li key={c.id}>
+                    <Link href={`/complaints?id=${c.id}`} className="flex items-center gap-3 rounded-xl p-1.5 text-sm transition hover:bg-gray-50">
+                      <span className="rounded-lg bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">#{c.ticketNo}</span>
+                      <span className="min-w-0 flex-1 truncate">{c.subject}</span>
+                      <span className="text-xs text-gray-400">{date(c.createdAt)}</span>
                     </Link>
-                  )}
-                </div>
-              </Card>
-            )}
-          </div>
-          <Card title="Coming soon to your school">
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {upcoming.map(([name, step]) => (
-                <li key={name} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm">
-                  <span>{name}</span>
-                  <span className="text-xs text-gray-400">{step}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
         </div>
-      ) : null}
+      </div>
     </>
   );
 }

@@ -28,6 +28,13 @@ import remarkRoutes from './routes/remarks';
 import monthlyReportRoutes from './routes/monthlyReports';
 import honorRoutes, { rankingsRouter } from './routes/honors';
 import lmsRoutes from './routes/lms';
+import chatRoutes from './routes/chat';
+import conversationRoutes from './routes/conversations';
+import complaintRoutes from './routes/complaints';
+import circularRoutes from './routes/circulars';
+import { galleryRouter, gatePassRouter } from './routes/schoolLife';
+import dashboardRoutes from './routes/dashboard';
+import reportRoutes from './routes/reports';
 
 export function createApp() {
   const app = express();
@@ -76,6 +83,14 @@ export function createApp() {
   app.use('/api/rankings', ...school, requireModule('honors'), rankingsRouter);
   app.use('/api/honors', ...school, requireModule('honors'), honorRoutes);
   app.use('/api/lms', ...school, requireModule('lms'), lmsRoutes);
+  app.use('/api/chat', ...school, requireModule('class_chat'), chatRoutes);
+  app.use('/api/conversations', ...school, requireModule('parent_messaging'), conversationRoutes);
+  app.use('/api/complaints', ...school, requireModule('parent_messaging'), complaintRoutes);
+  app.use('/api/circulars', ...school, circularRoutes);
+  app.use('/api/gate-passes', ...school, gatePassRouter);
+  app.use('/api/dashboard', ...school, dashboardRoutes);
+  app.use('/api/reports', ...school, reportRoutes);
+  app.use('/api/gallery', ...school, requireModule('gallery'), galleryRouter);
 
   app.use('/api', notFoundHandler);
   app.use(errorHandler);

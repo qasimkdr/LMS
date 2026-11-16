@@ -148,6 +148,34 @@ export const MESSAGE_TYPES: Record<string, MessageTypeDef> = {
     params: ['Student name', 'Date', 'Homework of all subjects', 'School name'],
     available: true,
   },
+  CIRCULAR: {
+    label: 'Circulars and announcements',
+    description: 'When a circular is sent and "Also send on WhatsApp" is ticked. Parents read the full circular in the app.',
+    rules: ['manual', 'off'],
+    defaultRule: 'manual',
+    suggestedTemplate: {
+      name: 'school_circular',
+      language: 'en',
+      category: 'UTILITY',
+      text: 'Dear Parent, {{2}} has shared a new circular: {{1}}. Please read it in the school app. Thank you.',
+    },
+    params: ['Circular title', 'School name'],
+    available: true,
+  },
+  GATE_PASS: {
+    label: 'Gate pass (early leave)',
+    description: 'When a student leaves school early, parents are told who picked them up and when.',
+    rules: ['auto', 'off'],
+    defaultRule: 'auto',
+    suggestedTemplate: {
+      name: 'gate_pass',
+      language: 'en',
+      category: 'UTILITY',
+      text: 'Dear Parent, {{1}} left school early at {{2}} with {{3}}. Reason: {{4}}. Thank you, {{5}}.',
+    },
+    params: ['Student name', 'Time', 'Picked up by', 'Reason', 'School name'],
+    available: true,
+  },
 };
 
 /** "{{1}} of {{2}}" + ["Ali", "Class 5"] -> "Ali of Class 5" */

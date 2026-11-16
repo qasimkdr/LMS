@@ -8,6 +8,20 @@ export const app = createApp();
 
 export async function resetDb() {
   await prisma.auditLog.deleteMany();
+  await prisma.albumPhoto.deleteMany();
+  await prisma.album.deleteMany();
+  await prisma.gatePass.deleteMany();
+  await prisma.circularRead.deleteMany();
+  await prisma.circular.deleteMany();
+  await prisma.complaintEntry.deleteMany();
+  await prisma.complaint.deleteMany();
+  await prisma.messageHours.deleteMany();
+  await prisma.conversationMessage.deleteMany();
+  await prisma.conversation.deleteMany();
+  await prisma.commSettings.deleteMany();
+  await prisma.chatMute.deleteMany();
+  await prisma.chatMessage.deleteMany();
+  await prisma.chatRoom.deleteMany();
   await prisma.homeworkDigest.deleteMany();
   await prisma.homework.deleteMany();
   await prisma.schoolDocument.deleteMany();
@@ -114,7 +128,7 @@ export const planInput = (over: Record<string, unknown> = {}) => ({
   maxCampuses: 1,
   storageLimitMb: 10,
   maxFileSizeMb: 1,
-  modules: ['attendance', 'fees', 'timetable', 'whatsapp', 'online_fee_payment', 'exams', 'online_exams', 'honors', 'lms'],
+  modules: ['attendance', 'fees', 'timetable', 'whatsapp', 'online_fee_payment', 'exams', 'online_exams', 'honors', 'lms', 'class_chat', 'parent_messaging', 'gallery'],
   ...over,
 });
 

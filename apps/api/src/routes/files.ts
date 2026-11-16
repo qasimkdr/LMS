@@ -27,7 +27,9 @@ router.post(
     const u = req.user!;
     // Profile photos and student documents can be added by staff who manage students/staff.
     const peopleUpload = u.role === 'STAFF' && (u.permissions.includes('students.manage') || u.permissions.includes('staff.manage'));
-    if (!canManageFiles(req) && !peopleUpload) throw forbidden();
+    // Students and parents may attach files to chats, messages and complaints only.
+    const familyUpload = u.role === 'STUDENT' || u.role === 'PARENT';
+    if (!canManageFiles(req) && !peopleUpload && !familyUpload) throw forbidden();
     const limit = effectiveLimits(school).maxFileBytes;
     await new Promise<void>((resolve, reject) =>
       multer({ storage: multer.memoryStorage(), limits: { fileSize: limit, files: 1 } }).single('file')(req, {} as never, (err) =>
@@ -36,7 +38,8 @@ router.post(
     );
     if (!req.file) throw badRequest('No file uploaded (field name must be "file")');
     const { category } = parse(z.object({ category: z.nativeEnum(FileCategory).default('OTHER') }), req.body);
-    if (!canManageFiles(req) && !['PROFILE_PHOTO', 'STUDENT_DOCUMENT', 'STAFF_DOCUMENT'].includes(category)) throw forbidden();
+    if (familyUpload && category !== 'CHAT') throw forbidden();
+    if (!canManageFiles(req) && !familyUpload && !['PROFILE_PHOTO', 'STUDENT_DOCUMENT', 'STAFF_DOCUMENT'].includes(category)) throw forbidden();
     const saved = await saveSchoolFile({ school, uploadedById: req.user!.id, category, file: req.file });
     await audit(req, { action: 'file.upload', entityType: 'StoredFile', entityId: saved.id, after: { name: saved.originalName, size: saved.sizeBytes, category } });
     res.status(201).json({ file: saved });

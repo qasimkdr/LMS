@@ -6,10 +6,10 @@ const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).jo
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm',
-  secondary: 'bg-white text-gray-800 border border-gray-300 hover:bg-gray-50 shadow-sm',
-  danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
-  ghost: 'text-gray-700 hover:bg-gray-100',
+  primary: 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-md shadow-brand-600/25 ring-1 ring-inset ring-white/15 hover:from-brand-500 hover:to-brand-700 hover:shadow-lg hover:shadow-brand-600/30',
+  secondary: 'bg-white text-gray-800 border border-gray-200 shadow-sm hover:border-gray-300 hover:bg-gray-50 hover:shadow',
+  danger: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-600/25 hover:to-red-700',
+  ghost: 'text-gray-700 hover:bg-gray-900/[0.05]',
 };
 
 export function Button({
@@ -24,7 +24,7 @@ export function Button({
       {...props}
       disabled={props.disabled || loading}
       className={cx(
-        'inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex select-none items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition duration-200 ease-[var(--ease-out-soft)] hover:-translate-y-px active:translate-y-0 active:scale-[0.97] active:duration-75 disabled:pointer-events-none disabled:opacity-55 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/25',
         variants[variant],
         className,
       )}
@@ -46,10 +46,10 @@ export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
 
 export function Card({ title, actions, children, className }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={cx('min-w-0 rounded-xl border border-gray-200 bg-white shadow-sm', className)}>
+    <section className={cx('reveal min-w-0 rounded-2xl border border-gray-200/70 bg-white shadow-sm shadow-gray-900/[0.03] transition-shadow duration-300 hover:shadow-md hover:shadow-gray-900/[0.05]', className)}>
       {(title || actions) && (
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-sm font-semibold tracking-tight text-gray-900">{title}</h2>
           {actions}
         </header>
       )}
@@ -60,9 +60,9 @@ export function Card({ title, actions, children, className }: { title?: ReactNod
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="reveal mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">{title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -108,7 +108,7 @@ export function Progress({ percent, label, detail }: { percent: number | null; l
         </div>
       )}
       <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100" role="progressbar" aria-valuenow={p} aria-valuemin={0} aria-valuemax={100}>
-        <div className={cx('h-full rounded-full transition-all', color)} style={{ width: `${percent === null ? 0 : Math.max(p, 1)}%` }} />
+        <div className={cx('h-full origin-left animate-grow-x rounded-full transition-all duration-700', color)} style={{ width: `${percent === null ? 0 : Math.max(p, 1)}%` }} />
       </div>
     </div>
   );
@@ -116,9 +116,9 @@ export function Progress({ percent, label, detail }: { percent: number | null; l
 
 export function Stat({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: ReactNode; tone?: 'up' | 'down' }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="reveal lift rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm shadow-gray-900/[0.03]">
       <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1.5 text-2xl font-semibold tabular-nums text-gray-900">{value}</div>
+      <div className="mt-1.5 text-2xl font-semibold tracking-tight tabular-nums text-gray-900">{value}</div>
       {hint && <div className={cx('mt-1 text-xs', tone === 'up' ? 'text-emerald-600' : tone === 'down' ? 'text-red-600' : 'text-gray-500')}>{hint}</div>}
     </div>
   );
@@ -126,7 +126,8 @@ export function Stat({ label, value, hint, tone }: { label: string; value: React
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-gray-300 px-4 py-10 text-center">
+    <div className="reveal rounded-2xl border border-dashed border-gray-300 bg-white/60 px-4 py-12 text-center">
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-50 to-violet-50 text-xl text-brand-500 ring-1 ring-brand-100">✦</div>
       <p className="text-sm font-medium text-gray-700">{title}</p>
       {children && <div className="mt-1 text-sm text-gray-500">{children}</div>}
     </div>
@@ -141,8 +142,14 @@ export function ErrorBox({ error }: { error: unknown }) {
 
 export function Loading() {
   return (
-    <div className="flex items-center justify-center py-16 text-gray-400">
-      <Spinner />
+    <div className="animate-fade-in space-y-4 py-2" aria-busy aria-label="Loading">
+      <div className="skeleton h-8 w-56 rounded-xl" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="skeleton h-24 rounded-2xl" />
+        ))}
+      </div>
+      <div className="skeleton h-56 rounded-2xl" />
     </div>
   );
 }
@@ -156,17 +163,17 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-900/40 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex animate-fade-in items-end justify-center bg-gray-950/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal
         aria-label={title}
-        className={cx('max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:rounded-2xl', wide ? 'sm:max-w-2xl' : 'sm:max-w-md')}
+        className={cx('max-h-[92vh] w-full animate-scale-in overflow-y-auto rounded-t-3xl bg-white shadow-2xl shadow-gray-950/20 ring-1 ring-gray-900/5 sm:rounded-3xl', wide ? 'sm:max-w-2xl' : 'sm:max-w-md')}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
           <h3 className="text-base font-semibold">{title}</h3>
-          <button onClick={onClose} className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 transition hover:rotate-90 hover:bg-gray-100 hover:text-gray-700" aria-label="Close">
             ✕
           </button>
         </div>
@@ -189,7 +196,7 @@ export function Table({ head, children }: { head: ReactNode[]; children: ReactNo
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">{children}</tbody>
+        <tbody className="divide-y divide-gray-100 [&>tr]:transition-colors [&>tr:hover]:bg-brand-50/40">{children}</tbody>
       </table>
     </div>
   );
