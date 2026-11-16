@@ -1315,3 +1315,124 @@ model Honor {
   @@index([schoolId, period])
   @@index([studentId])
 }
+
+// ---------- Step 9: LMS (syllabus, study material, documents, homework) ----------
+
+/// A chapter (no parent) or a topic inside a chapter, in the syllabus of one class and subject.
+model SyllabusItem {
+  id        String   @id @default(cuid())
+  schoolId  String
+  classId   String
+  subjectId String
+  parentId  String?
+  title     String   @db.VarChar(200)
+  /// Optional term label, e.g. "First term" (chapters only).
+  term      String?  @db.VarChar(40)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId, classId, subjectId])
+}
+
+/// A syllabus item (chapter without topics, or topic) completed in one section.
+model SyllabusProgress {
+  id            String   @id @default(cuid())
+  schoolId      String
+  sectionId     String
+  itemId        String
+  completedOn   DateTime @db.Date
+  completedById String
+  createdAt     DateTime @default(now())
+
+  @@unique([sectionId, itemId])
+  @@index([schoolId, sectionId])
+}
+
+enum MaterialKind {
+  NOTES
+  WORKSHEET
+  BOOK
+  VIDEO
+  LINK
+  SYLLABUS
+  OTHER
+}
+
+model StudyMaterial {
+  id          String       @id @default(cuid())
+  schoolId    String
+  classId     String
+  subjectId   String?
+  /// null = every section of the class.
+  sectionIds  Json?
+  chapterId   String?
+  kind        MaterialKind
+  title       String       @db.VarChar(200)
+  description String?      @db.VarChar(2000)
+  fileIds     Json
+  url         String?      @db.VarChar(500)
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+
+  @@index([schoolId, classId])
+}
+
+/// School-wide documents (policies, forms, circulars) shown to chosen roles.
+model SchoolDocument {
+  id          String    @id @default(cuid())
+  schoolId    String
+  title       String    @db.VarChar(200)
+  description String?   @db.VarChar(1000)
+  category    String?   @db.VarChar(60)
+  fileId      String
+  /// Roles that can see it: STAFF, TEACHER, PARENT, STUDENT.
+  audience    Json
+  createdById String
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  @@index([schoolId])
+}
+
+/// Daily diary / homework of one subject for one section.
+model Homework {
+  id          String    @id @default(cuid())
+  schoolId    String
+  sectionId   String
+  subjectId   String?
+  date        DateTime  @db.Date
+  dueDate     DateTime? @db.Date
+  text        String    @db.VarChar(3000)
+  fileIds     Json
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([schoolId, sectionId, date])
+  @@index([schoolId, date])
+}
+
+/// Diary digest sent to parents of one section for one day.
+model HomeworkDigest {
+  id        String   @id @default(cuid())
+  schoolId  String
+  sectionId String
+  date      DateTime @db.Date
+  sentAt    DateTime @default(now())
+  sentById  String?
+  items     Int      @default(0)
+
+  @@unique([sectionId, date])
+}
+
+model LmsSettings {
+  schoolId                String  @id
+  /// Time (school time zone, HH:MM) when the day's diary is sent to parents automatically.
+  digestTime              String  @default("16:00") @db.VarChar(5)
+  /// Teachers may post homework for any subject of their own class (as class teacher).
+  classTeacherAllSubjects Boolean @default(true)
+}

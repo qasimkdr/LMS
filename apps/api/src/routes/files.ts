@@ -16,7 +16,7 @@ const router = Router();
 
 const canManageFiles = (req: Request) => {
   const u = req.user!;
-  return u.role === 'PRINCIPAL' || u.role === 'TEACHER' || (u.role === 'STAFF' && u.permissions.includes('files.manage'));
+  return u.role === 'PRINCIPAL' || u.role === 'TEACHER' || (u.role === 'STAFF' && (u.permissions.includes('files.manage') || u.permissions.includes('lms.manage')));
 };
 
 /** Upload: multipart field "file" plus "category". Size limit comes from the school's plan. */

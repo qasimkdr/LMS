@@ -39,6 +39,9 @@ function navFor(me: Me): NavItem[] {
     if (mods.includes('attendance') && (has('attendance.manage') || has('students.view'))) items.push({ href: '/school/attendance', label: 'Attendance', icon: '✓' });
     if (mods.includes('exams') && (has('exams.manage') || has('students.view'))) items.push({ href: '/school/exams', label: 'Exams & results', icon: '✎' });
     if (mods.includes('online_exams') && has('exams.manage')) items.push({ href: '/online-exams', label: 'Online exams', icon: '⌨' });
+    if (mods.includes('lms') && (has('lms.manage') || has('students.view')))
+      items.push({ href: '/homework', label: 'Homework / diary', icon: '✎' }, { href: '/syllabus', label: 'Syllabus', icon: '☷' }, { href: '/material', label: 'Study material', icon: '❐' });
+    if (mods.includes('lms')) items.push({ href: '/documents', label: 'School documents', icon: '⎘' });
     if (has('students.view')) items.push({ href: '/remarks', label: 'Remarks', icon: '✍' });
     if (has('reports.view')) items.push({ href: '/monthly-reports', label: 'Monthly reports', icon: '▤' });
     if (mods.includes('honors') && (has('exams.manage') || has('students.view'))) items.push({ href: '/rankings', label: 'Rankings', icon: '▲' });
@@ -58,6 +61,11 @@ function navFor(me: Me): NavItem[] {
   if (mods.includes('exams')) items.push(r === 'TEACHER' ? { href: '/home/marks', label: 'Tests & marks', icon: '✎' } : { href: '/home/results', label: 'Results', icon: '✎' });
   if (mods.includes('online_exams') && r === 'TEACHER') items.push({ href: '/online-exams', label: 'Online exams', icon: '⌨' });
   if (mods.includes('online_exams') && r === 'STUDENT') items.push({ href: '/home/online-exams', label: 'Online exams', icon: '⌨' });
+  if (mods.includes('lms')) {
+    if (r === 'TEACHER') items.push({ href: '/homework', label: 'Homework / diary', icon: '✎' }, { href: '/syllabus', label: 'Syllabus', icon: '☷' }, { href: '/material', label: 'Study material', icon: '❐' });
+    else items.push({ href: '/home/homework', label: 'Homework / diary', icon: '✎' }, { href: '/home/syllabus', label: 'Syllabus', icon: '☷' }, { href: '/home/material', label: 'Study material', icon: '❐' });
+    items.push({ href: '/documents', label: 'School documents', icon: '⎘' });
+  }
   if (r === 'TEACHER') items.push({ href: '/remarks', label: 'Remarks', icon: '✍' }, { href: '/monthly-reports', label: 'Monthly reports', icon: '▤' });
   else items.push({ href: '/home/remarks', label: 'Remarks', icon: '✍' }, { href: '/home/reports', label: 'Monthly reports', icon: '▤' });
   if (mods.includes('honors') && r === 'TEACHER') items.push({ href: '/rankings', label: 'Rankings', icon: '▲' });

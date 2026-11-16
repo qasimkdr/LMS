@@ -86,6 +86,14 @@ Feature plan: [docs/FEATURES.md](docs/FEATURES.md) · Deployment: [docs/DEPLOY_O
 - **Honors:** ready-made honors (Student of the Month, Best Attendance, Most Improved, Star Performer, Best Behavior, Subject Star, Sports Star, Head Boy / Head Girl, Prefect) plus the school's own. The principal (or staff with "Give honors") picks winners — the system suggests them from results and attendance — and chooses which honors appear on the **honor board** that everyone in the school can see. Parents get a congratulation (in-app + WhatsApp template `honor_award`); honors appear on the profile and in the monthly report.
 - **Fix:** PATCH requests no longer reset fields that were not sent to their defaults.
 
+## What works now (step 9: LMS — syllabus, study material, documents, homework)
+
+- **Syllabus:** chapters (with optional term and topics) for each class and subject, written by the principal or the subject's teacher, plus uploaded syllabus PDFs. The subject teacher ticks topics/chapters as completed for their section (date and teacher recorded). **Coverage report:** % covered for every section and subject with the teacher and last update; teachers see their own classes. Parents and students see each subject's progress and chapters.
+- **Study material:** notes, worksheets, books, videos and web links with file attachments, for a class (all or chosen sections), a subject and optionally a syllabus chapter. Teachers share only with classes they teach; families see what is meant for their child's section and can download it.
+- **School documents:** policies, forms and circulars, each shown only to the roles chosen (office staff, teachers, parents, students).
+- **Homework / diary:** daily homework per section and subject (or a general diary by the class teacher), with due date and attachments; a day-by-day view for teachers and families. Each day's diary goes to parents as **one message per student** at the school's diary time (in-app always; WhatsApp template `daily_diary` when switched on), or right away when the class teacher presses Send. Class teachers can write every subject of their class (school setting).
+- New staff permission "Syllabus, study material, documents and homework" (`lms.manage`).
+
 ## Run it locally
 
 Requirements: Node.js 20+ and MySQL 8.

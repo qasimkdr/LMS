@@ -134,6 +134,20 @@ export const MESSAGE_TYPES: Record<string, MessageTypeDef> = {
     params: ['Student name', 'Honor', 'Period', 'School name'],
     available: true,
   },
+  HOMEWORK: {
+    label: 'Daily diary / homework',
+    description: "One message per student with the day's homework of all subjects, at the time set in Homework settings. Manual: sent when the class teacher or principal presses Send.",
+    rules: ['auto', 'manual', 'off'],
+    defaultRule: 'off',
+    suggestedTemplate: {
+      name: 'daily_diary',
+      language: 'en',
+      category: 'UTILITY',
+      text: 'Dear Parent, today\'s diary for {{1}} ({{2}}): {{3}} See attachments in the school app. Thank you, {{4}}.',
+    },
+    params: ['Student name', 'Date', 'Homework of all subjects', 'School name'],
+    available: true,
+  },
 };
 
 /** "{{1}} of {{2}}" + ["Ali", "Class 5"] -> "Ali of Class 5" */

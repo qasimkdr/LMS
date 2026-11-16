@@ -16,6 +16,7 @@ export const PERMISSIONS = {
   'files.manage': 'Upload and delete files',
   'gallery.manage': 'Manage gallery',
   'honors.manage': 'Give honors and awards',
+  'lms.manage': 'Manage syllabus, study material, documents and homework',
   'admissions.manage': 'Manage enquiries and admissions',
   'reports.view': 'View reports',
 } as const;
