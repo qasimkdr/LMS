@@ -132,7 +132,7 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
             <Card title="Teaching profile">
               <div className="flex flex-wrap gap-2">
                 {((p.specialistSubjectIds ?? []) as string[]).map((sid) => (
-                  <span key={sid} className="animate-pop rounded-full bg-gradient-to-r from-brand-50 to-violet-50 px-3 py-1 text-sm font-medium text-brand-800 ring-1 ring-brand-100">
+                  <span key={sid} className="animate-pop rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-800 ring-1 ring-brand-100">
                     ★ {structure?.subjects.find((x) => x.id === sid)?.name ?? '…'}
                   </span>
                 ))}
@@ -159,7 +159,7 @@ export default function StaffProfilePage({ params }: { params: Promise<{ id: str
               <ol className="relative space-y-3 border-l-2 border-gray-100 pl-5">
                 {(p.qualifications as { degree: string; institute?: string; year?: number; grade?: string }[]).map((q, i) => (
                   <li key={i} className="relative">
-                    <span className="absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-gradient-to-br from-brand-500 to-violet-500 shadow" />
+                    <span className="absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-brand-500 shadow" />
                     <div className="text-sm font-medium">{q.degree}</div>
                     <div className="text-xs text-gray-500">{[q.institute, q.year, q.grade].filter(Boolean).join(' · ')}</div>
                   </li>

@@ -117,7 +117,7 @@ function Detail({ id, onClose, onChange }: { id: string; onClose: () => void; on
         <ol className="flex items-center gap-2">
           {steps.map((s, i) => (
             <li key={s.label} className="flex flex-1 items-center gap-2">
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition ${s.done ? 'animate-pop bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md' : 'bg-gray-100 text-gray-500'}`}>{s.done ? '✓' : i + 1}</span>
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition ${s.done ? 'animate-pop bg-emerald-500 text-white shadow-md' : 'bg-gray-100 text-gray-500'}`}>{s.done ? '✓' : i + 1}</span>
               <span className={`text-sm ${s.done ? 'font-medium' : 'text-gray-500'}`}>{s.label}</span>
               {i < steps.length - 1 && <span className={`h-0.5 flex-1 rounded ${steps[i + 1].done ? 'bg-emerald-400' : 'bg-gray-200'}`} />}
             </li>
@@ -195,7 +195,7 @@ function Detail({ id, onClose, onChange }: { id: string; onClose: () => void; on
           </>
         )}
         {w.status === 'COMPLETED' && (
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 p-4 ring-1 ring-emerald-100">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-emerald-50 p-4 ring-1 ring-emerald-100">
             <span className="text-2xl">🎓</span>
             <span className="flex-1 text-sm text-emerald-900">
               School Leaving Certificate no. <b>{w.certificateNo}</b> issued.

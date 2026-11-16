@@ -6,9 +6,9 @@ const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).jo
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 const variants: Record<Variant, string> = {
-  primary: 'bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-md shadow-brand-600/25 ring-1 ring-inset ring-white/15 hover:from-brand-500 hover:to-brand-700 hover:shadow-lg hover:shadow-brand-600/30',
-  secondary: 'bg-white text-gray-800 border border-gray-200 shadow-sm hover:border-gray-300 hover:bg-gray-50 hover:shadow',
-  danger: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-md shadow-red-600/25 hover:to-red-700',
+  primary: 'bg-brand-600 text-white shadow-sm shadow-brand-600/20 hover:bg-brand-700 hover:shadow-md',
+  secondary: 'bg-white text-slate-700 border border-slate-200 shadow-sm hover:border-slate-300 hover:bg-slate-50',
+  danger: 'bg-rose-600 text-white shadow-sm shadow-rose-600/20 hover:bg-rose-700',
   ghost: 'text-gray-700 hover:bg-gray-900/[0.05]',
 };
 
@@ -127,7 +127,7 @@ export function Stat({ label, value, hint, tone }: { label: string; value: React
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="reveal rounded-2xl border border-dashed border-gray-300 bg-white/60 px-4 py-12 text-center">
-      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-50 to-violet-50 text-xl text-brand-500 ring-1 ring-brand-100">✦</div>
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-xl text-brand-500 ring-1 ring-brand-100">✦</div>
       <p className="text-sm font-medium text-gray-700">{title}</p>
       {children && <div className="mt-1 text-sm text-gray-500">{children}</div>}
     </div>

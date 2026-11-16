@@ -39,7 +39,7 @@ export default function GalleryPage() {
             <li key={a.id}>
               <Tilt max={6} className="rounded-3xl" style={{ '--i': i } as CSSProperties}>
                 <Link href={`/gallery/${a.id}`} className="group block overflow-hidden rounded-3xl border border-gray-200/70 bg-white shadow-sm transition-shadow duration-500 hover:shadow-2xl hover:shadow-brand-900/10">
-                  <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-brand-100 via-indigo-100 to-violet-100">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-brand-100">
                     {a.cover ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={fileUrl(a.cover)} alt="" className="h-full w-full object-cover transition duration-700 ease-[var(--ease-out-soft)] group-hover:scale-110" />

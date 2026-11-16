@@ -86,7 +86,7 @@ function Conversations() {
             <ul className="max-h-[72vh] space-y-0.5 overflow-y-auto">
               {list.map((c) => (
                 <li key={c.id}>
-                  <button onClick={() => router.replace(`/conversations?c=${c.id}`)} className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition duration-200 active:scale-[0.98] ${c.id === open ? 'bg-gradient-to-r from-brand-50 to-violet-50 ring-1 ring-brand-100' : 'hover:bg-gray-50'}`}>
+                  <button onClick={() => router.replace(`/conversations?c=${c.id}`)} className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition duration-200 active:scale-[0.98] ${c.id === open ? 'bg-brand-50 ring-1 ring-brand-100' : 'hover:bg-gray-50'}`}>
                     <Avatar fileId={role === 'PARENT' ? c.teacher.photoFileId : null} name={other(c)} size={38} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
@@ -99,7 +99,7 @@ function Conversations() {
                         {c.last?.text}
                       </span>
                     </span>
-                    {c.unread > 0 && <span className="mt-1 animate-pop rounded-full bg-gradient-to-r from-brand-500 to-violet-500 px-1.5 text-[10px] font-bold text-white">{c.unread}</span>}
+                    {c.unread > 0 && <span className="mt-1 animate-pop rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white">{c.unread}</span>}
                   </button>
                 </li>
               ))}
@@ -172,7 +172,7 @@ function ThreadView({ id, onBack, onChange }: { id: string; onBack: () => void; 
       <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50/60 px-3 py-4 sm:px-5">
         {data.messages.map((m) => (
           <div key={m.id} className={`flex animate-fade-up ${m.mine ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm sm:max-w-[65%] ${m.isAuto ? 'bg-amber-50 italic text-amber-900 ring-1 ring-amber-100' : m.mine ? 'rounded-br-md bg-gradient-to-br from-brand-500 to-indigo-600 text-white' : 'rounded-bl-md bg-white ring-1 ring-gray-100'}`}>
+            <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm sm:max-w-[65%] ${m.isAuto ? 'bg-amber-50 italic text-amber-900 ring-1 ring-amber-100' : m.mine ? 'rounded-br-md bg-brand-500 text-white' : 'rounded-bl-md bg-white ring-1 ring-gray-100'}`}>
               {data.role === 'PRINCIPAL' && <div className="mb-0.5 text-[11px] font-semibold opacity-70">{m.sender}</div>}
               <p className="whitespace-pre-wrap break-words">{m.text}</p>
               {m.files.length > 0 && (

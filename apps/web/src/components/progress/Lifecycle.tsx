@@ -95,7 +95,7 @@ export function StudentHistory({ studentId }: { studentId: string }) {
         <ol className="relative space-y-5 border-l-2 border-dashed border-gray-200 pl-6">
           {data.sessions.map((s, i) => (
             <li key={s.session.id} className="reveal relative" style={{ '--i': i } as CSSProperties}>
-              <span className={`absolute -left-[2.05rem] top-4 h-4 w-4 rounded-full border-4 border-white shadow ${s.session.current ? 'bg-gradient-to-br from-brand-500 to-violet-600' : 'bg-gray-300'}`} />
+              <span className={`absolute -left-[2.05rem] top-4 h-4 w-4 rounded-full border-4 border-white shadow ${s.session.current ? 'bg-brand-500' : 'bg-gray-300'}`} />
               <div className="lift rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold">{s.session.name}</span>

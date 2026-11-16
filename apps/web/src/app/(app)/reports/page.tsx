@@ -13,7 +13,7 @@ interface Report {
   title: string;
 }
 const ICON: Record<string, string> = { Students: '☺', Attendance: '✓', Fees: '₨', Academics: '✎', Communication: '✉' };
-const TONE: Record<string, string> = { Students: 'from-brand-500 to-indigo-600', Attendance: 'from-emerald-500 to-teal-600', Fees: 'from-amber-400 to-orange-500', Academics: 'from-violet-500 to-fuchsia-600', Communication: 'from-rose-500 to-pink-600' };
+const TONE: Record<string, string> = { Students: 'from-brand-500 to-brand-600', Attendance: 'from-emerald-500 to-teal-600', Fees: 'from-amber-400 to-orange-500', Academics: 'from-teal-500 to-teal-600', Communication: 'from-rose-500 to-pink-600' };
 const DESC: Record<string, string> = {
   students: 'Admission no, class, roll, date of birth, guardian and phone of every active student.',
   strength: 'Boys, girls and total in every section, with school totals.',
@@ -119,7 +119,7 @@ function ReportCard({ r, i }: { r: Report; i: number }) {
           <a
             href={ready ? href : undefined}
             aria-disabled={!ready}
-            className={`group flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-md transition duration-200 active:scale-[0.97] ${ready ? 'bg-gradient-to-b from-brand-500 to-brand-600 shadow-brand-600/25 hover:-translate-y-px hover:shadow-lg' : 'pointer-events-none bg-gray-300'}`}
+            className={`group flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-md transition duration-200 active:scale-[0.97] ${ready ? 'bg-brand-500 shadow-brand-600/25 hover:-translate-y-px hover:shadow-lg' : 'pointer-events-none bg-gray-300'}`}
           >
             <span className="transition-transform duration-300 group-hover:translate-y-0.5">⇩</span> Download Excel
           </a>

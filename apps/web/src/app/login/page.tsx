@@ -38,44 +38,43 @@ export default function LoginPage() {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel (large screens) */}
-      <section className="relative isolate hidden overflow-hidden bg-ink-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div aria-hidden className="absolute -left-24 -top-24 -z-10 h-96 w-96 animate-float rounded-full bg-brand-600/50 blur-3xl" />
-        <div aria-hidden className="absolute -bottom-32 right-0 -z-10 h-[28rem] w-[28rem] animate-float rounded-full bg-violet-600/40 blur-3xl [animation-delay:-3s]" />
-        <div aria-hidden className="absolute inset-0 -z-10 opacity-[0.12] [background-image:radial-gradient(rgb(255_255_255/0.7)_1px,transparent_1px)] [background-size:24px_24px]" />
+      {/* Brand panel (large screens): light, calm, with a few product facts. */}
+      <section className="relative isolate hidden overflow-hidden border-r border-slate-200 bg-white p-12 lg:flex lg:flex-col lg:justify-between">
+        <div aria-hidden className="absolute inset-0 -z-10 opacity-70 [background-image:radial-gradient(rgb(148_163_184/0.35)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
+        <div aria-hidden className="absolute -right-24 top-24 -z-10 h-80 w-80 rounded-full bg-sky-100 blur-3xl" />
+        <div aria-hidden className="absolute -bottom-24 left-10 -z-10 h-72 w-72 rounded-full bg-emerald-100/70 blur-3xl" />
         <div className="flex animate-fade-up items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 via-indigo-500 to-violet-600 text-lg font-bold shadow-lg shadow-brand-600/40">S</div>
-          <span className="text-lg font-semibold tracking-tight">School Management</span>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-lg font-bold text-white">S</div>
+          <span className="text-lg font-semibold tracking-tight text-slate-900">School Management</span>
         </div>
         <div className="max-w-md animate-fade-up [animation-delay:120ms]">
-          <h2 className="text-4xl font-semibold leading-tight tracking-tight">
-            Everything your school runs on,{' '}
-            <span className="bg-gradient-to-r from-sky-300 via-indigo-300 to-fuchsia-300 bg-clip-text text-transparent">in one place.</span>
+          <h2 className="text-4xl font-semibold leading-tight tracking-tight text-slate-900">
+            Everything your school runs on, <span className="text-brand-600">in one place.</span>
           </h2>
-          <p className="mt-4 text-white/70">Attendance, fees, exams, homework, results and messages to parents — for principals, teachers, parents and students.</p>
+          <p className="mt-4 text-slate-600">Attendance, fees, exams, homework, results and messages to parents — for principals, teachers, parents and students.</p>
           <div className="mt-8 grid grid-cols-3 gap-3">
             {[
-              ['✓', 'Attendance'],
-              ['₨', 'Fees'],
-              ['✎', 'Results'],
-            ].map(([i, t], n) => (
-              <div key={t} className="glass animate-fade-up rounded-2xl p-4 text-center" style={{ animationDelay: `${240 + n * 90}ms` }}>
-                <div className="text-xl">{i}</div>
-                <div className="mt-1 text-xs text-white/75">{t}</div>
+              ['✓', 'Attendance', 'bg-emerald-50 text-emerald-600 ring-emerald-100'],
+              ['₨', 'Fees', 'bg-sky-50 text-sky-600 ring-sky-100'],
+              ['✎', 'Results', 'bg-amber-50 text-amber-600 ring-amber-100'],
+            ].map(([i, t, c], n) => (
+              <div key={t} className="animate-fade-up rounded-2xl border border-slate-200 bg-white/80 p-4 text-center shadow-sm backdrop-blur" style={{ animationDelay: `${240 + n * 90}ms` }}>
+                <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-xl text-lg ring-1 ${c}`}>{i}</div>
+                <div className="mt-2 text-xs font-medium text-slate-600">{t}</div>
               </div>
             ))}
           </div>
         </div>
-        <p className="text-xs text-white/40">Secure login · your data stays with your school</p>
+        <p className="text-xs text-slate-400">Secure login · your data stays with your school</p>
       </section>
       <div className="flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm animate-fade-up">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 text-lg font-bold text-white shadow-lg shadow-brand-600/30 lg:hidden">S</div>
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-lg font-bold text-white lg:hidden">S</div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Welcome back</h1>
           <p className="mt-1 text-sm text-gray-500">Log in to your school account</p>
         </div>
-        <form onSubmit={submit} className="space-y-4 rounded-3xl border border-gray-200/70 bg-white/90 p-6 shadow-xl shadow-gray-900/[0.06] backdrop-blur">
+        <form onSubmit={submit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg shadow-slate-900/[0.05]">
           <Field label="Username or email">
             <input className="input" autoComplete="username" autoFocus value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
           </Field>

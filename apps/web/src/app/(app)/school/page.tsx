@@ -68,11 +68,11 @@ export default function SchoolDashboard() {
   const todo = [
     fees && fees.pendingHandovers > 0 && { href: '/school/fees', icon: '⇄', label: 'Cash hand-overs to approve', count: fees.pendingHandovers, tone: 'amber' as const },
     data.approvals.sheets > 0 && { href: '/school/exams', icon: '✎', label: 'Marks sheets to approve', count: data.approvals.sheets, tone: 'blue' as const },
-    data.approvals.onlinePapers > 0 && { href: '/online-exams', icon: '⌨', label: 'Online papers waiting for approval', count: data.approvals.onlinePapers, tone: 'violet' as const },
+    data.approvals.onlinePapers > 0 && { href: '/online-exams', icon: '⌨', label: 'Online papers waiting for approval', count: data.approvals.onlinePapers, tone: 'teal' as const },
     data.approvals.onlineResults > 0 && { href: '/online-exams', icon: '✓', label: 'Online exam results to publish', count: data.approvals.onlineResults, tone: 'emerald' as const },
     data.complaints.open > 0 && { href: '/complaints', icon: '⚑', label: 'Open complaints', count: data.complaints.open, tone: 'rose' as const },
     att && att.notMarked > 0 && { href: '/school/attendance', icon: '✓', label: 'Classes without attendance today', count: att.notMarked, tone: 'amber' as const },
-  ].filter(Boolean) as { href: string; icon: string; label: string; count: number; tone: 'amber' | 'blue' | 'violet' | 'emerald' | 'rose' }[];
+  ].filter(Boolean) as { href: string; icon: string; label: string; count: number; tone: 'amber' | 'blue' | 'teal' | 'emerald' | 'rose' }[];
   const setupLeft = checklist && checklist.done < checklist.total;
 
   return (
@@ -87,12 +87,12 @@ export default function SchoolDashboard() {
         subtitle={`Here is what is happening at ${me?.school?.name} today.`}
         aside={
           att && (
-            <div className="glass flex items-center gap-4 rounded-2xl p-4">
-              <Gauge value={att.percent} size={96} stroke={9} color="#a5b4fc" track="rgb(255 255 255 / 0.18)" label={<span className="text-white">{att.percent === null ? '—' : <CountUp value={att.percent} decimals={att.percent % 1 ? 1 : 0} suffix="%" />}</span>} />
+            <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm backdrop-blur">
+              <Gauge value={att.percent} size={96} stroke={9} color="#059669" />
               <div className="text-sm">
-                <div className="font-semibold">Attendance today</div>
-                <div className="text-white/75">{att.totals.ABSENT ?? 0} absent · {att.totals.LATE ?? 0} late</div>
-                <div className="text-white/75">{att.notMarked ? `${att.notMarked} class(es) not marked` : 'All classes marked'}</div>
+                <div className="font-semibold text-slate-900">Attendance today</div>
+                <div className="text-slate-600"><span className="font-medium text-rose-600">{att.totals.ABSENT ?? 0} absent</span> · <span className="font-medium text-amber-600">{att.totals.LATE ?? 0} late</span></div>
+                <div className={att.notMarked ? "text-amber-700" : "text-emerald-700"}>{att.notMarked ? `${att.notMarked} class(es) not marked` : 'All classes marked'}</div>
               </div>
             </div>
           )
@@ -123,14 +123,14 @@ export default function SchoolDashboard() {
             i={3}
             label={data.syllabus !== null ? 'Syllabus covered' : 'Teachers'}
             icon={data.syllabus !== null ? '☷' : '♟'}
-            tone="violet"
+            tone="teal"
             href={data.syllabus !== null ? '/syllabus' : undefined}
             value={data.syllabus !== null ? <CountUp value={data.syllabus} decimals={1} suffix="%" /> : <CountUp value={data.staff.teachers} />}
             hint={data.syllabus !== null ? 'across all classes and subjects' : `${data.staff.staff} office staff`}
           >
             {data.syllabus !== null && (
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
-                <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" style={{ width: `${data.syllabus}%` }} />
+                <div className="h-full origin-left animate-grow-x rounded-full bg-teal-500" style={{ width: `${data.syllabus}%` }} />
               </div>
             )}
           </KpiCard>
@@ -139,11 +139,11 @@ export default function SchoolDashboard() {
         <div className="grid gap-6 lg:grid-cols-3">
           {data.attendanceTrend.length > 1 ? (
             <Panel i={1} className="lg:col-span-2" title="Attendance over the last school days" action={<PanelLink href="/school/attendance">Open</PanelLink>}>
-              <AreaChart data={data.attendanceTrend.map((d) => ({ label: dayShort(d.date), value: d.percent }))} max={100} format={(v) => `${v}%`} />
+              <AreaChart data={data.attendanceTrend.map((d) => ({ label: dayShort(d.date), value: d.percent }))} max={100} format={(v) => `${v}%`} color="#059669" />
             </Panel>
           ) : fees ? (
             <Panel i={1} className="lg:col-span-2" title="Fee collection, last 7 months" action={<PanelLink href="/school/fees">Fees</PanelLink>}>
-              <BarChart data={fees.collection.series.slice(-7).map((s) => ({ label: monthShort(s.month), value: s.amount }))} format={(v) => short(v)} />
+              <BarChart data={fees.collection.series.slice(-7).map((s) => ({ label: monthShort(s.month), value: s.amount }))} format={(v) => short(v)} tone="blue" />
             </Panel>
           ) : (
             <Panel i={1} className="lg:col-span-2" title="Students by class">
@@ -152,7 +152,7 @@ export default function SchoolDashboard() {
           )}
           <Panel i={2} title="Needs your attention">
             {setupLeft && (
-              <Link href="/school/setup" className="mb-3 block rounded-xl bg-gradient-to-r from-brand-50 to-violet-50 p-3 ring-1 ring-brand-100 transition hover:ring-brand-300">
+              <Link href="/school/setup" className="mb-3 block rounded-xl bg-brand-50 p-3 ring-1 ring-brand-100 transition hover:ring-brand-300">
                 <div className="flex items-center justify-between text-sm font-medium text-brand-900">
                   Finish setting up your school
                   <span className="text-xs">
@@ -160,7 +160,7 @@ export default function SchoolDashboard() {
                   </span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
-                  <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-to-r from-brand-500 to-violet-500" style={{ width: `${(checklist!.done / checklist!.total) * 100}%` }} />
+                  <div className="h-full origin-left animate-grow-x rounded-full bg-brand-500" style={{ width: `${(checklist!.done / checklist!.total) * 100}%` }} />
                 </div>
                 <div className="mt-2 text-xs text-brand-800">Next: {checklist!.steps.find((s) => !s.done)?.label}</div>
               </Link>
@@ -186,7 +186,7 @@ export default function SchoolDashboard() {
         <div className="grid items-start gap-6 lg:grid-cols-3">
           {fees && data.attendanceTrend.length > 1 && (
             <Panel i={3} className="lg:col-span-2" title="Fee collection, last 7 months" action={<PanelLink href="/school/fees">Fees</PanelLink>}>
-              <BarChart data={fees.collection.series.slice(-7).map((s) => ({ label: monthShort(s.month), value: s.amount }))} format={(v) => `${cur} ${short(v)}`} />
+              <BarChart data={fees.collection.series.slice(-7).map((s) => ({ label: monthShort(s.month), value: s.amount }))} format={(v) => `${cur} ${short(v)}`} tone="blue" />
             </Panel>
           )}
           <Panel i={4} className={fees && data.attendanceTrend.length > 1 ? '' : 'lg:col-span-1'} title="Students by class">
@@ -220,7 +220,7 @@ export default function SchoolDashboard() {
               <ol className="relative space-y-3 border-l-2 border-dashed border-gray-200 pl-4">
                 {data.upcomingExams.slice(0, 5).map((e) => (
                   <li key={e.id} className="relative">
-                    <span className="absolute -left-[1.4rem] top-1 h-3 w-3 rounded-full border-2 border-white bg-gradient-to-br from-brand-500 to-violet-500 shadow" />
+                    <span className="absolute -left-[1.4rem] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-500 shadow" />
                     <div className="text-xs font-semibold text-brand-700">{e.date ? dayShort(e.date) : 'Date not set'}</div>
                     <div className="text-sm font-medium">
                       {e.subject} · {e.classLabel}
@@ -266,7 +266,7 @@ export default function SchoolDashboard() {
                           </span>
                         </div>
                         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100">
-                          <div className="h-full origin-left animate-grow-x rounded-full bg-gradient-to-r from-emerald-400 to-teal-500" style={{ width: `${pct}%` }} />
+                          <div className="h-full origin-left animate-grow-x rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
                         </div>
                       </Link>
                     </li>

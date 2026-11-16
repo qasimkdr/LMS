@@ -82,8 +82,8 @@ function Chat() {
               <ul className="max-h-[70vh] space-y-0.5 overflow-y-auto">
                 {data.rooms.map((r) => (
                   <li key={r.sectionId}>
-                    <button onClick={() => router.replace(`/chat?room=${r.sectionId}`)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition duration-200 active:scale-[0.98] ${r.sectionId === roomId ? 'bg-gradient-to-r from-brand-50 to-violet-50 ring-1 ring-brand-100' : 'hover:bg-gray-50'}`}>
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 text-sm font-semibold text-white shadow-md shadow-brand-600/20">{r.label.replace(/^Class /, '').slice(0, 3)}</span>
+                    <button onClick={() => router.replace(`/chat?room=${r.sectionId}`)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition duration-200 active:scale-[0.98] ${r.sectionId === roomId ? 'bg-brand-50 ring-1 ring-brand-100' : 'hover:bg-gray-50'}`}>
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500 text-sm font-semibold text-white shadow-md shadow-brand-600/20">{r.label.replace(/^Class /, '').slice(0, 3)}</span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-2">
                           <span className="truncate text-sm font-semibold">{r.label}</span>
@@ -237,7 +237,7 @@ function RoomView({ sectionId, onBack, onChange }: { sectionId: string; onBack?:
                       {teacher && <Badge tone="blue">Teacher</Badge>}
                     </div>
                   )}
-                  <div className={`relative rounded-2xl px-3.5 py-2 text-sm shadow-sm ${m.deleted ? 'bg-gray-100 italic text-gray-400' : m.mine ? 'rounded-br-md bg-gradient-to-br from-brand-500 to-indigo-600 text-white' : teacher ? 'rounded-bl-md bg-violet-50 text-gray-900 ring-1 ring-violet-100' : 'rounded-bl-md bg-white text-gray-900 ring-1 ring-gray-100'} ${m.reported ? 'ring-2 ring-rose-400' : ''}`}>
+                  <div className={`relative rounded-2xl px-3.5 py-2 text-sm shadow-sm ${m.deleted ? 'bg-gray-100 italic text-gray-400' : m.mine ? 'rounded-br-md bg-brand-500 text-white' : teacher ? 'rounded-bl-md bg-teal-50 text-gray-900 ring-1 ring-teal-100' : 'rounded-bl-md bg-white text-gray-900 ring-1 ring-gray-100'} ${m.reported ? 'ring-2 ring-rose-400' : ''}`}>
                     {m.replyTo && (
                       <div className={`mb-1.5 rounded-lg border-l-2 px-2 py-1 text-xs ${m.mine ? 'border-white/60 bg-white/15 text-white/85' : 'border-brand-400 bg-brand-50 text-gray-600'}`}>
                         <span className="font-semibold">{m.replyTo.by}</span>: {m.replyTo.text.slice(0, 80)}

@@ -71,7 +71,7 @@ function Complaints() {
           {data.complaints.map((c, i) => (
             <li key={c.id} className="reveal" style={{ ['--i' as string]: i }}>
               <button onClick={() => router.replace(`/complaints?id=${c.id}`)} className="lift flex w-full flex-wrap items-center gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 text-left shadow-sm">
-                <span className="rounded-xl bg-gradient-to-br from-rose-50 to-orange-50 px-2.5 py-1.5 text-sm font-bold text-rose-700 ring-1 ring-rose-100">#{c.ticketNo}</span>
+                <span className="rounded-xl bg-rose-50 px-2.5 py-1.5 text-sm font-bold text-rose-700 ring-1 ring-rose-100">#{c.ticketNo}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{c.subject}</span>
                   <span className="block truncate text-xs text-gray-500">
@@ -217,7 +217,7 @@ function Detail({ id, onClose, onChange }: { id: string; onClose: () => void; on
             )}
           </div>
           {data.role !== 'PARENT' && (
-            <div className="grid gap-3 rounded-2xl bg-gradient-to-r from-brand-50/60 to-violet-50/60 p-3 sm:grid-cols-2">
+            <div className="grid gap-3 rounded-2xl bg-brand-50/60 p-3 sm:grid-cols-2">
               <Field label="Status">
                 <select className="input" value={data.complaint.status} onChange={(e) => patch({ status: e.target.value })}>
                   {Object.entries(STATUS).map(([k, v]) => (

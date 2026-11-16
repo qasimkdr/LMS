@@ -88,7 +88,7 @@ function NewStudentPage() {
 
   return (
     <>
-      {e && <div className="reveal mb-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">Admitting from enquiry #{e.enquiryNo}. The details from the enquiry are filled in below; complete the rest.</div>}
+      {e && <div className="reveal mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">Admitting from enquiry #{e.enquiryNo}. The details from the enquiry are filled in below; complete the rest.</div>}
       <PageHeader title="New admission" subtitle="Fields marked * are required. The principal chooses which fields are required in Classes & subjects → Admission form." />
       <StudentForm
         key={`${formKey}-${e?.id ?? ''}`}

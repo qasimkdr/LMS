@@ -54,7 +54,7 @@ function Circulars() {
             return (
               <li key={c.id} className="reveal" style={{ ['--i' as string]: i }}>
                 <button onClick={() => router.replace(`/circulars?id=${c.id}`)} className="lift group flex h-full w-full items-start gap-4 rounded-2xl border border-gray-200/70 bg-white p-5 text-left shadow-sm">
-                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg text-white shadow-lg transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110 ${c.read || data.manager ? 'bg-gradient-to-br from-brand-500 to-violet-600 shadow-brand-600/20' : 'bg-gradient-to-br from-rose-500 to-orange-500 shadow-rose-600/25'}`}>✦</span>
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg text-white shadow-lg transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110 ${c.read || data.manager ? 'bg-brand-500 shadow-brand-600/20' : 'bg-rose-500 shadow-rose-600/25'}`}>✦</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className={`truncate ${c.read || data.manager ? 'font-semibold' : 'font-bold'}`}>{c.title}</span>

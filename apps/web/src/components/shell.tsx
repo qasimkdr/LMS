@@ -160,7 +160,7 @@ function SchoolBanner({ school }: { school: NonNullable<Me['school']> }) {
     );
   }
   if (school.effectiveStatus === 'TRIAL' && school.trialEndsAt) {
-    return <div className="border-b border-brand-100 bg-gradient-to-r from-brand-50 via-indigo-50 to-violet-50 px-4 py-2 text-center text-sm text-brand-900">Free trial ends on {date(school.trialEndsAt)}.</div>;
+    return <div className="border-b border-sky-100 bg-sky-50/80 px-4 py-2 text-center text-sm text-sky-900">Free trial ends on {date(school.trialEndsAt)}.</div>;
   }
   return null;
 }
@@ -214,7 +214,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {menuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setMenuOpen(false)}>
           <div className="absolute inset-0 animate-fade-in bg-gray-950/50 backdrop-blur-sm" />
-          <aside className="absolute inset-y-0 left-0 w-72 animate-slide-in shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <aside className="absolute inset-y-0 left-0 w-72 animate-slide-in bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {sidebar}
           </aside>
         </div>
@@ -253,7 +253,35 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Dark sidebar with collapsible groups and an animated active item. */
+/**
+ * Each sidebar section has its own colour; the open page is highlighted in its section's colour,
+ * so people always see which part of the app they are in.
+ */
+const SECTION: Record<string, { dot: string; active: string; chip: string; bar: string; icon: string }> = {
+  blue: { dot: 'bg-blue-500', active: 'bg-blue-50 text-blue-800 ring-blue-100', chip: 'bg-blue-600 text-white shadow-blue-600/30', bar: 'bg-blue-600', icon: 'text-blue-500' },
+  sky: { dot: 'bg-sky-500', active: 'bg-sky-50 text-sky-800 ring-sky-100', chip: 'bg-sky-600 text-white shadow-sky-600/30', bar: 'bg-sky-600', icon: 'text-sky-500' },
+  emerald: { dot: 'bg-emerald-500', active: 'bg-emerald-50 text-emerald-800 ring-emerald-100', chip: 'bg-emerald-600 text-white shadow-emerald-600/30', bar: 'bg-emerald-600', icon: 'text-emerald-500' },
+  amber: { dot: 'bg-amber-500', active: 'bg-amber-50 text-amber-900 ring-amber-100', chip: 'bg-amber-500 text-white shadow-amber-500/30', bar: 'bg-amber-500', icon: 'text-amber-500' },
+  rose: { dot: 'bg-rose-500', active: 'bg-rose-50 text-rose-800 ring-rose-100', chip: 'bg-rose-600 text-white shadow-rose-600/30', bar: 'bg-rose-600', icon: 'text-rose-500' },
+  teal: { dot: 'bg-teal-500', active: 'bg-teal-50 text-teal-800 ring-teal-100', chip: 'bg-teal-600 text-white shadow-teal-600/30', bar: 'bg-teal-600', icon: 'text-teal-500' },
+  slate: { dot: 'bg-slate-400', active: 'bg-slate-100 text-slate-900 ring-slate-200', chip: 'bg-slate-700 text-white shadow-slate-700/30', bar: 'bg-slate-700', icon: 'text-slate-500' },
+};
+const GROUP_COLOR: Record<string, keyof typeof SECTION> = {
+  Platform: 'blue',
+  Overview: 'blue',
+  People: 'sky',
+  Students: 'sky',
+  Academics: 'emerald',
+  Teaching: 'emerald',
+  Learning: 'emerald',
+  Progress: 'amber',
+  Communication: 'rose',
+  School: 'rose',
+  Finance: 'teal',
+  Settings: 'slate',
+};
+
+/** Light frosted sidebar with collapsible, colour-coded sections. */
 function Sidebar({ nav, isActive, me, initial, onLogout }: { nav: NavGroup[]; isActive: (h: string) => boolean; me: Me; initial: string; onLogout: () => void }) {
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   useEffect(() => {
@@ -280,25 +308,25 @@ function Sidebar({ nav, isActive, me, initial, onLogout }: { nav: NavGroup[]; is
     .join('')
     .toUpperCase();
   return (
-    <nav className="relative flex h-full flex-col overflow-hidden bg-ink-950 text-white">
-      <div aria-hidden className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-brand-600/30 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-violet-600/25 blur-3xl" />
-      <div className="relative flex items-center gap-3 px-4 py-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 via-indigo-500 to-violet-600 text-base font-bold shadow-lg shadow-brand-600/40 ring-1 ring-white/20">{initial}</div>
+    <nav className="relative flex h-full flex-col border-r border-slate-200/80 bg-white/80 backdrop-blur-xl">
+      <div className="flex items-center gap-3 px-4 py-5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-base font-bold text-white shadow-sm">{initial}</div>
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">{me.school?.name ?? 'Platform Admin'}</div>
-          <div className="text-xs text-white/50">{roleLabel[me.user.role]}</div>
+          <div className="truncate text-sm font-semibold text-slate-900">{me.school?.name ?? 'Platform Admin'}</div>
+          <div className="text-xs text-slate-500">{roleLabel[me.user.role]}</div>
         </div>
       </div>
-      <div className="relative flex-1 space-y-4 overflow-y-auto px-3 pb-4 [scrollbar-color:rgb(255_255_255/0.15)_transparent] [scrollbar-width:thin]">
+      <div className="flex-1 space-y-3 overflow-y-auto px-3 pb-4 [scrollbar-color:rgb(148_163_184/0.4)_transparent] [scrollbar-width:thin]">
         {nav.map((g) => {
+          const c = SECTION[GROUP_COLOR[g.title] ?? 'slate'];
           const hasActive = g.items.some((n) => isActive(n.href));
           const open = hasActive || !closed[g.title] || nav.length === 1;
           return (
             <div key={g.title}>
               {nav.length > 1 && (
-                <button onClick={() => toggle(g.title)} aria-expanded={open} className="flex w-full items-center justify-between px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35 transition hover:text-white/70">
-                  {g.title}
+                <button onClick={() => toggle(g.title)} aria-expanded={open} className="flex w-full items-center gap-2 px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 transition hover:text-slate-600">
+                  <span className={`h-1.5 w-1.5 rounded-full ${c.dot} ${hasActive ? '' : 'opacity-60'}`} aria-hidden />
+                  <span className="flex-1 text-left">{g.title}</span>
                   <span className={`transition-transform duration-300 ${open ? '' : '-rotate-90'}`} aria-hidden>
                     ▾
                   </span>
@@ -313,12 +341,13 @@ function Sidebar({ nav, isActive, me, initial, onLogout }: { nav: NavGroup[]; is
                         <Link
                           href={n.href}
                           tabIndex={open ? 0 : -1}
+                          aria-current={active ? 'page' : undefined}
                           className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition duration-200 ease-[var(--ease-out-soft)] active:scale-[0.98] ${
-                            active ? 'bg-white/[0.09] font-medium text-white' : 'text-white/65 hover:translate-x-0.5 hover:bg-white/[0.05] hover:text-white'
+                            active ? `font-semibold ring-1 ${c.active}` : 'text-slate-600 hover:translate-x-0.5 hover:bg-slate-100/80 hover:text-slate-900'
                           }`}
                         >
-                          <span className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-brand-300 to-violet-400 transition-all duration-300 ${active ? 'opacity-100' : 'scale-y-0 opacity-0'}`} aria-hidden />
-                          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[13px] transition duration-300 ${active ? 'bg-gradient-to-br from-brand-400 to-violet-500 text-white shadow-md shadow-brand-500/40' : 'text-white/55 group-hover:text-white'}`} aria-hidden>
+                          <span className={`absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full transition-all duration-300 ${c.bar} ${active ? 'opacity-100' : 'scale-y-0 opacity-0'}`} aria-hidden />
+                          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[13px] transition duration-300 ${active ? `shadow-md ${c.chip}` : `${c.icon} opacity-80 group-hover:opacity-100`}`} aria-hidden>
                             {n.icon}
                           </span>
                           <span className="truncate">{n.label}</span>
@@ -332,19 +361,19 @@ function Sidebar({ nav, isActive, me, initial, onLogout }: { nav: NavGroup[]; is
           );
         })}
       </div>
-      <div className="relative border-t border-white/10 p-3">
+      <div className="border-t border-slate-200/80 p-3">
         <div className="flex items-center gap-3 rounded-xl px-2 py-1.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">{initials}</div>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">{initials}</div>
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{me.user.fullName}</div>
-            <div className="truncate text-xs text-white/45">@{me.user.username}</div>
+            <div className="truncate text-sm font-medium text-slate-900">{me.user.fullName}</div>
+            <div className="truncate text-xs text-slate-500">@{me.user.username}</div>
           </div>
         </div>
         <div className="mt-2 flex gap-2">
-          <Link href="/change-password" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-medium text-white/60 transition hover:bg-white/10 hover:text-white">
+          <Link href="/change-password" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
             Password
           </Link>
-          <button onClick={onLogout} className="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium text-white/60 transition hover:bg-white/10 hover:text-white">
+          <button onClick={onLogout} className="flex-1 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
             Log out
           </button>
         </div>

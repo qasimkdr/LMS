@@ -48,7 +48,7 @@ export default function GatePassPage() {
           {data.passes.map((p, i) => (
             <li key={p.id} className="reveal" style={{ ['--i' as string]: i }}>
               <div className="lift relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm">
-                <div aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-amber-400 to-orange-500" />
+                <div aria-hidden className="absolute inset-y-0 left-0 w-1.5 bg-amber-500" />
                 <div className="flex items-start gap-3">
                   <Avatar fileId={p.student?.photoFileId ?? null} name={p.student?.fullName ?? '?'} size={44} />
                   <div className="min-w-0 flex-1">

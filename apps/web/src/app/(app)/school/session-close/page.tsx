@@ -80,7 +80,7 @@ export default function SessionClosePage() {
       <div className="mx-auto max-w-2xl">
         <Card>
           <div className="py-6 text-center">
-            <div className="mx-auto mb-3 flex h-16 w-16 animate-pop items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 text-3xl text-white shadow-xl shadow-emerald-600/30">✓</div>
+            <div className="mx-auto mb-3 flex h-16 w-16 animate-pop items-center justify-center rounded-3xl bg-emerald-500 text-3xl text-white shadow-xl shadow-emerald-600/30">✓</div>
             <h1 className="text-2xl font-semibold tracking-tight">Welcome to session {done.name}</h1>
             <p className="mt-1 text-sm text-gray-600">
               {done.counts.PROMOTE} promoted · {done.counts.RETAIN} stayed in their class · {done.counts.GRADUATE} graduated

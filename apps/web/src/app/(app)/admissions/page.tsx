@@ -46,7 +46,7 @@ interface ListData {
 const STAGE: Record<string, { label: string; tone: Tone; bar: string }> = {
   NEW: { label: 'New', tone: 'blue', bar: 'from-brand-400 to-brand-600' },
   FOLLOW_UP: { label: 'Following up', tone: 'amber', bar: 'from-amber-400 to-orange-500' },
-  TEST: { label: 'Test / interview', tone: 'blue', bar: 'from-violet-400 to-fuchsia-500' },
+  TEST: { label: 'Test / interview', tone: 'blue', bar: 'from-teal-400 to-teal-500' },
   PASSED: { label: 'Passed', tone: 'green', bar: 'from-emerald-400 to-teal-500' },
   WAITLIST: { label: 'Waiting list', tone: 'gray', bar: 'from-gray-300 to-gray-400' },
   FAILED: { label: 'Not passed', tone: 'red', bar: 'from-rose-400 to-red-500' },
@@ -83,7 +83,7 @@ export default function AdmissionsPage() {
         <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{SOURCE[e.source]}</span>
           {e.followUpDate && <span className={`rounded-full px-2 py-0.5 ${overdue ? 'animate-pulse bg-rose-100 font-semibold text-rose-700' : 'bg-amber-50 text-amber-800'}`}>↻ {date(e.followUpDate)}</span>}
-          {e.testAt && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-700">✎ {e.testMarks !== null ? `${e.testMarks}/${e.testTotal ?? '?'}` : date(e.testAt)}</span>}
+          {e.testAt && <span className="rounded-full bg-teal-50 px-2 py-0.5 text-teal-700">✎ {e.testMarks !== null ? `${e.testMarks}/${e.testTotal ?? '?'}` : date(e.testAt)}</span>}
         </div>
       </button>
     );
@@ -95,7 +95,7 @@ export default function AdmissionsPage() {
         <KpiCard i={0} label="Enquiries this month" icon="✦" tone="blue" value={<CountUp value={data.month.enquiries} />} hint={topSource && topSource[1] ? `Most from ${SOURCE[topSource[0]].toLowerCase()}` : undefined} />
         <KpiCard i={1} label="Admitted this month" icon="✓" tone="emerald" value={<CountUp value={data.month.admitted} />} hint={`${conv}% of this month's enquiries`} />
         <KpiCard i={2} label="Follow-ups due" icon="↻" tone="rose" value={<CountUp value={data.due} />} hint="today or overdue" />
-        <KpiCard i={3} label="In the pipeline" icon="⇢" tone="violet" value={<CountUp value={BOARD.reduce((s, k) => s + (data.counts[k] ?? 0), 0)} />} hint={`${data.counts.ADMITTED ?? 0} admitted in total`} />
+        <KpiCard i={3} label="In the pipeline" icon="⇢" tone="teal" value={<CountUp value={BOARD.reduce((s, k) => s + (data.counts[k] ?? 0), 0)} />} hint={`${data.counts.ADMITTED ?? 0} admitted in total`} />
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(
@@ -328,7 +328,7 @@ function Detail({ id, onClose, onChange }: { id: string; onClose: () => void; on
         </div>
 
         {closed ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 p-4 text-sm text-emerald-900 ring-1 ring-emerald-100">
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900 ring-1 ring-emerald-100">
             ✓ Admitted.
             {e.studentId && (
               <Link href={`/school/students/${e.studentId}`} className="font-semibold underline">
@@ -353,8 +353,8 @@ function Detail({ id, onClose, onChange }: { id: string; onClose: () => void; on
                 Not joining
               </Button>
             </div>
-            <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-4">
-              <div className="mb-3 text-sm font-semibold text-violet-900">Admission test / interview</div>
+            <div className="rounded-2xl border border-teal-100 bg-teal-50/40 p-4">
+              <div className="mb-3 text-sm font-semibold text-teal-900">Admission test / interview</div>
               <div className="grid gap-3 sm:grid-cols-4">
                 <Field label="Date & time">
                   <input className="input" type="datetime-local" value={t.at} onChange={(x) => setTest({ ...t, at: x.target.value })} />
@@ -409,7 +409,7 @@ function Detail({ id, onClose, onChange }: { id: string; onClose: () => void; on
           <ol className="relative space-y-3 border-l-2 border-gray-100 pl-5">
             {data.notes.map((n) => (
               <li key={n.id} className="relative animate-fade-up text-sm">
-                <span className="absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-gradient-to-br from-amber-400 to-orange-500 shadow" />
+                <span className="absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-white bg-amber-500 shadow" />
                 <p>{n.text}</p>
                 <div className="text-xs text-gray-400">
                   {n.author} · {dateTime(n.createdAt)}

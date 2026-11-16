@@ -13,7 +13,7 @@ export const STATUS = {
   ABSENT: { short: 'A', label: 'Absent', on: 'bg-red-600 text-white border-red-600', cell: 'bg-red-100 text-red-800' },
   LATE: { short: 'L', label: 'Late', on: 'bg-amber-500 text-white border-amber-500', cell: 'bg-amber-100 text-amber-800' },
   LEAVE: { short: 'Lv', label: 'Leave', on: 'bg-sky-600 text-white border-sky-600', cell: 'bg-sky-100 text-sky-800' },
-  HALF_DAY: { short: 'H', label: 'Half day', on: 'bg-violet-600 text-white border-violet-600', cell: 'bg-violet-100 text-violet-800' },
+  HALF_DAY: { short: 'H', label: 'Half day', on: 'bg-teal-600 text-white border-teal-600', cell: 'bg-teal-100 text-teal-800' },
 } as const;
 export type Status = keyof typeof STATUS;
 const ORDER: Status[] = ['PRESENT', 'ABSENT', 'LATE', 'LEAVE', 'HALF_DAY'];
